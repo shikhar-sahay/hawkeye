@@ -1,77 +1,74 @@
-let logs = [];
-
-async function fetchLogs() {
+async function fetchEvents() {
     try {
-        const response = await fetch('/logs');
-        logs = await response.json();
-        updateLogTable();
-        updateAttackPath();
-        updateRisk();
-    } catch (err) {
-        console.error("Error fetching logs:", err);
-    }
+        const res = await fetch('/events');
+        const data = await res.json();
+        updateLogs(data.events);
+        updateTimeline(data.events);
+    } catch (e) {}
 }
 
-function updateLogTable() {
+async function fetchRisk() {
+    try {
+        const res = await fetch('/risk');
+        const data = await res.json();
+        document.getElementById('risk-display').innerText = data.risk_score;
+    } catch (e) {}
+}
+
+async function fetchAttackGraph() {
+    try {
+        const res = await fetch('/attack-graph');
+        const data = await res.json();
+        renderGraph(data);
+    } catch (e) {}
+}
+
+function updateLogs(events) {
     const tbody = document.getElementById('log-body');
     tbody.innerHTML = '';
-    logs.slice(-20).reverse().forEach(log => {
+    events.slice(-20).reverse().forEach(e => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${log.timestamp}</td>
-            <td>${log.source}</td>
-            <td>${log.event}</td>
-            <td>${log.ip}</td>
-            <td>${log.severity}</td>
-            <td>${log.geo}</td>
-            <td>${log.threat_score}</td>
+            <td>${e.timestamp}</td>
+            <td>${e.source}</td>
+            <td>${e.event_type}</td>
+            <td>${e.severity}</td>
         `;
         tbody.appendChild(tr);
     });
 }
 
-function updateRisk() {
-    let risk = 0;
-    logs.slice(-20).forEach(log => {
-        if(log.severity === 'low') risk += 10;
-        else if(log.severity === 'medium') risk += 30;
-        else if(log.severity === 'high') risk += 60;
+function updateTimeline(events) {
+    const timeline = document.getElementById('timeline');
+    timeline.innerHTML = '';
+    events.slice(-10).reverse().forEach(e => {
+        const li = document.createElement('li');
+        li.innerText = `${e.timestamp} → ${e.event_type} (${e.severity})`;
+        timeline.appendChild(li);
     });
-    risk = Math.min(risk, 100);
-    document.getElementById('risk-display').innerText = `Risk Score: ${risk}/100`;
 }
 
-function updateAttackPath() {
-    const nodes = [];
-    const edges = [];
-    const lastLogs = logs.slice(-10); 
-    lastLogs.forEach((log, index) => {
-        nodes.push({id: index, label: log.event, color: log.severity==='high'?'red':log.severity==='medium'?'yellow':'green'});
-        if(index>0) edges.push({from: index-1, to: index});
-    });
+function renderGraph(graph) {
+    if (!graph.nodes || graph.nodes.length === 0) return;
 
-    const data = [{
-        type: 'scatter',
-        x: nodes.map((_,i)=>i*2),
-        y: nodes.map(()=>Math.random()*5),
+    const trace = {
+        x: graph.nodes.map((_, i) => i * 2),
+        y: graph.nodes.map(() => Math.random() * 5),
+        text: graph.nodes,
         mode: 'markers+text',
-        text: nodes.map(n=>n.label),
-        marker: {size: 20, color: nodes.map(n=>n.color)},
-        textposition: 'top center'
-    }];
-    Plotly.newPlot('attack-path-graph', data, {margin:{t:20}});
+        textposition: 'top center',
+        marker: { size: 22 }
+    };
+
+    Plotly.newPlot('attack-path-graph', [trace], { margin: { t: 20 } });
 }
 
-async function uploadLogs() {
-    const fileInput = document.getElementById('log-file');
-    const file = fileInput.files[0];
-    if(!file) return;
-    const formData = new FormData();
-    formData.append('file', file);
-    const res = await fetch('/logs', {method:'POST', body: formData});
-    const data = await res.json();
-    document.getElementById('upload-status').innerText = data.message;
-}
+setInterval(() => {
+    fetchEvents();
+    fetchRisk();
+    fetchAttackGraph();
+}, 2000);
 
-setInterval(fetchLogs, 2000);
-fetchLogs();
+fetchEvents();
+fetchRisk();
+fetchAttackGraph();
