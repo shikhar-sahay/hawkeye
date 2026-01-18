@@ -150,6 +150,7 @@ def upload_logs():
             line = line.strip()
             if not line: continue
 
+            # Infer event type and severity
             if "fail" in line.lower() or "invalid" in line.lower():
                 event_type = "login_failure"
                 severity = "medium"
@@ -163,8 +164,10 @@ def upload_logs():
                 event_type = "click"
                 severity = "low"
 
+            # Assign random geo and IP
             geo = random.choice(list(s["geo"] for s in SIMULATED_SOURCES.values()))
             ip = f"{random.randint(1,255)}.{random.randint(0,255)}.{random.randint(0,255)}.{random.randint(0,255)}"
+
             event = enrich_event(event_type, severity, "uploaded_log", ip, geo)
             event["raw_line"] = line
             EVENTS.append(event)
