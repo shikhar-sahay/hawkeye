@@ -1,11 +1,14 @@
 console.log("HawkEye script loaded");
+
 async function fetchEvents() {
     try {
         const res = await fetch('/events');
         const data = await res.json();
         updateLogTable(data.events);
         updateTimeline(data.events);
-    } catch (e) {}
+    } catch (e) {
+        console.error("Failed to fetch events:", e);
+    }
 }
 
 async function fetchRisk() {
@@ -13,8 +16,10 @@ async function fetchRisk() {
         const res = await fetch('/risk');
         const data = await res.json();
         document.getElementById('risk-display').innerText =
-    `Risk: ${data.risk_score}/100 | Attack Progress: ${data.progression_risk}%`;
-    } catch (e) {}
+            `Risk: ${data.risk_score}/100 | Attack Progress: ${data.progression_risk}%`;
+    } catch (e) {
+        console.error("Failed to fetch risk:", e);
+    }
 }
 
 async function fetchAttackGraph() {
@@ -22,21 +27,28 @@ async function fetchAttackGraph() {
         const res = await fetch('/attack-graph');
         const data = await res.json();
         renderGraph(data);
-    } catch (e) {}
+    } catch (e) {
+        console.error("Failed to fetch attack graph:", e);
+    }
 }
 
 function updateLogTable(events) {
     const tbody = document.getElementById('log-body');
     tbody.innerHTML = '';
     events.slice(-20).reverse().forEach(e => {
+        const ts = new Date(e.timestamp);
+        const geoDisplay = e.geo
+            ? (e.geo.city ? `${e.geo.city}, ${e.geo.country}` : e.geo.country)
+            : "Unknown";
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${e.timestamp}</td>
+            <td>${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}</td>
             <td>${e.source}</td>
             <td>${e.event_type}</td>
             <td>${e.ip}</td>
             <td>${e.severity}</td>
-            <td>${e.geo}</td>
+            <td>${geoDisplay}</td>
             <td>${e.threat_score}</td>
         `;
         tbody.appendChild(tr);
@@ -47,8 +59,14 @@ function updateTimeline(events) {
     const timeline = document.getElementById('timeline');
     timeline.innerHTML = '';
     events.slice(-10).reverse().forEach(e => {
+        const ts = new Date(e.timestamp);
+        const timeStr = `${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}`;
+        const geoDisplay = e.geo
+            ? (e.geo.city ? `${e.geo.city}, ${e.geo.country}` : e.geo.country)
+            : "Unknown";
+
         const li = document.createElement('li');
-        li.innerText = `${e.timestamp} → ${e.event_type} (${e.severity})`;
+        li.innerText = `${timeStr} → ${e.event_type} (${e.severity}) [${geoDisplay}]`;
         timeline.appendChild(li);
     });
 }
@@ -82,16 +100,20 @@ function renderGraph(graph) {
     Plotly.react('attack-path-graph', [trace], layout);
 }
 
-
 async function uploadLogs() {
     const fileInput = document.getElementById('log-file');
     const file = fileInput.files[0];
     if (!file) return;
     const formData = new FormData();
     formData.append('file', file);
-    const res = await fetch('/logs', { method: 'POST', body: formData });
-    const data = await res.json();
-    document.getElementById('upload-status').innerText = data.message;
+    try {
+        const res = await fetch('/logs', { method: 'POST', body: formData });
+        const data = await res.json();
+        document.getElementById('upload-status').innerText = data.message;
+    } catch (e) {
+        console.error("Failed to upload logs:", e);
+        document.getElementById('upload-status').innerText = "Upload failed";
+    }
 }
 
 setInterval(() => {
