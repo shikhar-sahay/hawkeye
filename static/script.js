@@ -45,7 +45,7 @@ function updateLogTable(events) {
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}</td>
+            <td title="${e.raw_line || ''}">${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}</td>
             <td>${e.source}</td>
             <td>${e.event_type}</td>
             <td>${e.ip}</td>
@@ -69,6 +69,7 @@ function updateTimeline(events) {
 
         const li = document.createElement('li');
         li.innerText = `${timeStr} → ${e.event_type} (${e.severity}) [${geoDisplay}]`;
+        if(e.raw_line) li.title = e.raw_line; // tooltip for uploaded logs
         timeline.appendChild(li);
     });
 }
@@ -76,29 +77,15 @@ function updateTimeline(events) {
 function renderGraph(graph) {
     if (!graph.nodes || graph.nodes.length === 0) return;
 
-    const x = [];
-    const y = [];
-
-    graph.nodes.forEach((_, i) => {
-        x.push(i * 2);
-        y.push(1);
-    });
+    const x = [], y = [];
+    graph.nodes.forEach((_, i) => { x.push(i*2); y.push(1); });
 
     const trace = {
-        x,
-        y,
-        text: graph.nodes,
-        mode: 'markers+text',
-        textposition: 'top center',
-        marker: { size: 22 }
+        x, y, text: graph.nodes, mode: 'markers+text',
+        textposition: 'top center', marker: { size: 22 }
     };
 
-    const layout = {
-        xaxis: { visible: false },
-        yaxis: { visible: false },
-        margin: { t: 30, l: 20, r: 20, b: 20 }
-    };
-
+    const layout = { xaxis:{visible:false}, yaxis:{visible:false}, margin:{t:30,l:20,r:20,b:20} };
     Plotly.react('attack-path-graph', [trace], layout);
 }
 
@@ -112,6 +99,9 @@ async function uploadLogs() {
         const res = await fetch(`${BASE_URL}/logs`, { method: 'POST', body: formData });
         const data = await res.json();
         document.getElementById('upload-status').innerText = data.message;
+        fetchEvents(); // refresh immediately after upload
+        fetchAttackGraph();
+        fetchRisk();
     } catch (e) {
         console.error("Failed to upload logs:", e);
         document.getElementById('upload-status').innerText = "Upload failed";
