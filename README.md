@@ -1,4 +1,4 @@
-# 🦅 HawkEye – Attack Simulation & Risk Visualization Platform
+# 🦅 HawkEye – Attack & Risk Visualization SIEM
 
 HawkEye is a lightweight cybersecurity simulation and visualization platform that models attack behavior, correlates events into attack paths, and computes real‑time risk scores. It is designed for learning, demonstrations, and security analytics experimentation.
 
