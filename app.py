@@ -148,7 +148,7 @@ def upload_logs():
             correlate_event(event)
             global RISK_SCORE
             added += 1
-    return jsonify({"message":f"{added} log events ingested successfully"})
+    return jsonify({"message":f"{added} log events ingested successfully."})
 
 if __name__ == "__main__":
     threading.Thread(target=simulator,daemon=True).start()
