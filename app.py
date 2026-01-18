@@ -1,56 +1,118 @@
-from flask import Flask, render_template, request, jsonify
-from flask_cors import CORS
-import random, time, threading, datetime, json
+from flask import Flask, request, jsonify, render_template
+from datetime import datetime
+import threading
+import time
+import random
+import os
 
 app = Flask(__name__)
-CORS(app)
 
-logs = []
-attack_paths = []
+EVENTS = []
+RISK_SCORE = 0
+SOURCES = {}
+ATTACK_PATHS = []
+LOCK = threading.Lock()
 
-def enrich_log(log):
-    log['geo'] = random.choice(['New York, USA','London, UK','Mumbai, India','Berlin, Germany'])
-    log['threat_score'] = random.randint(10,90)
-    return log
-
-def simulate_logs():
-    event_types = ['failed_login','api_request','honeypot_trigger','file_access','error_spike']
-    sources = ['webserver','app','system','honeypot']
-    while True:
-        log = {
-            'timestamp': datetime.datetime.now().isoformat(),
-            'source': random.choice(sources),
-            'event': random.choice(event_types),
-            'ip': f"192.168.{random.randint(0,255)}.{random.randint(0,255)}",
-            'severity': random.choice(['low','medium','high']),
-            'message': 'Simulated event'
-        }
-        log = enrich_log(log)
-        logs.append(log)
-        time.sleep(random.randint(1,3))
-
-threading.Thread(target=simulate_logs, daemon=True).start()
-
-@app.route('/')
+@app.route("/")
 def index():
-    return render_template('index.html')
+    return render_template("index.html")
 
-@app.route('/logs', methods=['GET','POST'])
-def handle_logs():
-    global logs
-    if request.method == 'POST':
-        uploaded_file = request.files.get('file')
-        if uploaded_file:
-            try:
-                file_logs = json.load(uploaded_file)
-                for log in file_logs:
-                    logs.append(enrich_log(log))
-                return jsonify({"status":"success","message":"Logs uploaded successfully"})
-            except Exception as e:
-                return jsonify({"status":"error","message": str(e)})
-        return jsonify({"status":"error","message":"No file uploaded"})
-    else:  
-        return jsonify(logs[-50:])  
+def calculate_risk(severity):
+    if severity == "high":
+        return 10
+    if severity == "medium":
+        return 5
+    return 1
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+def correlate_event(event):
+    source = event["source"]
+    if source not in SOURCES:
+        SOURCES[source] = []
+    SOURCES[source].append(event)
+    if len(SOURCES[source]) >= 3:
+        chain = [e["event_type"] for e in SOURCES[source][-3:]]
+        ATTACK_PATHS.append({
+            "source": source,
+            "path": chain,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        return 15
+    return 0
+
+@app.route("/ingest", methods=["POST"])
+def ingest_event():
+    global RISK_SCORE
+    data = request.json or {}
+    event = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "source": data.get("source", request.remote_addr),
+        "event_type": data.get("event_type", "unknown"),
+        "severity": data.get("severity", "low"),
+        "metadata": data.get("metadata", {})
+    }
+    with LOCK:
+        EVENTS.append(event)
+        RISK_SCORE += calculate_risk(event["severity"])
+        RISK_SCORE += correlate_event(event)
+    return jsonify({"status": "ingested"})
+
+@app.route("/events")
+def get_events():
+    with LOCK:
+        return jsonify(EVENTS[-50:])
+
+@app.route("/risk")
+def get_risk():
+    return jsonify({"risk_score": RISK_SCORE})
+
+@app.route("/attack-paths")
+def get_attack_paths():
+    with LOCK:
+        return jsonify(ATTACK_PATHS[-10:])
+
+@app.route("/honeypot")
+def honeypot():
+    global RISK_SCORE
+    event = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "source": request.remote_addr,
+        "event_type": "honeypot_access",
+        "severity": "high",
+        "metadata": {
+            "path": request.path,
+            "user_agent": request.headers.get("User-Agent")
+        }
+    }
+    with LOCK:
+        EVENTS.append(event)
+        RISK_SCORE += calculate_risk("high")
+        RISK_SCORE += correlate_event(event)
+    return jsonify({"status": "ok"})
+
+def simulate_attacks():
+    global RISK_SCORE
+    patterns = [
+        ("route_probe", "low"),
+        ("rapid_cart_activity", "medium"),
+        ("bot_like_behavior", "medium"),
+        ("honeypot_access", "high")
+    ]
+    while True:
+        event_type, severity = random.choice(patterns)
+        event = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "source": "simulator",
+            "event_type": event_type,
+            "severity": severity,
+            "metadata": {}
+        }
+        with LOCK:
+            EVENTS.append(event)
+            RISK_SCORE += calculate_risk(severity)
+            RISK_SCORE += correlate_event(event)
+        time.sleep(4)
+
+if __name__ == "__main__":
+    threading.Thread(target=simulate_attacks, daemon=True).start()
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
