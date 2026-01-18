@@ -13,39 +13,34 @@
     </header>
 
     <main>
-        <section id="logs-section">
+        <section>
+            <h2>Predicted Risk</h2>
+            <div id="risk-display">0</div>
+        </section>
+
+        <section>
             <h2>Live Logs</h2>
-            <table id="log-table">
+            <table>
                 <thead>
                     <tr>
                         <th>Timestamp</th>
                         <th>Source</th>
                         <th>Event</th>
-                        <th>IP</th>
                         <th>Severity</th>
-                        <th>Geo</th>
-                        <th>Threat Score</th>
                     </tr>
                 </thead>
                 <tbody id="log-body"></tbody>
             </table>
         </section>
 
-        <section id="attack-path-section">
-            <h2>Attack Path</h2>
+        <section>
+            <h2>Attack Timeline</h2>
+            <ul id="timeline"></ul>
+        </section>
+
+        <section>
+            <h2>Attack Graph</h2>
             <div id="attack-path-graph" style="width:100%;height:500px;"></div>
-        </section>
-
-        <section id="risk-section">
-            <h2>Predicted Risk</h2>
-            <div id="risk-display">Loading...</div>
-        </section>
-
-        <section id="upload-section">
-            <h2>Upload Logs</h2>
-            <input type="file" id="log-file">
-            <button onclick="uploadLogs()">Upload</button>
-            <p id="upload-status"></p>
         </section>
     </main>
 
