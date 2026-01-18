@@ -1,6 +1,6 @@
 console.log("HawkEye script loaded");
 
-const BASE_URL = "https://hawkeye-i1bt.onrender.com"; 
+const BASE_URL = "https://hawkeye-i1bt.onrender.com";
 
 async function fetchEvents() {
     try {
@@ -39,9 +39,7 @@ function updateLogTable(events) {
     tbody.innerHTML = '';
     events.slice(-20).reverse().forEach(e => {
         const ts = new Date(e.timestamp);
-        const geoDisplay = e.geo
-            ? (e.geo.city ? `${e.geo.city}, ${e.geo.country}` : e.geo.country)
-            : "Unknown";
+        const geoDisplay = e.geo ? (e.geo.city ? `${e.geo.city}, ${e.geo.country}` : e.geo.country) : "Unknown";
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -54,6 +52,8 @@ function updateLogTable(events) {
             <td>${e.threat_score}</td>
         `;
         tbody.appendChild(tr);
+        tr.style.opacity = 0;
+        setTimeout(() => tr.style.opacity = 1, 50); 
     });
 }
 
@@ -63,14 +63,14 @@ function updateTimeline(events) {
     events.slice(-10).reverse().forEach(e => {
         const ts = new Date(e.timestamp);
         const timeStr = `${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}`;
-        const geoDisplay = e.geo
-            ? (e.geo.city ? `${e.geo.city}, ${e.geo.country}` : e.geo.country)
-            : "Unknown";
+        const geoDisplay = e.geo ? (e.geo.city ? `${e.geo.city}, ${e.geo.country}` : e.geo.country) : "Unknown";
 
         const li = document.createElement('li');
         li.innerText = `${timeStr} → ${e.event_type} (${e.severity}) [${geoDisplay}]`;
-        if(e.raw_line) li.title = e.raw_line; // tooltip for uploaded logs
+        if(e.raw_line) li.title = e.raw_line;
         timeline.appendChild(li);
+        li.style.opacity = 0;
+        setTimeout(() => li.style.opacity = 1, 50);
     });
 }
 
@@ -82,7 +82,7 @@ function renderGraph(graph) {
 
     const trace = {
         x, y, text: graph.nodes, mode: 'markers+text',
-        textposition: 'top center', marker: { size: 22 }
+        textposition: 'top center', marker: { size: 22, color: '#ff4d4d' }
     };
 
     const layout = { xaxis:{visible:false}, yaxis:{visible:false}, margin:{t:30,l:20,r:20,b:20} };
@@ -99,7 +99,7 @@ async function uploadLogs() {
         const res = await fetch(`${BASE_URL}/logs`, { method: 'POST', body: formData });
         const data = await res.json();
         document.getElementById('upload-status').innerText = data.message;
-        fetchEvents(); // refresh immediately after upload
+        fetchEvents();
         fetchAttackGraph();
         fetchRisk();
     } catch (e) {
