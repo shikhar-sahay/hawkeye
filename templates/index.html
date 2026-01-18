@@ -5,6 +5,7 @@
     <title>HawkEye SIEM Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <header>
@@ -43,13 +44,15 @@
 
         <section id="risk-section">
             <h2>Predicted Risk</h2>
-            <div id="risk-display">0</div>
+            <div id="risk-display">Risk: 0/100 | Attack Progress: 0%</div>
         </section>
 
         <section id="upload-section">
             <h2>Upload Logs</h2>
-            <input type="file" id="log-file">
-            <button onclick="uploadLogs()">Upload</button>
+            <div class="upload-container">
+                <input type="file" id="log-file">
+                <button onclick="uploadLogs()">Upload</button>
+            </div>
             <p id="upload-status"></p>
         </section>
     </main>
