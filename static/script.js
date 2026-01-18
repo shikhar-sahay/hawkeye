@@ -89,8 +89,19 @@ function renderGraph(graph) {
     Plotly.react('attack-path-graph', [trace], layout);
 }
 
+const fileInput = document.getElementById('log-file');
+const fileNameDisplay = document.getElementById('file-name');
+const fileLabel = document.querySelector('.custom-file-upload');
+
+fileInput.addEventListener('change', () => {
+    if (fileInput.files.length > 0) {
+        fileNameDisplay.innerText = fileInput.files[0].name;
+    } else {
+        fileNameDisplay.innerText = "No file chosen";
+    }
+});
+
 async function uploadLogs() {
-    const fileInput = document.getElementById('log-file');
     const file = fileInput.files[0];
     if (!file) return;
     const formData = new FormData();
