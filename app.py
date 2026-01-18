@@ -78,7 +78,6 @@ def simulator():
         with LOCK:
             EVENTS.append(event)
             correlate_event(event)
-            RISK_SCORE = min(RISK_SCORE+calculate_risk(severity),100)
         stage = (stage+1) % len(ATTACK_ORDER)
         time.sleep(2.5)
 
@@ -88,7 +87,16 @@ def index(): return render_template("index.html")
 def get_events(): 
     with LOCK: return jsonify({"events": EVENTS[-100:]})
 @app.route("/risk")
-def risk(): return jsonify({"risk_score":RISK_SCORE,"progression_risk":progression_risk()})
+def risk():
+    with LOCK:
+        base_risk = 0
+        if ATTACK_CHAINS:
+            chain = ATTACK_CHAINS[-1]
+            for e in chain:
+                base_risk += calculate_risk(e["severity"])
+        risk_score = min(base_risk, 100)
+        progression = int((len(ATTACK_CHAINS[-1])/len(ATTACK_ORDER))*100) if ATTACK_CHAINS else 0
+        return jsonify({"risk_score": risk_score, "progression_risk": progression})
 @app.route("/attack-graph")
 def attack_graph():
     if not ATTACK_CHAINS: return jsonify({"nodes":[],"edges":[]})
@@ -139,7 +147,6 @@ def upload_logs():
             EVENTS.append(event)
             correlate_event(event)
             global RISK_SCORE
-            RISK_SCORE = min(RISK_SCORE+calculate_risk(severity),100)
             added += 1
     return jsonify({"message":f"{added} log events ingested successfully"})
 
