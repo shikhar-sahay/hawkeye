@@ -79,7 +79,7 @@ def simulator():
             EVENTS.append(event)
             correlate_event(event)
         stage = (stage+1) % len(ATTACK_ORDER)
-        time.sleep(2.5)
+        time.sleep(random.uniform(4,7))
 
 @app.route("/")
 def index(): return render_template("index.html")
