@@ -27,7 +27,7 @@
                         <th>Event</th>
                         <th>IP</th>
                         <th>Severity</th>
-                        <th>Geo</th>
+                        <th>Geolocation</th>
                         <th>Threat Score</th>
                     </tr>
                 </thead>
@@ -53,7 +53,12 @@
         <section id="upload-section">
             <h2>Upload Logs</h2>
             <div class="upload-container">
-                <input type="file" id="log-file">
+                <label class="custom-file-upload">
+                    <img src="{{ url_for('static', filename='hawkeyelogo.png') }}" alt="Logo" class="upload-icon">
+                    Choose File
+                    <input type="file" id="log-file" onchange="updateFileName()">
+                </label>
+                <span id="file-name">No file chosen</span>
                 <button onclick="uploadLogs()">Upload</button>
             </div>
             <p id="upload-status"></p>
@@ -61,5 +66,12 @@
     </main>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        function updateFileName() {
+            const input = document.getElementById('log-file');
+            const fileName = input.files.length ? input.files[0].name : "No file chosen";
+            document.getElementById('file-name').innerText = fileName;
+        }
+    </script>
 </body>
 </html>
