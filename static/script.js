@@ -1,8 +1,10 @@
 console.log("HawkEye script loaded");
 
+const BASE_URL = "https://hawkeye-i1bt.onrender.com"; 
+
 async function fetchEvents() {
     try {
-        const res = await fetch('/events');
+        const res = await fetch(`${BASE_URL}/events`);
         const data = await res.json();
         updateLogTable(data.events);
         updateTimeline(data.events);
@@ -13,7 +15,7 @@ async function fetchEvents() {
 
 async function fetchRisk() {
     try {
-        const res = await fetch('/risk');
+        const res = await fetch(`${BASE_URL}/risk`);
         const data = await res.json();
         document.getElementById('risk-display').innerText =
             `Risk: ${data.risk_score}/100 | Attack Progress: ${data.progression_risk}%`;
@@ -24,7 +26,7 @@ async function fetchRisk() {
 
 async function fetchAttackGraph() {
     try {
-        const res = await fetch('/attack-graph');
+        const res = await fetch(`${BASE_URL}/attack-graph`);
         const data = await res.json();
         renderGraph(data);
     } catch (e) {
@@ -107,7 +109,7 @@ async function uploadLogs() {
     const formData = new FormData();
     formData.append('file', file);
     try {
-        const res = await fetch('/logs', { method: 'POST', body: formData });
+        const res = await fetch(`${BASE_URL}/logs`, { method: 'POST', body: formData });
         const data = await res.json();
         document.getElementById('upload-status').innerText = data.message;
     } catch (e) {

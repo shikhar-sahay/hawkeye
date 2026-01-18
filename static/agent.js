@@ -1,5 +1,5 @@
 (function() {
-    const HAWKEYE_URL = "https://YOUR-HAWKEYE-URL"; 
+    const HAWKEYE_URL = "https://hawkeye-i1bt.onrender.com/"; 
 
     function sendEvent(type, metadata={}) {
         fetch(`${HAWKEYE_URL}/ingest`, {
