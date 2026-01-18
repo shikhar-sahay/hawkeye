@@ -36,6 +36,30 @@ ATTACK_ORDER = [
     "honeypot_access"
 ]
 
+# ---- Dummy attacker infrastructure ----
+SIMULATED_SOURCES = {
+    "scanner_eu": {
+        "ip": "185.220.101.45",
+        "geo": {"city": "Frankfurt", "country": "Germany", "lat": 50.11, "lon": 8.68}
+    },
+    "botnet_cn": {
+        "ip": "103.21.244.10",
+        "geo": {"city": "Shenzhen", "country": "China", "lat": 22.54, "lon": 114.05}
+    },
+    "tor_exit": {
+        "ip": "51.68.174.12",
+        "geo": {"city": "Paris", "country": "France", "lat": 48.85, "lon": 2.35}
+    },
+    "cloud_probe_us": {
+        "ip": "34.207.112.98",
+        "geo": {"city": "Ashburn", "country": "USA", "lat": 39.04, "lon": -77.48}
+    },
+    "credential_stuffer_in": {
+        "ip": "49.207.36.112",
+        "geo": {"city": "Bengaluru", "country": "India", "lat": 12.97, "lon": 77.59}
+    }
+}
+
 def progression_risk():
     if not ATTACK_CHAINS:
         return 0
@@ -49,20 +73,19 @@ def calculate_risk(severity):
         return 10
     return 3
 
-def enrich_event(event_type, severity, source, ip=None):
+def enrich_event(event_type, severity, source, ip, geo):
     tactic, technique = MITRE_MAP.get(event_type, ("Unknown", "N/A"))
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "source": source,
         "event_type": event_type,
         "severity": severity,
-        "ip": ip or "internal",
-        "geo": random.choice(["IN", "US", "RU", "CN", "DE"]),
-        "threat_score": random.randint(20, 90),
+        "ip": ip,
+        "geo": geo,
+        "threat_score": random.randint(30, 95),
         "mitre_tactic": tactic,
         "mitre_technique": technique
     }
-
 
 def correlate_event(event):
     if not ATTACK_CHAINS:
@@ -82,7 +105,12 @@ def correlate_event(event):
 def simulator():
     global RISK_SCORE
     stage = 0
+    source_names = list(SIMULATED_SOURCES.keys())
+
     while True:
+        source = random.choice(source_names)
+        infra = SIMULATED_SOURCES[source]
+
         event_type = ATTACK_ORDER[stage]
         severity = "low"
         if event_type in ["brute_force", "privilege_escalation"]:
@@ -90,7 +118,13 @@ def simulator():
         if event_type == "honeypot_access":
             severity = "high"
 
-        event = enrich_event(event_type, severity, "simulator", ip="127.0.0.1")
+        event = enrich_event(
+            event_type,
+            severity,
+            source,
+            ip=infra["ip"],
+            geo=infra["geo"]
+        )
 
         with LOCK:
             EVENTS.append(event)
@@ -98,7 +132,7 @@ def simulator():
             RISK_SCORE = min(RISK_SCORE + calculate_risk(severity), 100)
 
         stage = (stage + 1) % len(ATTACK_ORDER)
-        time.sleep(3)
+        time.sleep(2.5)
 
 @app.route("/")
 def index():
@@ -124,42 +158,23 @@ def attack_graph():
     chain = ATTACK_CHAINS[-1]
     nodes = [f'{e["event_type"]}\n{e["mitre_technique"]}' for e in chain]
     edges = [(i, i + 1) for i in range(len(nodes) - 1)]
-
     return jsonify({"nodes": nodes, "edges": edges})
-
-@app.route("/honeypot")
-def honeypot():
-    global RISK_SCORE
-    event = enrich_event(
-    "honeypot_access",
-    "high",
-    "honeypot",
-    ip=request.headers.get("X-Forwarded-For", request.remote_addr)
-)
-    with LOCK:
-        EVENTS.append(event)
-        correlate_event(event)
-        RISK_SCORE = min(RISK_SCORE + calculate_risk("high"), 100)
-    return jsonify({"status": "ok"})
-
-@app.route("/logs", methods=["POST"])
-def upload_logs():
-    return jsonify({"message": "Log upload not implemented yet"})
 
 @app.route("/ingest", methods=["POST"])
 def ingest():
     data = request.json or {}
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr)
 
-    event_type = data.get("event_type", "web_event")
-    severity = "low"
-
-    event = enrich_event(
-        event_type,
-        "low",
-        "shwikky_frontend",
-        ip=request.headers.get("X-Forwarded-For", request.remote_addr)
-    )
-    event["details"] = data
+    event = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "source": "shwikky_frontend",
+        "event_type": data.get("event_type", "web_event"),
+        "severity": "low",
+        "ip": ip,
+        "geo": {"country": "Unknown"},
+        "threat_score": 10,
+        "details": data
+    }
 
     with LOCK:
         EVENTS.append(event)
