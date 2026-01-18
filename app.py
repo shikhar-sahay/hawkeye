@@ -1,11 +1,13 @@
 from flask import Flask, request, jsonify, render_template
-from datetime import datetime
+from flask_cors import CORS
+from datetime import datetime, timezone
 import threading
 import time
 import random
 import os
 
 app = Flask(__name__)
+CORS(app)
 
 EVENTS = []
 ATTACK_CHAINS = []
@@ -19,7 +21,9 @@ MITRE_MAP = {
     "brute_force": ("Credential Access", "T1110"),
     "privilege_escalation": ("Privilege Escalation", "T1068"),
     "lateral_movement": ("Lateral Movement", "T1021"),
-    "honeypot_access": ("Command and Control", "T1071")
+    "honeypot_access": ("Command and Control", "T1071"),
+    "page_view": ("Discovery", "T1082"),
+    "click": ("Collection", "T1115")
 }
 
 ATTACK_ORDER = [
@@ -45,22 +49,22 @@ def calculate_risk(severity):
         return 10
     return 3
 
-def enrich_event(event_type, severity, source):
+def enrich_event(event_type, severity, source, ip=None):
     tactic, technique = MITRE_MAP.get(event_type, ("Unknown", "N/A"))
     return {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "source": source,
         "event_type": event_type,
         "severity": severity,
-        "ip": f"192.168.1.{random.randint(2,254)}",
+        "ip": ip or "internal",
         "geo": random.choice(["IN", "US", "RU", "CN", "DE"]),
-        "threat_score": random.randint(30, 95),
+        "threat_score": random.randint(20, 90),
         "mitre_tactic": tactic,
         "mitre_technique": technique
     }
 
+
 def correlate_event(event):
-    global ATTACK_CHAINS
     if not ATTACK_CHAINS:
         ATTACK_CHAINS.append([event])
         return
@@ -86,13 +90,12 @@ def simulator():
         if event_type == "honeypot_access":
             severity = "high"
 
-        event = enrich_event(event_type, severity, "simulator")
+        event = enrich_event(event_type, severity, "simulator", ip="127.0.0.1")
 
         with LOCK:
             EVENTS.append(event)
             correlate_event(event)
-            RISK_SCORE += calculate_risk(severity)
-            RISK_SCORE = min(RISK_SCORE, 100)
+            RISK_SCORE = min(RISK_SCORE + calculate_risk(severity), 100)
 
         stage = (stage + 1) % len(ATTACK_ORDER)
         time.sleep(3)
@@ -127,19 +130,43 @@ def attack_graph():
 @app.route("/honeypot")
 def honeypot():
     global RISK_SCORE
-    event = enrich_event("honeypot_access", "high", request.remote_addr or "honeypot")
+    event = enrich_event(
+    "honeypot_access",
+    "high",
+    "honeypot",
+    ip=request.headers.get("X-Forwarded-For", request.remote_addr)
+)
     with LOCK:
         EVENTS.append(event)
         correlate_event(event)
-        RISK_SCORE += calculate_risk("high")
-        RISK_SCORE = min(RISK_SCORE, 100)
+        RISK_SCORE = min(RISK_SCORE + calculate_risk("high"), 100)
+    return jsonify({"status": "ok"})
+
+@app.route("/logs", methods=["POST"])
+def upload_logs():
+    return jsonify({"message": "Log upload not implemented yet"})
+
+@app.route("/ingest", methods=["POST"])
+def ingest():
+    data = request.json or {}
+
+    event_type = data.get("event_type", "web_event")
+    severity = "low"
+
+    event = enrich_event(
+        event_type,
+        "low",
+        "shwikky_frontend",
+        ip=request.headers.get("X-Forwarded-For", request.remote_addr)
+    )
+    event["details"] = data
+
+    with LOCK:
+        EVENTS.append(event)
+
     return jsonify({"status": "ok"})
 
 if __name__ == "__main__":
     threading.Thread(target=simulator, daemon=True).start()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
-@app.route("/logs", methods=["POST"])
-def upload_logs():
-    return jsonify({"message": "Log upload not implemented yet"})
