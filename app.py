@@ -1,16 +1,12 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from datetime import datetime, timezone
-import threading
-import time
-import random
-import os
+import threading, time, random, os
 
 app = Flask(__name__)
 CORS(app)
 
-EVENTS = []
-ATTACK_CHAINS = []
+EVENTS, ATTACK_CHAINS = [], []
 RISK_SCORE = 0
 LOCK = threading.Lock()
 
@@ -27,36 +23,26 @@ MITRE_MAP = {
 }
 
 ATTACK_ORDER = [
-    "route_probe",
-    "port_scan",
-    "login_failure",
-    "brute_force",
-    "privilege_escalation",
-    "lateral_movement",
-    "honeypot_access"
+    "route_probe","port_scan","login_failure","brute_force",
+    "privilege_escalation","lateral_movement","honeypot_access"
 ]
 
 SIMULATED_SOURCES = {
-    "scanner_eu": {"ip": "185.220.101.45", "geo": {"city": "Frankfurt", "country": "Germany", "lat": 50.11, "lon": 8.68}},
-    "botnet_cn": {"ip": "103.21.244.10", "geo": {"city": "Shenzhen", "country": "China", "lat": 22.54, "lon": 114.05}},
-    "tor_exit": {"ip": "51.68.174.12", "geo": {"city": "Paris", "country": "France", "lat": 48.85, "lon": 2.35}},
-    "cloud_probe_us": {"ip": "34.207.112.98", "geo": {"city": "Ashburn", "country": "USA", "lat": 39.04, "lon": -77.48}},
-    "credential_stuffer_in": {"ip": "49.207.36.112", "geo": {"city": "Bengaluru", "country": "India", "lat": 12.97, "lon": 77.59}}
+    "scanner_eu": {"ip":"185.220.101.45","geo":{"city":"Frankfurt","country":"Germany","lat":50.11,"lon":8.68}},
+    "botnet_cn": {"ip":"103.21.244.10","geo":{"city":"Shenzhen","country":"China","lat":22.54,"lon":114.05}},
+    "tor_exit": {"ip":"51.68.174.12","geo":{"city":"Paris","country":"France","lat":48.85,"lon":2.35}},
+    "cloud_probe_us": {"ip":"34.207.112.98","geo":{"city":"Ashburn","country":"USA","lat":39.04,"lon":-77.48}},
+    "credential_stuffer_in": {"ip":"49.207.36.112","geo":{"city":"Bengaluru","country":"India","lat":12.97,"lon":77.59}}
 }
 
 def progression_risk():
-    if not ATTACK_CHAINS:
-        return 0
-    chain = ATTACK_CHAINS[-1]
-    return int((len(chain) / len(ATTACK_ORDER)) * 100)
+    return int((len(ATTACK_CHAINS[-1])/len(ATTACK_ORDER))*100) if ATTACK_CHAINS else 0
 
 def calculate_risk(severity):
-    if severity == "high": return 20
-    if severity == "medium": return 10
-    return 3
+    return {"high":20,"medium":10,"low":3}.get(severity,"low")
 
-def enrich_event(event_type, severity, source, ip, geo):
-    tactic, technique = MITRE_MAP.get(event_type, ("Unknown", "N/A"))
+def enrich_event(event_type,severity,source,ip,geo):
+    tactic,technique = MITRE_MAP.get(event_type,("Unknown","N/A"))
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "source": source,
@@ -64,15 +50,13 @@ def enrich_event(event_type, severity, source, ip, geo):
         "severity": severity,
         "ip": ip,
         "geo": geo,
-        "threat_score": random.randint(30, 95),
+        "threat_score": random.randint(30,95),
         "mitre_tactic": tactic,
         "mitre_technique": technique
     }
 
 def correlate_event(event):
-    if not ATTACK_CHAINS:
-        ATTACK_CHAINS.append([event])
-        return
+    if not ATTACK_CHAINS: ATTACK_CHAINS.append([event]); return
     last_chain = ATTACK_CHAINS[-1]
     last_event = last_chain[-1]
     if event["event_type"] in ATTACK_ORDER and last_event["event_type"] in ATTACK_ORDER:
@@ -89,35 +73,29 @@ def simulator():
         source = random.choice(source_names)
         infra = SIMULATED_SOURCES[source]
         event_type = ATTACK_ORDER[stage]
-        severity = "low"
-        if event_type in ["brute_force", "privilege_escalation"]: severity = "medium"
-        if event_type == "honeypot_access": severity = "high"
-        event = enrich_event(event_type, severity, source, infra["ip"], infra["geo"])
+        severity = "high" if event_type=="honeypot_access" else "medium" if event_type in ["brute_force","privilege_escalation"] else "low"
+        event = enrich_event(event_type,severity,source,infra["ip"],infra["geo"])
         with LOCK:
             EVENTS.append(event)
             correlate_event(event)
-            RISK_SCORE = min(RISK_SCORE + calculate_risk(severity), 100)
-        stage = (stage + 1) % len(ATTACK_ORDER)
+            RISK_SCORE = min(RISK_SCORE+calculate_risk(severity),100)
+        stage = (stage+1) % len(ATTACK_ORDER)
         time.sleep(2.5)
 
 @app.route("/")
 def index(): return render_template("index.html")
-
 @app.route("/events")
-def get_events():
+def get_events(): 
     with LOCK: return jsonify({"events": EVENTS[-100:]})
-
 @app.route("/risk")
-def risk():
-    return jsonify({"risk_score": RISK_SCORE, "progression_risk": progression_risk()})
-
+def risk(): return jsonify({"risk_score":RISK_SCORE,"progression_risk":progression_risk()})
 @app.route("/attack-graph")
 def attack_graph():
-    if not ATTACK_CHAINS: return jsonify({"nodes": [], "edges": []})
+    if not ATTACK_CHAINS: return jsonify({"nodes":[],"edges":[]})
     chain = ATTACK_CHAINS[-1]
     nodes = [f'{e["event_type"]}\n{e["mitre_technique"]}' for e in chain]
-    edges = [(i, i + 1) for i in range(len(nodes) - 1)]
-    return jsonify({"nodes": nodes, "edges": edges})
+    edges = [(i,i+1) for i in range(len(nodes)-1)]
+    return jsonify({"nodes":nodes,"edges":edges})
 
 @app.route("/ingest", methods=["POST"])
 def ingest():
@@ -126,58 +104,46 @@ def ingest():
     event = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "source": "shwikky_frontend",
-        "event_type": data.get("event_type", "web_event"),
+        "event_type": data.get("event_type","web_event"),
         "severity": "low",
         "ip": ip,
-        "geo": {"country": "Unknown"},
-        "threat_score": 10,
-        "details": data
+        "geo":{"country":"Unknown"},
+        "threat_score":10,
+        "details":data
     }
-    with LOCK:
-        EVENTS.append(event)
-    return jsonify({"status": "ok"})
+    with LOCK: EVENTS.append(event)
+    return jsonify({"status":"ok"})
 
 @app.route("/logs", methods=["POST"])
 def upload_logs():
-    if "file" not in request.files:
-        return jsonify({"message": "No file uploaded"}), 400
+    if "file" not in request.files: return jsonify({"message":"No file uploaded"}),400
     file = request.files["file"]
-    lines = file.read().decode("utf-8").splitlines()
-    added = 0
+    try:
+        lines = file.read().decode("utf-8").splitlines()
+    except Exception:
+        return jsonify({"message":"Failed to read file"}),400
 
+    added = 0
     with LOCK:
         for line in lines:
-            line = line.strip()
+            line=line.strip()
             if not line: continue
-
-            # Infer event type and severity
-            if "fail" in line.lower() or "invalid" in line.lower():
-                event_type = "login_failure"
-                severity = "medium"
-            elif "admin" in line.lower() or "privilege" in line.lower():
-                event_type = "privilege_escalation"
-                severity = "high"
-            elif "scan" in line.lower() or "probe" in line.lower():
-                event_type = "route_probe"
-                severity = "low"
-            else:
-                event_type = "click"
-                severity = "low"
-
-            # Assign random geo and IP
+            if "fail" in line.lower() or "invalid" in line.lower(): event_type="login_failure"; severity="medium"
+            elif "admin" in line.lower() or "privilege" in line.lower(): event_type="privilege_escalation"; severity="high"
+            elif "scan" in line.lower() or "probe" in line.lower(): event_type="route_probe"; severity="low"
+            else: event_type="click"; severity="low"
             geo = random.choice(list(s["geo"] for s in SIMULATED_SOURCES.values()))
             ip = f"{random.randint(1,255)}.{random.randint(0,255)}.{random.randint(0,255)}.{random.randint(0,255)}"
-
-            event = enrich_event(event_type, severity, "uploaded_log", ip, geo)
-            event["raw_line"] = line
+            event = enrich_event(event_type,severity,"uploaded_log",ip,geo)
+            event["raw_line"]=line
             EVENTS.append(event)
             correlate_event(event)
-            RISK_SCORE = min(RISK_SCORE + calculate_risk(severity), 100)
+            global RISK_SCORE
+            RISK_SCORE = min(RISK_SCORE+calculate_risk(severity),100)
             added += 1
-
-    return jsonify({"message": f"{added} log events ingested successfully"})
+    return jsonify({"message":f"{added} log events ingested successfully"})
 
 if __name__ == "__main__":
-    threading.Thread(target=simulator, daemon=True).start()
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    threading.Thread(target=simulator,daemon=True).start()
+    port=int(os.environ.get("PORT",5000))
+    app.run(host="0.0.0.0",port=port)
