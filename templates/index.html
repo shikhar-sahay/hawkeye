@@ -2,15 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>HawkEye SIEM Dashboard</title>
+    <title>HawkEye</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='hawkeyelogo.png') }}">
 </head>
 <body>
     <header>
-        <h1>HawkEye SIEM</h1>
-        <p>Real-time Security Event Monitoring & Attack Path Visualization</p>
+        <div class="header-content">
+            <h1 class="title">HawkEye SIEM</h1>
+            <p class="subtitle">Your Eyes on Every Threat, Every Second.</p>
+        </div>
     </header>
 
     <main>
