@@ -2,7 +2,7 @@ async function fetchEvents() {
     try {
         const res = await fetch('/events');
         const data = await res.json();
-        updateLogs(data.events);
+        updateLogTable(data.events);
         updateTimeline(data.events);
     } catch (e) {}
 }
@@ -11,7 +11,7 @@ async function fetchRisk() {
     try {
         const res = await fetch('/risk');
         const data = await res.json();
-        document.getElementById('risk-display').innerText = data.risk_score;
+        document.getElementById('risk-display').innerText = data.risk_score + '/100';
     } catch (e) {}
 }
 
@@ -23,7 +23,7 @@ async function fetchAttackGraph() {
     } catch (e) {}
 }
 
-function updateLogs(events) {
+function updateLogTable(events) {
     const tbody = document.getElementById('log-body');
     tbody.innerHTML = '';
     events.slice(-20).reverse().forEach(e => {
@@ -32,7 +32,10 @@ function updateLogs(events) {
             <td>${e.timestamp}</td>
             <td>${e.source}</td>
             <td>${e.event_type}</td>
+            <td>${e.ip}</td>
             <td>${e.severity}</td>
+            <td>${e.geo}</td>
+            <td>${e.threat_score}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -61,6 +64,17 @@ function renderGraph(graph) {
     };
 
     Plotly.newPlot('attack-path-graph', [trace], { margin: { t: 20 } });
+}
+
+async function uploadLogs() {
+    const fileInput = document.getElementById('log-file');
+    const file = fileInput.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('/logs', { method: 'POST', body: formData });
+    const data = await res.json();
+    document.getElementById('upload-status').innerText = data.message;
 }
 
 setInterval(() => {
