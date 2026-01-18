@@ -30,10 +30,11 @@ def correlate_event(event):
         SOURCES[source] = []
     SOURCES[source].append(event)
     if len(SOURCES[source]) >= 3:
-        chain = [e["event_type"] for e in SOURCES[source][-3:]]
+        chain = SOURCES[source][-3:]
+        path = [e["event_type"] for e in chain]
         ATTACK_PATHS.append({
             "source": source,
-            "path": chain,
+            "path": path,
             "timestamp": datetime.utcnow().isoformat()
         })
         return 15
@@ -69,6 +70,25 @@ def get_risk():
 def get_attack_paths():
     with LOCK:
         return jsonify(ATTACK_PATHS[-10:])
+
+@app.route("/attack-graph")
+def attack_graph():
+    nodes = set()
+    edges = []
+    with LOCK:
+        for path in ATTACK_PATHS[-5:]:
+            steps = path["path"]
+            for step in steps:
+                nodes.add(step)
+            for i in range(len(steps) - 1):
+                edges.append({
+                    "from": steps[i],
+                    "to": steps[i + 1]
+                })
+    return jsonify({
+        "nodes": [{"id": n} for n in nodes],
+        "edges": edges
+    })
 
 @app.route("/honeypot")
 def honeypot():
