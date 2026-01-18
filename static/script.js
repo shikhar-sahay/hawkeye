@@ -85,7 +85,14 @@ function renderGraph(graph) {
         textposition: 'top center', marker: { size: 22, color: '#ff4d4d' }
     };
 
-    const layout = { xaxis:{visible:false}, yaxis:{visible:false}, margin:{t:30,l:20,r:20,b:20} };
+    const layout = {
+    paper_bgcolor: '#141414',
+    plot_bgcolor: '#141414',
+    xaxis: { visible: false },
+    yaxis: { visible: false },
+    margin: { t: 30, l: 20, r: 20, b: 20 },
+    font: { color: '#ffffff' }
+};
     Plotly.react('attack-path-graph', [trace], layout);
 }
 
