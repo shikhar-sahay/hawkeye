@@ -4,6 +4,8 @@ HawkEye is a lightweight cybersecurity simulation and visualization platform tha
 
 The project combines a Flask backend with a JavaScript frontend to simulate attacker activity, ingest logs, and visualize how threats progress over time.
 
+🔗 Deployed Link - https://hawkeye-i1bt.onrender.com/
+
 ---
 
 ## 🚀 Features
