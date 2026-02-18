@@ -109,9 +109,12 @@ def attack_graph():
 def ingest():
     data = request.json or {}
     ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+
+    source_site = request.headers.get("Origin") or request.headers.get("Referer") or "unknown"
+
     event = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "source": "shwikky_frontend",
+        "source": source_site,
         "event_type": data.get("event_type","web_event"),
         "severity": "low",
         "ip": ip,
@@ -119,7 +122,10 @@ def ingest():
         "threat_score":10,
         "details":data
     }
-    with LOCK: EVENTS.append(event)
+
+    with LOCK:
+        EVENTS.append(event)
+
     return jsonify({"status":"ok"})
 
 @app.route("/logs", methods=["POST"])
