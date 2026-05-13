@@ -1,6 +1,6 @@
-# 🦅 HawkEye – Attack & Risk Visualization SIEM
+# HawkEye - Attack & Risk Visualization SIEM
 
-HawkEye is a lightweight cybersecurity simulation and visualization platform that models attack behavior, correlates events into attack paths, and computes real‑time risk scores. It is designed for learning, demonstrations, and security analytics experimentation.
+HawkEye is a lightweight cybersecurity simulation and visualization platform that models attack behavior, correlates events into attack paths, and computes real‑time risk scores. It is designed for learning, demonstrations, and experimentation in security analytics.
 
 The project combines a Flask backend with a JavaScript frontend to simulate attacker activity, ingest logs, and visualize how threats progress over time.
 
@@ -8,7 +8,7 @@ The project combines a Flask backend with a JavaScript frontend to simulate atta
 
 ---
 
-## 🚀 Features
+## Features
 
 * **Real‑time attack simulation**
 
@@ -38,7 +38,7 @@ The project combines a Flask backend with a JavaScript frontend to simulate atta
 
 ---
 
-## 🧠 How It Works (High Level)
+## How It Works (High Level)
 
 1. **Event Generation / Ingestion**
 
@@ -65,7 +65,7 @@ The project combines a Flask backend with a JavaScript frontend to simulate atta
 
 ---
 
-## 🧱 Tech Stack
+## Tech Stack
 
 **Backend**
 
