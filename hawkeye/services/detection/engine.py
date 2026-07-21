@@ -4,15 +4,13 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.models.events import NormalizedEvent
 from hawkeye.services.correlation.engine import CorrelationEngine
-from hawkeye.services.detection import (
-    APIAbuseDetector,
-    BotDetector,
-    BruteForceDetector,
-    CredentialStuffingDetector,
-    EnumerationDetector,
-    SensitiveActionDetector,
-    SessionHijackingDetector,
-)
+from hawkeye.services.detection.api_abuse import APIAbuseDetector
+from hawkeye.services.detection.bot import BotDetector
+from hawkeye.services.detection.brute_force import BruteForceDetector
+from hawkeye.services.detection.credential_stuffing import CredentialStuffingDetector
+from hawkeye.services.detection.enumeration import EnumerationDetector
+from hawkeye.services.detection.sensitive_actions import SensitiveActionDetector
+from hawkeye.services.detection.session_hijacking import SessionHijackingDetector
 from hawkeye.services.detection.base import DetectionContext
 
 

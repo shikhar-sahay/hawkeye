@@ -188,9 +188,9 @@ class EnumerationDetector(BaseDetector):
 
         # Check metadata for query parameters, body params
         params = {}
-        if event.metadata:
-            params.update(event.metadata.get("query_params", {}))
-            params.update(event.metadata.get("body_params", {}))
+        if event.event_metadata:
+            params.update(event.event_metadata.get("query_params", {}))
+            params.update(event.event_metadata.get("body_params", {}))
 
         if not params:
             return None
@@ -226,9 +226,9 @@ class EnumerationDetector(BaseDetector):
 
         injection_count = 0
         for e in recent:
-            if e.metadata:
-                p = e.metadata.get("query_params", {})
-                p.update(e.metadata.get("body_params", {}))
+            if e.event_metadata:
+                p = e.event_metadata.get("query_params", {})
+                p.update(e.event_metadata.get("body_params", {}))
                 for pv in p.values():
                     if isinstance(pv, str):
                         for pattern in injection_patterns:

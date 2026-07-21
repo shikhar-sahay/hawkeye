@@ -77,7 +77,7 @@ class SensitiveActionDetector(BaseDetector):
             "event_type": event.event_type,
             "route": event.route,
             "method": event.method,
-            "metadata": event.metadata,
+            "metadata": event.event_metadata,
         }
 
         return self._create_alert(

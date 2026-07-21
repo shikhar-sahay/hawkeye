@@ -7,15 +7,18 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.config import settings
+from hawkeye.models.enums import DetectionType
 from hawkeye.models.events import NormalizedEvent
-from hawkeye.services.detection.base import Alert, DetectionContext, DetectorBase, Severity
+from hawkeye.services.detection.base import Alert, DetectionContext, BaseDetector, Severity
 
 
-class BruteForceDetector(DetectorBase):
+class BruteForceDetector(BaseDetector):
     """Detects brute force login attempts."""
 
-    DETECTION_TYPE = "brute_force"
-    DETECTOR_NAME = "BruteForceDetector"
+    name = "brute_force"
+    detection_type = DetectionType.BRUTE_FORCE
+    default_severity = Severity.MEDIUM
+    default_confidence = 0.7
 
     async def detect(self, context: DetectionContext) -> list[Alert]:
         alerts = []

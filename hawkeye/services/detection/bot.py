@@ -8,15 +8,18 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.config import settings
+from hawkeye.models.enums import DetectionType, Severity
 from hawkeye.models.events import NormalizedEvent
-from hawkeye.services.detection.base import Alert, DetectionContext, DetectorBase, Severity
+from hawkeye.services.detection.base import Alert, DetectionContext, BaseDetector
 
 
-class BotDetector(DetectorBase):
+class BotDetector(BaseDetector):
     """Detects automated/bot traffic."""
 
-    DETECTION_TYPE = "bot_detection"
-    DETECTOR_NAME = "BotDetector"
+    name = "bot_detection"
+    detection_type = DetectionType.BOT_DETECTION
+    default_severity = Severity.MEDIUM
+    default_confidence = 0.7
 
     # Known bot user agent patterns
     BOT_UA_PATTERNS = [
@@ -44,6 +47,46 @@ class BotDetector(DetectorBase):
         r"playwright",
         r"chromedriver",
         r"geckodriver",
+    ]
+
+    # High confidence bot tool patterns (common HTTP clients)
+    TOOL_UA_PATTERNS = [
+        r"python-requests",
+        r"curl/",
+        r"wget/",
+        r"go-http-client",
+        r"apache-httpclient",
+        r"okhttp",
+        r"axios/",
+        r"postmanruntime",
+        r"insomnia/",
+        r"httpie/",
+        r"scrapy/",
+        r"aiohttp",
+        r"httpx",
+        r"urllib",
+        r"requests/",
+        r"faraday",
+        r"rest-client",
+        r"googlebot",
+        r"bingbot",
+        r"yandexbot",
+        r"baiduspider",
+        r"duckduckbot",
+        r"semrushbot",
+        r"ahrefsbot",
+        r"mj12bot",
+        r"dotbot",
+        r"crawl",
+    ]
+
+    # Known search engine bots (high confidence)
+    SEARCH_ENGINE_BOTS = [
+        r"googlebot",
+        r"bingbot",
+        r"yandexbot",
+        r"baiduspider",
+        r"duckduckbot",
     ]
 
     # Automation framework patterns
@@ -105,11 +148,23 @@ class BotDetector(DetectorBase):
                 reasons.append(f"ua_pattern:{pattern}")
                 confidence += 0.15
 
+        # Check high-confidence tool patterns (common HTTP clients)
+        for pattern in self.TOOL_UA_PATTERNS:
+            if re.search(pattern, ua_lower):
+                reasons.append(f"tool_pattern:{pattern}")
+                confidence += 0.4
+
         # Check for automation frameworks
         for pattern in self.AUTOMATION_PATTERNS:
             if re.search(pattern, ua_lower):
                 reasons.append(f"automation:{pattern}")
                 confidence += 0.3
+
+        # Check for known search engine bots (high confidence)
+        for pattern in self.SEARCH_ENGINE_BOTS:
+            if re.search(pattern, ua_lower):
+                reasons.append(f"search_engine_bot:{pattern}")
+                confidence += 0.6
 
         # Check for missing or suspicious UA
         if len(ua) < 20:
@@ -358,6 +413,9 @@ class BotDetector(DetectorBase):
                 consistent_missing += 1
 
         if consistent_missing < len(recent) * 0.8:  # 80% consistency
+            return None
+
+        if len(recent) == 0:
             return None
 
         evidence: dict = {
