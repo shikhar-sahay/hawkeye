@@ -15,6 +15,28 @@ from hawkeye.models.events import NormalizedEvent, Alert
 from hawkeye.models.enums import DetectionType, Severity
 
 
+def _mock_session():
+    """Create a properly mocked AsyncSession for detector tests."""
+    session = AsyncMock(spec=AsyncSession)
+    # session.exec is async and returns a Result object
+    # Result.all() is synchronous, so we use a regular Mock for the result
+    result_mock = MagicMock()
+    result_mock.all.return_value = []
+    result_mock.first.return_value = None
+    session.exec = AsyncMock(return_value=result_mock)
+    return session
+
+
+def _mock_session_with_results(results):
+    """Create a mock session that returns specific results."""
+    session = AsyncMock(spec=AsyncSession)
+    result_mock = MagicMock()
+    result_mock.all.return_value = results
+    result_mock.first.return_value = results[0] if results else None
+    session.exec = AsyncMock(return_value=result_mock)
+    return session
+
+
 class TestDetectionEngine:
     """Tests for the DetectionEngine."""
 
@@ -38,9 +60,7 @@ class TestDetectionEngine:
     async def test_process_event_runs_all_detectors(self):
         """Test that process_event runs all detectors."""
         engine = DetectionEngine()
-        session = AsyncMock(spec=AsyncSession)
-        session.exec = AsyncMock()
-        session.exec.return_value.all.return_value = []
+        session = _mock_session()
         session.add_all = AsyncMock()
         session.flush = AsyncMock()
         session.commit = AsyncMock()
@@ -56,14 +76,40 @@ class TestDetectionEngine:
             status_code=200,
         )
 
+        # Patch each detector's detect method to return a mock alert
+        mock_alert = Alert(
+            id=1,
+            source_id=1,
+            event_id=1,
+            detection_type="brute_force",
+            detector_name="test",
+            severity="medium",
+            title="Test Alert",
+            description="Test",
+            evidence={},
+            confidence=0.5,
+            status="new",
+        )
+
         with patch("hawkeye.services.detection.engine.CorrelationEngine") as mock_corr:
             mock_corr_instance = AsyncMock()
             mock_corr.return_value = mock_corr_instance
             mock_corr_instance.correlate_alert = AsyncMock()
 
+            # Patch all detectors to return a mock alert
+            patches = []
+            for detector in engine.detectors:
+                p = patch.object(detector, "detect", new_callable=AsyncMock)
+                patches.append(p)
+                p.start().return_value = [mock_alert]
+
             await engine.process_event(session, event)
 
-        # All detectors should have been called
+            # Clean up patches
+            for p in patches:
+                p.stop()
+
+        # All detectors should have been called and alerts added
         assert session.add_all.called
         assert session.commit.called
 
@@ -77,9 +123,7 @@ class TestBotDetector:
 
     @pytest.fixture
     def context(self):
-        session = AsyncMock(spec=AsyncSession)
-        session.exec = AsyncMock()
-        session.exec.return_value.all.return_value = []
+        session = _mock_session()
         event = NormalizedEvent(
             id=1,
             source_id=1,
@@ -133,9 +177,7 @@ class TestBruteForceDetector:
 
     @pytest.fixture
     def context(self):
-        session = AsyncMock(spec=AsyncSession)
-        session.exec = AsyncMock()
-        session.exec.return_value.all.return_value = []
+        session = _mock_session()
         event = NormalizedEvent(
             id=1,
             source_id=1,
@@ -190,9 +232,7 @@ class TestCredentialStuffingDetector:
 
     @pytest.fixture
     def context(self):
-        session = AsyncMock(spec=AsyncSession)
-        session.exec = AsyncMock()
-        session.exec.return_value.all.return_value = []
+        session = _mock_session()
         event = NormalizedEvent(
             id=1,
             source_id=1,
@@ -214,7 +254,7 @@ class TestCredentialStuffingDetector:
             NormalizedEvent(
                 id=i,
                 source_id=1,
-                timestamp=datetime.utcnow() - timedelta(minutes=i),
+                timestamp=datetime.utcnow() - timedelta(minutes=i % 5),  # Within 5 minutes
                 ip="192.168.1.1",
                 user_id=f"user{i}",
                 event_type="login_failed",

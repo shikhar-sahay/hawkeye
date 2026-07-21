@@ -11,12 +11,48 @@ from hawkeye.schemas.ingestion import RawEventIngest, BatchEventsIngest
 from hawkeye.models.events import ApplicationSource, NormalizedEvent, RawEvent
 
 
+def _mock_session_with_ids():
+    """Create a mock session that assigns IDs on flush."""
+    session = AsyncMock(spec=AsyncSession)
+    session.commit = AsyncMock()
+    session.refresh = AsyncMock()
+
+    # Track added objects and assign IDs on flush
+    added_objects = []
+    add_called = False
+    add_all_called = False
+
+    def mock_add(obj):
+        nonlocal add_called
+        add_called = True
+        added_objects.append(obj)
+
+    def mock_add_all(objs):
+        nonlocal add_all_called
+        add_all_called = True
+        added_objects.extend(objs)
+
+    async def mock_flush():
+        # Assign sequential IDs to un-ID'd objects
+        for i, obj in enumerate(added_objects):
+            if not hasattr(obj, 'id') or obj.id is None:
+                obj.id = i + 1
+
+    session.add = mock_add
+    session.add_all = mock_add_all
+    session.flush = mock_flush
+    # Add called properties for assertions
+    session.add.called = lambda: add_called
+    session.add_all.called = lambda: add_all_called
+    return session
+
+
 class TestIngestionService:
     """Tests for the IngestionService."""
 
     @pytest.fixture
     def session(self):
-        return AsyncMock(spec=AsyncSession)
+        return _mock_session_with_ids()
 
     @pytest.fixture
     def source(self):
@@ -45,11 +81,6 @@ class TestIngestionService:
     @pytest.mark.asyncio
     async def test_ingest_event_creates_raw_and_normalized(self, session, source, event):
         """Test that ingesting an event creates both raw and normalized records."""
-        session.add = MagicMock()
-        session.flush = AsyncMock()
-        session.commit = AsyncMock()
-        session.refresh = AsyncMock()
-
         service = IngestionService(session)
 
         with patch.object(service.detection_engine, "process_event", new_callable=AsyncMock) as mock_detect:
@@ -65,10 +96,6 @@ class TestIngestionService:
     @pytest.mark.asyncio
     async def test_ingest_batch_creates_multiple_events(self, session, source):
         """Test batch ingestion creates multiple events."""
-        session.add_all = MagicMock()
-        session.flush = AsyncMock()
-        session.commit = AsyncMock()
-
         events = [
             RawEventIngest(
                 timestamp=datetime.utcnow(),
