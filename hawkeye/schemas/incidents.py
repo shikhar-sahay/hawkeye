@@ -6,6 +6,21 @@ from typing import Any, Optional
 from pydantic import BaseModel, Field
 
 
+class AlertSummary(BaseModel):
+    """Minimal alert info for incident responses."""
+
+    id: int
+    detection_type: str
+    detector_name: str
+    severity: str
+    title: str
+    created_at: datetime
+    ip: Optional[str] = None
+    user_id: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
 class IncidentAlertLink(BaseModel):
     """Link between incident and alert with sequence."""
 
@@ -37,21 +52,6 @@ class IncidentResponse(BaseModel):
     # Related data
     source_id: int
     alerts: list[AlertSummary] = Field(default_factory=list)
-
-    model_config = {"from_attributes": True}
-
-
-class AlertSummary(BaseModel):
-    """Minimal alert info for incident responses."""
-
-    id: int
-    detection_type: str
-    detector_name: str
-    severity: str
-    title: str
-    created_at: datetime
-    ip: Optional[str] = None
-    user_id: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

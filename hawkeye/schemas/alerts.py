@@ -57,6 +57,8 @@ class AlertFilter(BaseModel):
     source_id: Optional[int] = None
     ip: Optional[str] = None
     user_id: Optional[str] = None
+    session_id: Optional[str] = None
+    route: Optional[str] = None
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
     limit: int = Field(default=100, ge=1, le=1000)

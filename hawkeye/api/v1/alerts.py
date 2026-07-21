@@ -58,6 +58,17 @@ async def list_alerts(
     """List alerts with various filters and pagination."""
     stmt = select(Alert).where(Alert.source_id == source.id)
 
+    # Apply filters that require joining with NormalizedEvent
+    needs_event_join = any([
+        filter_params.ip,
+        filter_params.user_id,
+        filter_params.session_id,
+        filter_params.route,
+    ])
+
+    if needs_event_join:
+        stmt = stmt.join(NormalizedEvent, Alert.event_id == NormalizedEvent.id)
+
     # Apply filters
     if filter_params.detection_type:
         stmt = stmt.where(Alert.detection_type == filter_params.detection_type)
@@ -68,16 +79,43 @@ async def list_alerts(
     if filter_params.status:
         stmt = stmt.where(Alert.status == filter_params.status)
     if filter_params.ip:
-        stmt = stmt.where(Alert.ip == filter_params.ip)
+        stmt = stmt.where(NormalizedEvent.ip == filter_params.ip)
     if filter_params.user_id:
-        stmt = stmt.where(Alert.user_id == filter_params.user_id)
+        stmt = stmt.where(NormalizedEvent.user_id == filter_params.user_id)
+    if filter_params.session_id:
+        stmt = stmt.where(NormalizedEvent.session_id == filter_params.session_id)
+    if filter_params.route:
+        stmt = stmt.where(NormalizedEvent.route == filter_params.route)
     if filter_params.start_time:
         stmt = stmt.where(Alert.created_at >= filter_params.start_time)
     if filter_params.end_time:
         stmt = stmt.where(Alert.created_at <= filter_params.end_time)
 
-    # Get total count
-    count_stmt = select(func.count()).select_from(stmt.subquery())
+    # Get total count - build separate count query to avoid subquery issues with joins
+    count_stmt = select(func.count(Alert.id)).where(Alert.source_id == source.id)
+    if needs_event_join:
+        count_stmt = count_stmt.join(NormalizedEvent, Alert.event_id == NormalizedEvent.id)
+    if filter_params.detection_type:
+        count_stmt = count_stmt.where(Alert.detection_type == filter_params.detection_type)
+    if filter_params.detector_name:
+        count_stmt = count_stmt.where(Alert.detector_name == filter_params.detector_name)
+    if filter_params.severity:
+        count_stmt = count_stmt.where(Alert.severity == filter_params.severity)
+    if filter_params.status:
+        count_stmt = count_stmt.where(Alert.status == filter_params.status)
+    if filter_params.ip:
+        count_stmt = count_stmt.where(NormalizedEvent.ip == filter_params.ip)
+    if filter_params.user_id:
+        count_stmt = count_stmt.where(NormalizedEvent.user_id == filter_params.user_id)
+    if filter_params.session_id:
+        count_stmt = count_stmt.where(NormalizedEvent.session_id == filter_params.session_id)
+    if filter_params.route:
+        count_stmt = count_stmt.where(NormalizedEvent.route == filter_params.route)
+    if filter_params.start_time:
+        count_stmt = count_stmt.where(Alert.created_at >= filter_params.start_time)
+    if filter_params.end_time:
+        count_stmt = count_stmt.where(Alert.created_at <= filter_params.end_time)
+
     total_result = await session.exec(count_stmt)
     total = total_result.one()
 

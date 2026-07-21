@@ -44,19 +44,41 @@ EVENT_CATEGORIES = {
     "integrity_failure": "browser",
 }
 
+# MITRE ATT&CK mappings for known event types
+MITRE_MAPPINGS = {
+    "login_failed": ("TA0006", "T1110"),      # Credential Access / Brute Force
+    "login_success": ("TA0006", "T1078"),     # Credential Access / Valid Accounts
+    "account_locked": ("TA0006", "T1110"),    # Credential Access / Brute Force
+    "password_reset": ("TA0006", "T1078"),    # Credential Access / Valid Accounts
+    "privilege_escalation": ("TA0004", "T1068"), # Privilege Escalation / Exploitation for Privilege Escalation
+    "admin_action": ("TA0004", "T1098"),      # Privilege Escalation / Account Manipulation
+    "data_export": ("TA0010", "T1005"),       # Exfiltration / Data from Local System
+    "api_key_created": ("TA0005", "T1602"),   # Defense Evasion / External Remote Services
+    "role_changed": ("TA0005", "T1098"),      # Defense Evasion / Account Manipulation
+    "automation_detected": ("TA0007", "T1588"), # Discovery / Obtain Capabilities (bot detection)
+    "headless_browser_detected": ("TA0007", "T1588"),
+    "devtools_detected": ("TA0007", "T1588"),
+    "csp_violation": ("TA0005", "T1036"),     # Defense Evasion / Masquerading
+    "cookie_tampering": ("TA0005", "T1556"),  # Defense Evasion / Modify Authentication Process
+    "localstorage_tampering": ("TA0005", "T1556"),
+    "token_removed": ("TA0006", "T1528"),     # Credential Access / Steal Application Access Token
+    "integrity_failure": ("TA0005", "T1565"), # Defense Evasion / Data Manipulation
+}
+
 
 # Severity inference
 DEFAULT_SEVERITY = "low"
 HIGH_SEVERITY_EVENTS = {
-    "login_failed", "account_locked", "privilege_escalation",
+    "account_locked", "privilege_escalation",
     "admin_action", "data_export", "automation_detected",
     "headless_browser_detected", "cookie_tampering",
     "localstorage_tampering", "integrity_failure",
 }
 MEDIUM_SEVERITY_EVENTS = {
-    "login", "mfa_challenge", "rate_limit_exceeded",
+    "login_failed", "login", "mfa_challenge", "rate_limit_exceeded",
     "http_exception", "role_changed", "api_key_created",
     "csp_violation", "devtools_detected", "token_removed",
+    "password_reset",
 }
 
 
@@ -71,11 +93,12 @@ def infer_severity(event_type: str, status_code: int | None = None) -> str:
         return "high"
     if event_type in MEDIUM_SEVERITY_EVENTS:
         return "medium"
-    if status_code and status_code >= 500:
-        return "high"
-    if status_code and status_code >= 400:
-        return "medium"
     return DEFAULT_SEVERITY
+
+
+def infer_mitre_tags(event_type: str) -> tuple[str | None, str | None]:
+    """Infer MITRE ATT&CK tactic and technique from event type."""
+    return MITRE_MAPPINGS.get(event_type, (None, None))
 
 
 class NormalizationEngine:
@@ -85,6 +108,7 @@ class NormalizationEngine:
         """Normalize a raw event into the standard schema."""
         category = infer_category(raw.event_type)
         severity = infer_severity(raw.event_type, raw.status_code)
+        mitre_tactic, mitre_technique = infer_mitre_tags(raw.event_type)
 
         # Build metadata from provided fields
         metadata = raw.metadata or {}
@@ -109,6 +133,8 @@ class NormalizationEngine:
             method=raw.method,
             status_code=raw.status_code,
             event_metadata=metadata,
+            mitre_tactic=mitre_tactic,
+            mitre_technique=mitre_technique,
         )
         return normalized
 

@@ -65,3 +65,49 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """Get database session - re-export for convenience."""
     async with get_db_session() as session:
         yield session
+
+
+async def verify_api_key(
+    api_key: str = Depends(api_key_header),
+    session: AsyncSession = Depends(get_db_session),
+) -> ApplicationSource:
+    """Verify API key without requiring full source context."""
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key required",
+            headers={"WWW-Authenticate": "APIKey"},
+        )
+
+    from hawkeye.core.auth import hash_api_key
+
+    key_hash = hash_api_key(api_key)
+
+    result = await session.exec(
+        select(ApiKey)
+        .where(ApiKey.key_hash == key_hash)
+        .where(ApiKey.is_active == True)
+    )
+    api_key_obj = result.first()
+
+    if not api_key_obj:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API key",
+            headers={"WWW-Authenticate": "APIKey"},
+        )
+
+    # Get source
+    result = await session.exec(
+        select(ApplicationSource).where(ApplicationSource.id == api_key_obj.source_id)
+    )
+    source = result.first()
+
+    if not source or not source.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Source inactive",
+            headers={"WWW-Authenticate": "APIKey"},
+        )
+
+    return source
