@@ -26,7 +26,7 @@ class DetectionContext:
     def __post_init__(self):
         if self.time_window_start is None:
             self.time_window_start = datetime.utcnow() - timedelta(
-                hours=settings.correlation_time_window_hours
+                minutes=settings.detection_time_window_minutes
             )
 
 
