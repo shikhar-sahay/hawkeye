@@ -1,11 +1,8 @@
 """Bot detection module."""
 
 import re
-from collections import Counter
-from datetime import datetime, timedelta
-
+import statistics
 from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.config import settings
 from hawkeye.models.enums import DetectionType, Severity
@@ -103,8 +100,6 @@ class BotDetector(BaseDetector):
 
     async def detect(self, context: DetectionContext) -> list[Alert]:
         alerts = []
-
-        event = context.event
 
         # Check user agent for bot signatures
         alert_ua = await self._check_user_agent(context)
@@ -373,7 +368,9 @@ class BotDetector(BaseDetector):
                 f"Likely automated scraping or API abuse."
             ),
             evidence,
-            severity=Severity.HIGH if rpm > settings.api_abuse_rpm_threshold * 2 else Severity.MEDIUM,
+            severity=Severity.HIGH
+            if rpm > settings.api_abuse_rpm_threshold * 2
+            else Severity.MEDIUM,
             confidence=min(0.9, rpm / (settings.api_abuse_rpm_threshold * 3)),
         )
 
