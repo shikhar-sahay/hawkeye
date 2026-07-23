@@ -32,13 +32,13 @@
   - Batch normalization support
 
 - **Data Models** (`hawkeye/models/events.py`)
-  - `ApplicationSource` - API key holders
-  - `RawEvent` - Immutable raw event storage
-  - `NormalizedEvent` - Standardized event schema with indexes
-  - `Alert` - Detection alerts with evidence & confidence
-  - `Incident` - Correlated alert groups with MITRE tags
-  - `IncidentAlert` - Many-to-many link with sequence ordering
-  - `ApiKey` - API key management with expiry
+  - `ApplicationSource` — API key holders
+  - `RawEvent` — Immutable raw event storage
+  - `NormalizedEvent` — Standardized event schema with indexes
+  - `Alert` — Detection alerts with evidence & confidence
+  - `Incident` — Correlated alert groups with MITRE tags
+  - `IncidentAlert` — Many-to-many link with sequence ordering
+  - `ApiKey` — API key management with expiry
 
 - **Pydantic Schemas** (`hawkeye/schemas/`)
   - Event ingestion schemas (single & batch)
@@ -47,9 +47,9 @@
   - Source/API key schemas
 
 - **API Dependencies** (`hawkeye/api/deps.py`)
-  - `get_current_source` - API key verification + source retrieval
-  - `get_session` - Database session dependency
-  - `verify_api_key` - Lightweight API key verification
+  - `get_current_source` — API key verification + source retrieval
+  - `get_session` — Database session dependency
+  - `verify_api_key` — Lightweight API key verification
 
 - **Ingestion Service** (`hawkeye/services/ingestion_service.py`)
   - Single event ingestion with normalization
@@ -64,14 +64,14 @@
   - Correlation engine integration
 
 - **7 Detection Modules** (`hawkeye/services/detection/`)
-  - `base.py` - BaseDetector, DetectionContext, Alert factory, Severity/DetectionType enums
-  - `brute_force.py` - Failed login brute force, credential stuffing, distributed brute force
-  - `credential_stuffing.py` - Credential stuffing detection (many usernames, one IP)
-  - `enumeration.py` - Path/user/enum enumeration detection
-  - `bot.py` - User agent analysis, headless browser detection, automation patterns, rate patterns, missing headers
-  - `sensitive_actions.py` - Admin actions, data export, privilege escalation
-  - `session_hijacking.py` - Impossible travel, session anomalies
-  - `api_abuse.py` - API rate abuse, parameter tampering
+  - `base.py` — BaseDetector, DetectionContext, Alert factory, Severity/DetectionType enums
+  - `brute_force.py` — Failed login brute force, credential stuffing, distributed brute force
+  - `credential_stuffing.py` — Credential stuffing detection (many usernames, one IP)
+  - `enumeration.py` — Path/user/enum enumeration detection
+  - `bot.py` — User agent analysis, headless browser detection, automation patterns, rate patterns, missing headers
+  - `sensitive_actions.py` — Admin actions, data export, privilege escalation
+  - `session_hijacking.py` — Impossible travel, session anomalies
+  - `api_abuse.py` — API rate abuse, parameter tampering
 
 - **Correlation Engine** (`hawkeye/services/correlation/engine.py`)
   - Time-window based alert correlation
@@ -80,26 +80,23 @@
   - MITRE tactic/technique aggregation
 
 - **API v1 Router** (`hawkeye/api/v1/`)
-  - `ingestion.py` - POST /events/ingest, POST /events/ingest/batch
-  - `events.py` - GET /events (list with filters)
-  - `sources.py` - CRUD for application sources & API keys
-  - `alerts.py` - List, stats, get, update status
-  - `incidents.py` - List, stats, get, alerts, update status
+  - `ingestion.py` — POST /events/ingest, POST /events/ingest/batch
+  - `events.py` — GET /events (list with filters)
+  - `sources.py` — CRUD for application sources & API keys
+  - `alerts.py` — List, stats, get, update status
+  - `incidents.py` — List, stats, get, alerts, update status
 
 ### Changed
 - N/A (initial implementation)
 
 ### Fixed
-- N/A (initial implementation)
-
-### Known Issues (To Be Fixed)
-1. **alerts.py:95** - Count query uses `stmt.subquery()` incorrectly with joins, causes N+1 or wrong count
-2. **bot.py:113** - `_check_automation_patterns` references undefined `alerts` variable
-3. **bot.py:167-177** - Duplicate return statement in `_analyze_user_agent`
-4. **detection/engine.py** - Bot detector returns coroutines not awaited properly
-5. **detection/engine.py** - Detection engine doesn't properly await detector.detect() for all detectors
+- **T-003**: DetectionContext now uses detection-specific time window (60 min default) instead of correlation window (24 hours)
+  - Added `detection_time_window_minutes` setting in `hawkeye/config.py`
+  - Updated `DetectionContext.__post_init__` in `hawkeye/services/detection/base.py`
+- **T-001/T-002**: Verified BotDetector fixes from commit 13ed3a2 — no undefined variables or duplicate returns
+- All 18 unit tests pass (pytest 100% green)
 
 ---
 
-## [1.0.0] - Legacy (archived in legacy-v1/)
+## [2.0.0] - 2026-07-20 - Backend MVP In Progress
 Previous Flask-based implementation - not maintained.
