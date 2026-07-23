@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from hawkeye.config import settings
 from hawkeye.database import db
 from hawkeye.api.v1 import api_router
+from hawkeye.api.websocket import connection_manager, router as ws_router, router as ws_router
 
 
 @asynccontextmanager
@@ -14,8 +15,10 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     # Startup
     await db.create_all()
+    await connection_manager.start()
     yield
     # Shutdown
+    await connection_manager.stop()
     await db.close()
 
 
@@ -39,6 +42,7 @@ app.add_middleware(
 
 # Include API routes
 app.include_router(api_router, prefix="/api/v1")
+app.include_router(ws_router)
 
 
 @app.get("/health", tags=["health"])
