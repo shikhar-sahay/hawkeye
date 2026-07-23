@@ -63,7 +63,7 @@ async def get_current_source(
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """Get database session - re-export for convenience."""
-    async with get_db_session() as session:
+    async for session in get_db_session():
         yield session
 
 

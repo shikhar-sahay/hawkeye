@@ -29,7 +29,7 @@ class IngestionService:
             source_id=source.id,
             received_at=datetime.utcnow(),
             event_timestamp=event.timestamp,
-            payload=event.model_dump(),
+            payload=event.model_dump(mode="json"),
             client_ip=event.ip,
             user_agent=event.user_agent,
         )
@@ -67,7 +67,7 @@ class IngestionService:
                 source_id=source.id,
                 received_at=datetime.utcnow(),
                 event_timestamp=event.timestamp,
-                payload=event.model_dump(),
+                payload=event.model_dump(mode="json"),
                 client_ip=event.ip,
                 user_agent=event.user_agent,
             )

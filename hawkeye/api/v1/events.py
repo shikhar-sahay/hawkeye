@@ -61,8 +61,29 @@ async def query_events(
     if end_time:
         stmt = stmt.where(NormalizedEvent.timestamp <= end_time)
 
-    # Get total count
-    count_stmt = select(func.count()).select_from(stmt.subquery())
+    # Get total count - build separate count query to avoid subquery issues
+    count_stmt = select(func.count(NormalizedEvent.id)).where(NormalizedEvent.source_id == source.id)
+    if category:
+        count_stmt = count_stmt.where(NormalizedEvent.category == category)
+    if event_type:
+        count_stmt = count_stmt.where(NormalizedEvent.event_type == event_type)
+    if severity:
+        count_stmt = count_stmt.where(NormalizedEvent.severity == severity)
+    if user_id:
+        count_stmt = count_stmt.where(NormalizedEvent.user_id == user_id)
+    if ip:
+        count_stmt = count_stmt.where(NormalizedEvent.ip == ip)
+    if route:
+        count_stmt = count_stmt.where(NormalizedEvent.route == route)
+    if method:
+        count_stmt = count_stmt.where(NormalizedEvent.method == method)
+    if status_code:
+        count_stmt = count_stmt.where(NormalizedEvent.status_code == status_code)
+    if start_time:
+        count_stmt = count_stmt.where(NormalizedEvent.timestamp >= start_time)
+    if end_time:
+        count_stmt = count_stmt.where(NormalizedEvent.timestamp <= end_time)
+
     total_result = await session.exec(count_stmt)
     total = total_result.one()
 

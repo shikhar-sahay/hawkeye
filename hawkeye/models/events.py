@@ -15,7 +15,9 @@ class ApplicationSource(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(max_length=100, index=True)
-    api_key_hash: str = Field(max_length=128, unique=True, index=True)
+    api_key_hash: Optional[str] = Field(
+        default=None, sa_column=Column(String(128), unique=True, index=True, nullable=True)
+    )
     description: Optional[str] = Field(default=None, max_length=500)
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow, sa_column=Column(DateTime, default=datetime.utcnow))
