@@ -1,11 +1,9 @@
 """Normalization engine - converts raw events to normalized schema."""
 
 from datetime import datetime
-from typing import Any
 
 from hawkeye.models.events import NormalizedEvent, RawEvent
 from hawkeye.schemas.ingestion import RawEventIngest
-
 
 # Category inference from event type
 EVENT_CATEGORIES = {

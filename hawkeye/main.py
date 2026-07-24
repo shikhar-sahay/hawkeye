@@ -1,13 +1,15 @@
 """HawkEye main FastAPI application."""
 
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from hawkeye.api.v1 import api_router
+from hawkeye.api.websocket import connection_manager
+from hawkeye.api.websocket import router as ws_router
 from hawkeye.config import settings
 from hawkeye.database import db
-from hawkeye.api.v1 import api_router
-from hawkeye.api.websocket import connection_manager, router as ws_router, router as ws_router
 
 
 @asynccontextmanager

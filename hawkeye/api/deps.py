@@ -1,6 +1,6 @@
 """API dependencies."""
 
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import APIKeyHeader
@@ -9,8 +9,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.config import settings
 from hawkeye.database import get_session as get_db_session
-from hawkeye.models.events import ApplicationSource, ApiKey
-
+from hawkeye.models.events import ApiKey, ApplicationSource
 
 api_key_header = APIKeyHeader(name=settings.api_key_header, auto_error=False)
 
@@ -34,7 +33,7 @@ async def get_current_source(
     result = await session.exec(
         select(ApiKey)
         .where(ApiKey.key_hash == key_hash)
-        .where(ApiKey.is_active == True)
+        .where(ApiKey.is_active)
     )
     api_key_obj = result.first()
 
@@ -59,7 +58,6 @@ async def get_current_source(
         )
 
     return source
-
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """Get database session - re-export for convenience."""
@@ -86,7 +84,7 @@ async def verify_api_key(
     result = await session.exec(
         select(ApiKey)
         .where(ApiKey.key_hash == key_hash)
-        .where(ApiKey.is_active == True)
+        .where(ApiKey.is_active)
     )
     api_key_obj = result.first()
 

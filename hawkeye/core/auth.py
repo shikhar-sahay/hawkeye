@@ -2,7 +2,6 @@
 
 import hashlib
 import secrets
-from typing import Optional
 
 from hawkeye.config import settings
 

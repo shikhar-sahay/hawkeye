@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from hawkeye.api.v1 import alerts, events, ingestion, incidents, sources
+from hawkeye.api.v1 import alerts, events, incidents, ingestion, sources
 
 api_router = APIRouter()
 api_router.include_router(ingestion.router, prefix="/events", tags=["ingestion"])
