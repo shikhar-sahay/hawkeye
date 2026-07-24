@@ -1,6 +1,6 @@
 # HawkEye v2 Changelog
 
-## [2.0.0] - 2026-07-20 - Backend MVP In Progress
+## [2.0.0] - 2026-07-24 - Backend MVP + WebSocket Backend Complete
 
 ### Added
 - **FastAPI Application Bootstrap** (`hawkeye/main.py`)
@@ -12,6 +12,8 @@
 - **Configuration Management** (`hawkeye/config.py`)
   - Pydantic Settings with environment variable support
   - Application, API, Database, Security, Detection thresholds, Correlation, Frontend, CORS settings
+  - Added `detection_time_window_minutes = 60` for detection-specific time windows
+  - Added `frontend_ws_heartbeat_seconds = 30` for WebSocket heartbeat interval
   - Cached settings instance via `get_settings()`
 
 - **Database Layer** (`hawkeye/database.py`)
@@ -62,6 +64,7 @@
   - Runs all detectors on each event
   - Alert persistence
   - Correlation engine integration
+  - **Real-time alert broadcast via WebSocket** (`_broadcast_alert()`)
 
 - **7 Detection Modules** (`hawkeye/services/detection/`)
   - `base.py` — BaseDetector, DetectionContext, Alert factory, Severity/DetectionType enums
@@ -78,6 +81,7 @@
   - Incident creation from correlated alerts
   - Severity escalation
   - MITRE tactic/technique aggregation
+  - **Real-time incident broadcast via WebSocket** (`_broadcast_incident()`)
 
 - **API v1 Router** (`hawkeye/api/v1/`)
   - `ingestion.py` — POST /events/ingest, POST /events/ingest/batch
@@ -86,15 +90,46 @@
   - `alerts.py` — List, stats, get, update status
   - `incidents.py` — List, stats, get, alerts, update status
 
+- **WebSocket API** (`hawkeye/api/websocket.py`) ✨ **NEW IN THIS RELEASE**
+  - `ConnectionManager` class — Centralized WebSocket connection management
+    - Multi-client support with per-source isolation
+    - Subscription-based filtering (`alerts`, `incidents`)
+    - Thread-safe connection tracking with asyncio locks
+    - Automatic cleanup of failed/stale connections
+  - WebSocket endpoint `/ws` with API key authentication
+    - Query parameter: `api_key` (required)
+    - Query parameter: `subscribe` — comma-separated: `alerts,incidents`
+    - Returns connection confirmation with `connection_id`, `source_id`, `source_name`, `subscriptions`
+  - Client message protocol:
+    - `{"type": "pong"}` — Heartbeat response
+    - `{"type": "subscribe", "data": {"types": ["alerts", "incidents"]}}`
+    - `{"type": "unsubscribe", "data": {"types": ["alerts"]}}`
+    - `{"type": "ping"}` — Request server pong
+  - Server message protocol:
+    - `{"type": "connected", "data": {...}}` — Connection confirmation
+    - `{"type": "alert", "data": {...}}` — New alert notification
+    - `{"type": "incident", "data": {...}}` — New/updated incident notification
+    - `{"type": "ping", "timestamp": "..."}` — Server heartbeat
+    - `{"type": "pong", "timestamp": "..."}` — Server pong response
+    - `{"type": "error", "data": {...}}` — Error notification
+  - Broadcast methods:
+    - `broadcast_alert(alert_data, source_id)` — Send alert to subscribed connections
+    - `broadcast_incident(incident_data, source_id)` — Send incident to subscribed connections
+    - `broadcast_custom(message_type, data, source_id)` — Custom message type
+  - Heartbeat/ping-pong every 30 seconds (configurable via `frontend_ws_heartbeat_seconds`)
+  - Stale connection detection (2x heartbeat interval) with automatic cleanup
+  - `/ws/stats` endpoint — Returns connection count, per-source breakdown, heartbeat interval
+  - Lifecycle integration in `main.py` — Auto-starts/stops with app lifespan
+
 ### Changed
-- N/A (initial implementation)
+- Fixed duplicate import in `hawkeye/main.py:10` (was importing `router as ws_router` twice)
 
 ### Fixed
 - **T-003**: DetectionContext now uses detection-specific time window (60 min default) instead of correlation window (24 hours)
   - Added `detection_time_window_minutes` setting in `hawkeye/config.py`
   - Updated `DetectionContext.__post_init__` in `hawkeye/services/detection/base.py`
 - **T-001/T-002**: Verified BotDetector fixes from commit 13ed3a2 — no undefined variables or duplicate returns
-- All 18 unit tests pass (pytest 100% green)
+- All 29 unit tests pass (pytest 100% green)
 
 ---
 

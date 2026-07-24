@@ -27,7 +27,7 @@ Each task has:
 ### T-003: Fix DetectionContext `time_window_start` uses wrong config ✅ DONE
 - **File**: `hawkeye/services/detection/base.py` (DetectionContext class)
 - **Issue**: Uses `settings.correlation_time_window_hours` but should use detection-specific window
-- **Resolution**: 
+- **Resolution**:
   - Added `detection_time_window_minutes = 60` to `hawkeye/config.py`
   - Updated `DetectionContext.__post_init__` to use detection window
 - **Dependencies**: None
@@ -41,47 +41,57 @@ Each task has:
 
 ---
 
-## P1 - High Priority (MVP Backend Completion)
+## P1 - High Priority (Milestone 1: Backend MVP) ✅ ALL COMPLETE
 
-### T-010: Add WebSocket support to FastAPI app
-- **Files**: `hawkeye/main.py`, new `hawkeye/api/websocket.py`
-- **Completion Criteria**: WebSocket endpoint `/ws` accepts connections; connection manager handles multiple clients
-- **Dependencies**: T-004 (tests pass)
-- **Estimated Effort**: 2 hours
-
-### T-011: Implement real-time alert broadcast via WebSocket
-- **Files**: `hawkeye/api/websocket.py`, `hawkeye/services/detection/engine.py`
-- **Completion Criteria**: When alert created, all connected WS clients receive JSON alert payload
-- **Dependencies**: T-010
-- **Estimated Effort**: 1.5 hours
-
-### T-012: Implement real-time incident broadcast via WebSocket
-- **Files**: `hawkeye/api/websocket.py`, `hawkeye/services/correlation/engine.py`
-- **Completion Criteria**: When incident created/updated, all connected WS clients receive JSON incident payload
-- **Dependencies**: T-010
-- **Estimated Effort**: 1 hour
-
-### T-013: Add WebSocket authentication (API key or JWT)
-- **Files**: `hawkeye/api/websocket.py`, `hawkeye/api/deps.py`
-- **Completion Criteria**: WS connection requires valid API key; rejects unauthorized connections
-- **Dependencies**: T-010
-- **Estimated Effort**: 1 hour
-
-### T-014: Add WebSocket connection health/heartbeat
-- **Files**: `hawkeye/api/websocket.py`
-- **Completion Criteria**: Ping/pong every 30s; auto-disconnect stale connections; connection count endpoint
-- **Dependencies**: T-010
-- **Estimated Effort**: 45 min
-
-### T-015: Create WebSocket connection manager
-- **Files**: `hawkeye/api/websocket.py` (or new `hawkeye/services/ws_manager.py`)
-- **Completion Criteria**: Centralized manager handles connect/disconnect/broadcast; tracks connections per source
-- **Dependencies**: T-010
-- **Estimated Effort**: 45 min
+### T-005: FastAPI application bootstrap ✅ DONE
+### T-006: Configuration management ✅ DONE
+### T-007: Database layer (SQLModel + SQLite/PostgreSQL) ✅ DONE
+### T-008: Core authentication (API keys + bcrypt) ✅ DONE
+### T-009: Event normalization + MITRE mapping ✅ DONE
 
 ---
 
-## P2 - Medium Priority (Post-MVP Backend)
+## P1 - High Priority (Milestone 2: Real-time Dashboard Backend) ✅ ALL COMPLETE
+
+### T-010: Add WebSocket support to FastAPI app ✅ DONE
+- **Files**: `hawkeye/main.py`, new `hawkeye/api/websocket.py`
+- **Completion Criteria**: WebSocket endpoint `/ws` accepts connections; connection manager handles multiple clients
+- **Dependencies**: T-004 (tests pass)
+- **Verified**: Complete — `/ws` endpoint with lifespan management in main.py
+
+### T-011: Implement real-time alert broadcast via WebSocket ✅ DONE
+- **Files**: `hawkeye/api/websocket.py`, `hawkeye/services/detection/engine.py`
+- **Completion Criteria**: When alert created, all connected WS clients receive JSON alert payload
+- **Dependencies**: T-010
+- **Verified**: Complete — `DetectionEngine._broadcast_alert()` called in `process_event()`
+
+### T-012: Implement real-time incident broadcast via WebSocket ✅ DONE
+- **Files**: `hawkeye/api/websocket.py`, `hawkeye/services/correlation/engine.py`
+- **Completion Criteria**: When incident created/updated, all connected WS clients receive JSON incident payload
+- **Dependencies**: T-010
+- **Verified**: Complete — `CorrelationEngine._broadcast_incident()` called on create/update
+
+### T-013: Add WebSocket authentication (API key) ✅ DONE
+- **Files**: `hawkeye/api/websocket.py`, `hawkeye/api/deps.py`
+- **Completion Criteria**: WS connection requires valid API key; rejects unauthorized connections
+- **Dependencies**: T-010
+- **Verified**: Complete — `get_ws_source` dependency validates API key from query param
+
+### T-014: Add WebSocket connection health/heartbeat ✅ DONE
+- **Files**: `hawkeye/api/websocket.py`
+- **Completion Criteria**: Ping/pong every 30s; auto-disconnect stale connections; connection count endpoint
+- **Dependencies**: T-010
+- **Verified**: Complete — `ConnectionManager._heartbeat_loop()`, ping/pong, `/ws/stats` endpoint
+
+### T-015: Create WebSocket connection manager ✅ DONE
+- **Files**: `hawkeye/api/websocket.py` (ConnectionManager class)
+- **Completion Criteria**: Centralized manager handles connect/disconnect/broadcast; tracks connections per source
+- **Dependencies**: T-010
+- **Verified**: Complete — Full ConnectionManager with subscriptions, per-source isolation, broadcast filtering
+
+---
+
+## P2 - Medium Priority (Post-MVP Backend / Milestone 3: Frontend)
 
 ### T-020: Frontend Dashboard - React + TypeScript + Vite setup
 - **Files**: New `frontend/` directory
@@ -212,7 +222,10 @@ T-002 ──┼──→ T-004 (All Tests Pass)
 T-003 ──┘
             │
             ▼
-P1 MVP Backend:
+P1 MVP Backend (Milestone 1):
+T-005..T-009 → Complete ✅
+
+P1 Real-time Backend (Milestone 2):
 T-010 ──┬──→ T-011 ──┐
 T-010 ──┼──→ T-012 ──┤
 T-010 ──┼──→ T-013 ──┼──→ P2 Frontend
@@ -220,7 +233,7 @@ T-010 ──┼──→ T-014 ──┤
 T-010 ──┴──→ T-015 ──┘
                 │
                 ▼
-            P2 Frontend:
+P2 Frontend (Milestone 3):
 T-020 ──┬──→ T-021 ──┐
 T-020 ──┼──→ T-022 ──┤
 T-020 ──┼──→ T-023 ──┤
@@ -230,7 +243,7 @@ T-020 ──┼──→ T-026 ──┤
 T-020 ──┴──→ T-027 ──┘
                 │
                 ▼
-            P3 Post-MVP:
+P3 Post-MVP:
 T-030 → T-031..T-035 (Browser Agent)
 T-040 (SDKs)
 T-050 (Attack Replay)
@@ -240,6 +253,23 @@ T-060..T-062 (Ops & Docs)
 ---
 
 ## Current Sprint Focus
-**Sprint Goal**: Complete P0 Blockers → Run All Tests → Begin WebSocket Implementation (T-010)
+**Sprint Goal**: Milestone 1 & 2 COMPLETE ✅ → Begin Milestone 3 (Frontend Dashboard)
 
-**Next Task to Start**: T-001 (BotDetector undefined variable fix)
+**Next Task to Start**: **T-020** — Frontend Dashboard: React + TypeScript + Vite setup
+
+---
+
+## Verification Commands Reference
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run WebSocket tests only
+pytest tests/test_websocket.py -v
+
+# Lint
+ruff check hawkeye/
+
+# Start dev server
+uvicorn hawkeye.main:app --reload
+```
