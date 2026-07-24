@@ -1,7 +1,6 @@
 """Pydantic schemas for incident API responses."""
 
 from datetime import datetime
-from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -15,8 +14,8 @@ class AlertSummary(BaseModel):
     severity: str
     title: str
     created_at: datetime
-    ip: Optional[str] = None
-    user_id: Optional[str] = None
+    ip: str | None = None
+    user_id: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -48,7 +47,7 @@ class IncidentResponse(BaseModel):
     last_event_at: datetime
     created_at: datetime
     updated_at: datetime
-    closed_at: Optional[datetime] = None
+    closed_at: datetime | None = None
     # Related data
     source_id: int
     alerts: list[AlertSummary] = Field(default_factory=list)
@@ -74,13 +73,13 @@ class IncidentStatusUpdate(BaseModel):
 class IncidentFilter(BaseModel):
     """Incident query filters."""
 
-    severity: Optional[str] = None
-    status: Optional[str] = None
-    source_id: Optional[int] = None
-    affected_ip: Optional[str] = None
-    affected_user: Optional[str] = None
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
+    severity: str | None = None
+    status: str | None = None
+    source_id: int | None = None
+    affected_ip: str | None = None
+    affected_user: str | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
     limit: int = Field(default=50, ge=1, le=500)
     offset: int = Field(default=0, ge=0)
 

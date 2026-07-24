@@ -1,20 +1,20 @@
 """Alert API endpoints."""
 
 from datetime import datetime
-from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.api.deps import get_current_source, get_session
 from hawkeye.models.events import Alert, NormalizedEvent
+from hawkeye.models.events import ApplicationSource
 from hawkeye.schemas import (
     AlertFilter,
     AlertListResponse,
     AlertResponse,
-    AlertStatusUpdate,
     AlertStatsResponse,
+    AlertStatusUpdate,
 )
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
@@ -52,9 +52,9 @@ def _alert_to_response(alert: Alert, event: NormalizedEvent | None = None) -> Al
 )
 async def list_alerts(
     filter_params: AlertFilter = Depends(),
-    source = Depends(get_current_source),
+    source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
-):
+) -> AlertListResponse:
     """List alerts with various filters and pagination."""
     stmt = select(Alert).where(Alert.source_id == source.id)
 
@@ -120,7 +120,11 @@ async def list_alerts(
     total = total_result.one()
 
     # Apply ordering and pagination
-    stmt = stmt.order_by(Alert.created_at.desc()).offset(filter_params.offset).limit(filter_params.limit)
+    stmt = (
+        stmt.order_by(Alert.created_at.desc())
+        .offset(filter_params.offset)
+        .limit(filter_params.limit)
+    )
 
     result = await session.exec(stmt)
     alerts = list(result.all())
@@ -153,9 +157,9 @@ async def list_alerts(
     summary="Get alert statistics",
 )
 async def get_alert_stats(
-    source = Depends(get_current_source),
+    source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
-):
+) -> AlertStatsResponse:
     """Get aggregate alert statistics."""
     # Total count
     total_stmt = select(func.count(Alert.id)).where(Alert.source_id == source.id)
@@ -214,9 +218,9 @@ async def get_alert_stats(
 )
 async def get_alert(
     alert_id: int,
-    source = Depends(get_current_source),
+    source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
-):
+) -> AlertResponse:
     """Get a single alert by ID."""
     stmt = select(Alert).where(Alert.id == alert_id, Alert.source_id == source.id)
     result = await session.exec(stmt)
@@ -244,9 +248,9 @@ async def get_alert(
 async def update_alert_status(
     alert_id: int,
     update: AlertStatusUpdate,
-    source = Depends(get_current_source),
+    source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
-):
+) -> AlertResponse:
     """Update an alert's status."""
     stmt = select(Alert).where(Alert.id == alert_id, Alert.source_id == source.id)
     result = await session.exec(stmt)

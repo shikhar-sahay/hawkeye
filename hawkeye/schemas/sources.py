@@ -1,7 +1,6 @@
 """Pydantic schemas for source and API key management."""
 
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -10,7 +9,7 @@ class SourceCreate(BaseModel):
     """Create application source request."""
 
     name: str = Field(..., min_length=1, max_length=100)
-    description: Optional[str] = Field(default=None, max_length=500)
+    description: str | None = Field(default=None, max_length=500)
 
 
 class SourceResponse(BaseModel):
@@ -18,7 +17,7 @@ class SourceResponse(BaseModel):
 
     id: int
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -38,17 +37,17 @@ class SourceListResponse(BaseModel):
 class SourceUpdate(BaseModel):
     """Update application source request."""
 
-    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
-    description: Optional[str] = Field(default=None, max_length=500)
-    is_active: Optional[bool] = None
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    description: str | None = Field(default=None, max_length=500)
+    is_active: bool | None = None
 
 
 class ApiKeyCreate(BaseModel):
     """Create API key request."""
 
     name: str = Field(..., min_length=1, max_length=100)
-    description: Optional[str] = Field(default=None, max_length=500)
-    expires_at: Optional[datetime] = None
+    description: str | None = Field(default=None, max_length=500)
+    expires_at: datetime | None = None
 
 
 class ApiKeyResponse(BaseModel):
@@ -57,13 +56,13 @@ class ApiKeyResponse(BaseModel):
     id: int
     source_id: int
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     is_active: bool
-    last_used_at: Optional[datetime] = None
-    expires_at: Optional[datetime] = None
+    last_used_at: datetime | None = None
+    expires_at: datetime | None = None
     created_at: datetime
     # Only included on creation
-    plain_key: Optional[str] = None
+    plain_key: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -80,7 +79,7 @@ class ApiKeyListResponse(BaseModel):
 class ApiKeyUpdate(BaseModel):
     """Update API key request."""
 
-    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
-    description: Optional[str] = Field(default=None, max_length=500)
-    is_active: Optional[bool] = None
-    expires_at: Optional[datetime] = None
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    description: str | None = Field(default=None, max_length=500)
+    is_active: bool | None = None
+    expires_at: datetime | None = None

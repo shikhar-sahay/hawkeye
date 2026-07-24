@@ -1,14 +1,13 @@
 """Source and API key management API endpoints."""
 
 from datetime import datetime
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from hawkeye.api.deps import get_current_source, get_session
-from hawkeye.core.auth import generate_api_key, hash_api_key
+from hawkeye.api.deps import get_session
+from hawkeye.core.auth import generate_api_key
 from hawkeye.models.events import ApiKey, ApplicationSource
 from hawkeye.schemas import (
     ApiKeyCreate,
@@ -33,7 +32,7 @@ router = APIRouter(prefix="/sources", tags=["sources"])
 async def create_source(
     source_data: SourceCreate,
     session: AsyncSession = Depends(get_session),
-):
+) -> SourceResponse:
     """Register a new application source (admin endpoint)."""
     source = ApplicationSource(
         name=source_data.name,
@@ -56,7 +55,7 @@ async def list_sources(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     session: AsyncSession = Depends(get_session),
-):
+) -> SourceListResponse:
     """List all registered application sources."""
     stmt = select(ApplicationSource).offset(offset).limit(limit)
     count_stmt = select(func.count(ApplicationSource.id))
@@ -83,7 +82,7 @@ async def list_sources(
 async def get_source(
     source_id: int,
     session: AsyncSession = Depends(get_session),
-):
+) -> SourceResponse:
     """Get a single source by ID."""
     stmt = select(ApplicationSource).where(ApplicationSource.id == source_id)
     result = await session.exec(stmt)
@@ -107,7 +106,7 @@ async def update_source(
     source_id: int,
     update: SourceUpdate,
     session: AsyncSession = Depends(get_session),
-):
+) -> SourceResponse:
     """Update a source's details."""
     stmt = select(ApplicationSource).where(ApplicationSource.id == source_id)
     result = await session.exec(stmt)
@@ -141,7 +140,7 @@ async def create_api_key(
     source_id: int,
     key_data: ApiKeyCreate,
     session: AsyncSession = Depends(get_session),
-):
+) -> ApiKeyResponse:
     """Generate a new API key for a source."""
     # Verify source exists
     stmt = select(ApplicationSource).where(ApplicationSource.id == source_id)
@@ -185,7 +184,7 @@ async def list_api_keys(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     session: AsyncSession = Depends(get_session),
-):
+) -> ApiKeyListResponse:
     """List all API keys for a source (hashes only)."""
     # Verify source exists
     stmt = select(ApplicationSource).where(ApplicationSource.id == source_id)
@@ -225,7 +224,7 @@ async def update_api_key(
     key_id: int,
     update: ApiKeyUpdate,
     session: AsyncSession = Depends(get_session),
-):
+) -> ApiKeyResponse:
     """Update an API key's properties."""
     stmt = select(ApiKey).where(ApiKey.id == key_id, ApiKey.source_id == source_id)
     result = await session.exec(stmt)
@@ -257,7 +256,7 @@ async def revoke_api_key(
     source_id: int,
     key_id: int,
     session: AsyncSession = Depends(get_session),
-):
+) -> None:
     """Revoke (deactivate) an API key."""
     stmt = select(ApiKey).where(ApiKey.id == key_id, ApiKey.source_id == source_id)
     result = await session.exec(stmt)
@@ -273,4 +272,4 @@ async def revoke_api_key(
     session.add(api_key)
     await session.commit()
 
-    return None
+    return

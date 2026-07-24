@@ -1,21 +1,19 @@
 """Incident API endpoints."""
 
 from datetime import datetime
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.api.deps import get_current_source, get_session
-from hawkeye.models.events import Alert, Incident, IncidentAlert, NormalizedEvent
+from hawkeye.models.events import Alert, Incident, IncidentAlert
+from hawkeye.models.events import ApplicationSource
 from hawkeye.schemas import (
-    IncidentAlertLink,
-    IncidentFilter,
     IncidentListResponse,
     IncidentResponse,
-    IncidentStatusUpdate,
     IncidentStatsResponse,
+    IncidentStatusUpdate,
 )
 
 router = APIRouter(prefix="/incidents", tags=["incidents"])
@@ -79,9 +77,9 @@ async def list_incidents(
     end_time: datetime | None = Query(None),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    source=Depends(get_current_source),
+    source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
-):
+) -> IncidentListResponse:
     """List incidents with optional filters."""
     # Build base query - only incidents for this source
     stmt = select(Incident).where(Incident.source_id == source.id)
@@ -161,9 +159,9 @@ async def list_incidents(
     summary="Get incident statistics",
 )
 async def get_incident_stats(
-    source=Depends(get_current_source),
+    source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
-):
+) -> IncidentStatsResponse:
     """Get aggregate incident statistics for the current source."""
     base_stmt = select(Incident).where(Incident.source_id == source.id)
 
@@ -217,9 +215,9 @@ async def get_incident_stats(
 )
 async def get_incident(
     incident_id: int,
-    source=Depends(get_current_source),
+    source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
-):
+) -> IncidentResponse:
     """Get a single incident by ID with its alerts."""
     stmt = select(Incident).where(Incident.id == incident_id, Incident.source_id == source.id)
     result = await session.exec(stmt)
@@ -256,7 +254,7 @@ async def get_incident(
 )
 async def get_incident_alerts(
     incident_id: int,
-    source=Depends(get_current_source),
+    source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
 ):
     """Get all alerts linked to an incident."""
@@ -299,9 +297,9 @@ async def get_incident_alerts(
 async def update_incident_status(
     incident_id: int,
     status_update: IncidentStatusUpdate,
-    source=Depends(get_current_source),
+    source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
-):
+) -> IncidentResponse:
     """Update an incident's status."""
     stmt = select(Incident).where(Incident.id == incident_id, Incident.source_id == source.id)
     result = await session.exec(stmt)

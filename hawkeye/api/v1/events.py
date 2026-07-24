@@ -1,15 +1,15 @@
 """Event query API endpoints."""
 
 from datetime import datetime
-from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.api.deps import get_current_source, get_session
-from hawkeye.models.events import NormalizedEvent
-from hawkeye.schemas import EventFilter, EventListResponse, NormalizedEventResponse
+from hawkeye.models.events import Alert, NormalizedEvent
+from hawkeye.models.events import ApplicationSource
+from hawkeye.schemas import EventListResponse, NormalizedEventResponse
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -32,9 +32,9 @@ async def query_events(
     end_time: datetime | None = Query(None),
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
-    source=Depends(get_current_source),
+    source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
-):
+) -> EventListResponse:
     """Query normalized events with various filters and pagination."""
     # Build base query - only events for this source
     stmt = select(NormalizedEvent).where(NormalizedEvent.source_id == source.id)
@@ -62,7 +62,9 @@ async def query_events(
         stmt = stmt.where(NormalizedEvent.timestamp <= end_time)
 
     # Get total count - build separate count query to avoid subquery issues
-    count_stmt = select(func.count(NormalizedEvent.id)).where(NormalizedEvent.source_id == source.id)
+    count_stmt = select(func.count(NormalizedEvent.id)).where(
+        NormalizedEvent.source_id == source.id
+    )
     if category:
         count_stmt = count_stmt.where(NormalizedEvent.category == category)
     if event_type:
@@ -107,9 +109,9 @@ async def query_events(
 )
 async def get_event(
     event_id: int,
-    source=Depends(get_current_source),
+    source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
-):
+) -> NormalizedEventResponse:
     """Get a single normalized event by ID."""
     stmt = select(NormalizedEvent).where(
         NormalizedEvent.id == event_id,
@@ -133,9 +135,9 @@ async def get_event(
 )
 async def get_event_alerts(
     event_id: int,
-    source=Depends(get_current_source),
+    source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
-):
+) -> list:
     """Get all alerts generated from a specific event."""
     # Verify event exists and belongs to source
     event_stmt = select(NormalizedEvent).where(
@@ -152,9 +154,6 @@ async def get_event_alerts(
         )
 
     # Get alerts for this event
-    from hawkeye.models.events import Alert
     alert_stmt = select(Alert).where(Alert.event_id == event_id)
     alert_result = await session.exec(alert_stmt)
-    alerts = list(alert_result.all())
-
-    return alerts
+    return list(alert_result.all())

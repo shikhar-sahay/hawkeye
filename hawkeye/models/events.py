@@ -2,9 +2,16 @@
 
 from datetime import datetime
 from typing import Optional
-from uuid import uuid4
 
-from sqlalchemy import Column, Index, String, Text, JSON, DateTime, Integer, ForeignKey, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    Column,
+    DateTime,
+    Index,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -13,12 +20,12 @@ class ApplicationSource(SQLModel, table=True):
 
     __tablename__ = "application_sources"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     name: str = Field(max_length=100, index=True)
-    api_key_hash: Optional[str] = Field(
+    api_key_hash: str | None = Field(
         default=None, sa_column=Column(String(128), unique=True, index=True, nullable=True)
     )
-    description: Optional[str] = Field(default=None, max_length=500)
+    description: str | None = Field(default=None, max_length=500)
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow, sa_column=Column(DateTime, default=datetime.utcnow))
     updated_at: datetime = Field(
@@ -36,7 +43,7 @@ class RawEvent(SQLModel, table=True):
 
     __tablename__ = "raw_events"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     source_id: int = Field(foreign_key="application_sources.id", index=True)
     received_at: datetime = Field(
         default_factory=datetime.utcnow,
@@ -44,13 +51,13 @@ class RawEvent(SQLModel, table=True):
     )
     event_timestamp: datetime = Field(sa_column=Column(DateTime, index=True))
     payload: dict = Field(sa_column=Column(JSON))
-    headers: Optional[dict] = Field(default=None, sa_column=Column(JSON))
-    client_ip: Optional[str] = Field(default=None, max_length=45)
-    user_agent: Optional[str] = Field(default=None, max_length=500)
+    headers: dict | None = Field(default=None, sa_column=Column(JSON))
+    client_ip: str | None = Field(default=None, max_length=45)
+    user_agent: str | None = Field(default=None, max_length=500)
     processed: bool = Field(default=False, index=True)
 
     # Relationships
-    source: Optional[ApplicationSource] = Relationship(back_populates="events")
+    source: ApplicationSource | None = Relationship(back_populates="events")
     normalized_event: Optional["NormalizedEvent"] = Relationship(back_populates="raw_event")
 
 
@@ -59,8 +66,8 @@ class NormalizedEvent(SQLModel, table=True):
 
     __tablename__ = "normalized_events"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    raw_event_id: Optional[int] = Field(
+    id: int | None = Field(default=None, primary_key=True)
+    raw_event_id: int | None = Field(
         default=None, foreign_key="raw_events.id", unique=True, index=True
     )
     source_id: int = Field(foreign_key="application_sources.id", index=True)
@@ -72,26 +79,26 @@ class NormalizedEvent(SQLModel, table=True):
     severity: str = Field(max_length=20, index=True)
 
     # Actor
-    user_id: Optional[str] = Field(default=None, max_length=100, index=True)
-    session_id: Optional[str] = Field(default=None, max_length=100, index=True)
-    ip: Optional[str] = Field(default=None, max_length=45, index=True)
-    user_agent: Optional[str] = Field(default=None, max_length=500)
+    user_id: str | None = Field(default=None, max_length=100, index=True)
+    session_id: str | None = Field(default=None, max_length=100, index=True)
+    ip: str | None = Field(default=None, max_length=45, index=True)
+    user_agent: str | None = Field(default=None, max_length=500)
 
     # Target
-    route: Optional[str] = Field(default=None, max_length=500, index=True)
-    method: Optional[str] = Field(default=None, max_length=10)
-    status_code: Optional[int] = None
+    route: str | None = Field(default=None, max_length=500, index=True)
+    method: str | None = Field(default=None, max_length=10)
+    status_code: int | None = None
 
     # Context
     event_metadata: dict = Field(default_factory=dict, sa_column=Column(JSON))
 
     # MITRE ATT&CK
-    mitre_tactic: Optional[str] = Field(default=None, max_length=100)
-    mitre_technique: Optional[str] = Field(default=None, max_length=50)
+    mitre_tactic: str | None = Field(default=None, max_length=100)
+    mitre_technique: str | None = Field(default=None, max_length=50)
 
     # Relationships
-    source: Optional[ApplicationSource] = Relationship()
-    raw_event: Optional[RawEvent] = Relationship(back_populates="normalized_event")
+    source: ApplicationSource | None = Relationship()
+    raw_event: RawEvent | None = Relationship(back_populates="normalized_event")
     alerts: list["Alert"] = Relationship(back_populates="event")
 
     __table_args__ = (
@@ -105,7 +112,7 @@ class Alert(SQLModel, table=True):
 
     __tablename__ = "alerts"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     source_id: int = Field(foreign_key="application_sources.id", index=True)
     event_id: int = Field(foreign_key="normalized_events.id", index=True)
     detection_type: str = Field(max_length=50, index=True)
@@ -126,8 +133,8 @@ class Alert(SQLModel, table=True):
     )
 
     # Relationships
-    source: Optional[ApplicationSource] = Relationship(back_populates="alerts")
-    event: Optional[NormalizedEvent] = Relationship(back_populates="alerts")
+    source: ApplicationSource | None = Relationship(back_populates="alerts")
+    event: NormalizedEvent | None = Relationship(back_populates="alerts")
     incident_alerts: list["IncidentAlert"] = Relationship(back_populates="alert")
 
 
@@ -136,7 +143,7 @@ class Incident(SQLModel, table=True):
 
     __tablename__ = "incidents"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     title: str = Field(max_length=200)
     description: str = Field(sa_column=Column(Text))
     severity: str = Field(max_length=20, index=True)
@@ -163,7 +170,7 @@ class Incident(SQLModel, table=True):
         default_factory=datetime.utcnow,
         sa_column=Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow),
     )
-    closed_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime))
+    closed_at: datetime | None = Field(default=None, sa_column=Column(DateTime))
 
     # Relationships
     incident_alerts: list["IncidentAlert"] = Relationship(back_populates="incident")
@@ -174,7 +181,7 @@ class IncidentAlert(SQLModel, table=True):
 
     __tablename__ = "incident_alerts"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     incident_id: int = Field(foreign_key="incidents.id", index=True)
     alert_id: int = Field(foreign_key="alerts.id", index=True)
     sequence: int = Field(default=0)  # Order in timeline
@@ -184,8 +191,8 @@ class IncidentAlert(SQLModel, table=True):
     )
 
     # Relationships
-    incident: Optional[Incident] = Relationship(back_populates="incident_alerts")
-    alert: Optional[Alert] = Relationship(back_populates="incident_alerts")
+    incident: Incident | None = Relationship(back_populates="incident_alerts")
+    alert: Alert | None = Relationship(back_populates="incident_alerts")
 
     __table_args__ = (
         UniqueConstraint("incident_id", "alert_id", name="uq_incident_alert"),
@@ -197,18 +204,18 @@ class ApiKey(SQLModel, table=True):
 
     __tablename__ = "api_keys"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     source_id: int = Field(foreign_key="application_sources.id", index=True)
     key_hash: str = Field(max_length=128, unique=True, index=True)
     name: str = Field(max_length=100)
-    description: Optional[str] = Field(default=None, max_length=500)
+    description: str | None = Field(default=None, max_length=500)
     is_active: bool = Field(default=True)
-    last_used_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime))
-    expires_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime))
+    last_used_at: datetime | None = Field(default=None, sa_column=Column(DateTime))
+    expires_at: datetime | None = Field(default=None, sa_column=Column(DateTime))
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
         sa_column=Column(DateTime, default=datetime.utcnow),
     )
 
     # Relationships
-    source: Optional[ApplicationSource] = Relationship()
+    source: ApplicationSource | None = Relationship()
