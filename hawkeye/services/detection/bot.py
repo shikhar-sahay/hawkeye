@@ -2,12 +2,13 @@
 
 import re
 import statistics
+
 from sqlmodel import select
 
 from hawkeye.config import settings
 from hawkeye.models.enums import DetectionType, Severity
 from hawkeye.models.events import NormalizedEvent
-from hawkeye.services.detection.base import Alert, DetectionContext, BaseDetector
+from hawkeye.services.detection.base import Alert, BaseDetector, DetectionContext
 
 
 class BotDetector(BaseDetector):
@@ -287,7 +288,6 @@ class BotDetector(BaseDetector):
             return None
 
         # Calculate variance - bots often have very low variance
-        import statistics
         try:
             variance = statistics.variance(intervals)
             mean_interval = statistics.mean(intervals)

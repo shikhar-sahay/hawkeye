@@ -1,9 +1,7 @@
 """Ingestion service - handles event processing pipeline."""
 
 from datetime import datetime
-from typing import Optional
 
-from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.core.normalization import NormalizationEngine

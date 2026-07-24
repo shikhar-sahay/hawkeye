@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
-from uuid import uuid4
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession

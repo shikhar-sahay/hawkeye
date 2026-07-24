@@ -1,10 +1,8 @@
 """Session hijacking detection - impossible travel, token theft, etc."""
 
-from datetime import timedelta
 from typing import Any
 
 from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.config import settings
 from hawkeye.models.enums import DetectionType, EventType, Severity

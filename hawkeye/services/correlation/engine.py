@@ -1,22 +1,24 @@
 """Correlation engine - groups alerts into incidents."""
 
-from collections import defaultdict
+import logging
 from datetime import datetime, timedelta
-from typing import Any
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from hawkeye.api.websocket import connection_manager
 from hawkeye.config import settings
 from hawkeye.models.enums import IncidentSeverity, IncidentStatus
-from hawkeye.models.events import Alert, Incident, IncidentAlert, NormalizedEvent
+from hawkeye.models.events import Alert, Incident, IncidentAlert
 from hawkeye.services.detection.base import Severity
+
+logger = logging.getLogger(__name__)
 
 
 class CorrelationEngine:
     """Correlates alerts into incidents based on time, actors, and attack patterns."""
 
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
     async def correlate_alert(self, alert: Alert) -> Incident | None:
@@ -31,8 +33,7 @@ class CorrelationEngine:
 
         if incident:
             return await self._add_alert_to_incident(alert, incident)
-        else:
-            return await self._create_incident_from_alert(alert)
+        return await self._create_incident_from_alert(alert)
 
     async def _find_matching_incident(self, alert: Alert) -> Incident | None:
         """Find an existing open incident that matches this alert."""
@@ -89,11 +90,13 @@ class CorrelationEngine:
             score += 3
 
         # 3. Same session correlation
-        if alert.session_id and any(a.session_id == alert.session_id for a in existing_alerts if a.session_id):
+        if alert.session_id and any(
+            a.session_id == alert.session_id for a in existing_alerts if a.session_id
+        ):
             score += 4
 
         # 4. Same detection type chain
-        detection_types = set(a.detection_type for a in existing_alerts)
+        detection_types = {a.detection_type for a in existing_alerts}
         if alert.detection_type in detection_types:
             score += 2
 
@@ -116,7 +119,9 @@ class CorrelationEngine:
 
         return score
 
-    async def _is_attack_chain_continuation(self, alert: Alert, existing_alerts: list[Alert]) -> bool:
+    async def _is_attack_chain_continuation(
+        self, alert: Alert, existing_alerts: list[Alert]
+    ) -> bool:
         """Check if this alert continues a known attack chain (MITRE ATT&CK)."""
         # Define attack chain progressions
         chains = {
@@ -204,6 +209,9 @@ class CorrelationEngine:
         await self.session.commit()
         await self.session.refresh(incident)
 
+        # Broadcast incident creation
+        await self._broadcast_incident(incident, is_new=True)
+
         return incident
 
     async def _add_alert_to_incident(self, alert: Alert, incident: Incident) -> Incident:
@@ -265,6 +273,9 @@ class CorrelationEngine:
         await self.session.commit()
         await self.session.refresh(incident)
 
+        # Broadcast incident update
+        await self._broadcast_incident(incident, is_new=False)
+
         return incident
 
     def _get_mitre_tactics(self, detection_type: str) -> list[str]:
@@ -283,13 +294,20 @@ class CorrelationEngine:
     def _get_mitre_techniques(self, detection_type: str) -> list[str]:
         """Map detection type to MITRE ATT&CK techniques."""
         mapping = {
-            "brute_force": ["T1110.001", "T1110.003"],  # Password Guessing, Password Spraying
-            "credential_stuffing": ["T1110.004"],  # Credential Stuffing
-            "enumeration": ["T1590.005", "T1083"],  # Active Directory Reconnaissance, File/Directory Discovery
-            "bot_detection": ["T1583.006", "T1588.002"],  # Web Services, Tool
-            "sensitive_action": ["T1005", "T1567"],  # Data from Local System, Exfiltration
-            "session_hijacking": ["T1556.002", "T1550.001"],  # Password Filter, Application Access Token
-            "api_abuse": ["T1059.007", "T1595"],  # JavaScript, Active Scanning
+            "brute_force": ["T1110.001", "T1110.003"],
+            # Password Guessing, Password Spraying
+            "credential_stuffing": ["T1110.004"],
+            # Credential Stuffing
+            "enumeration": ["T1590.005", "T1083"],
+            # Active Directory Reconnaissance, File/Directory Discovery
+            "bot_detection": ["T1583.006", "T1588.002"],
+            # Web Services, Tool
+            "sensitive_action": ["T1005", "T1567"],
+            # Data from Local System, Exfiltration
+            "session_hijacking": ["T1556.002", "T1550.001"],
+            # Password Filter, Application Access Token
+            "api_abuse": ["T1059.007", "T1595"],
+            # JavaScript, Active Scanning
         }
         return mapping.get(detection_type, [])
 
@@ -315,3 +333,41 @@ class CorrelationEngine:
             await self.session.commit()
 
         return count
+
+    async def _broadcast_incident(self, incident: Incident, is_new: bool = False) -> None:
+        """Broadcast incident creation or update to WebSocket subscribers."""
+        try:
+
+            def _iso(dt: datetime | None) -> str | None:
+                return dt.isoformat() + "Z" if dt else None
+
+            incident_data = {
+                "id": incident.id,
+                "source_id": incident.source_id,
+                "title": incident.title,
+                "description": incident.description,
+                "severity": incident.severity,
+                "status": incident.status,
+                "confidence": incident.confidence,
+                "affected_ips": incident.affected_ips,
+                "affected_users": incident.affected_users,
+                "affected_routes": incident.affected_routes,
+                "mitre_tactics": incident.mitre_tactics,
+                "mitre_techniques": incident.mitre_techniques,
+                "first_event_at": _iso(incident.first_event_at),
+                "last_event_at": _iso(incident.last_event_at),
+                "created_at": _iso(incident.created_at),
+                "updated_at": _iso(incident.updated_at),
+                "is_new": is_new,
+            }
+            sent = await connection_manager.broadcast_incident(incident_data, incident.source_id)
+            if sent > 0:
+                logger.debug(
+                    "Broadcast incident %s (new=%s) to %d WebSocket connections",
+                    incident.id,
+                    is_new,
+                    sent,
+                )
+        except Exception as e:
+            # Don't fail correlation if broadcast fails
+            logger.warning("Failed to broadcast incident %s: %s", incident.id, e)

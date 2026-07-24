@@ -2,14 +2,12 @@
 
 import re
 from collections import Counter
-from datetime import timedelta
 from typing import Any
 
 from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.config import settings
-from hawkeye.models.enums import DetectionType, EventType, Severity
+from hawkeye.models.enums import DetectionType, Severity
 from hawkeye.models.events import Alert, NormalizedEvent
 from hawkeye.services.detection.base import BaseDetector, DetectionContext
 
@@ -49,7 +47,6 @@ class EnumerationDetector(BaseDetector):
 
     async def detect(self, context: DetectionContext) -> list[Alert]:
         """Detect enumeration patterns."""
-        event = context.event
         alerts = []
 
         # Check for 404 enumeration
@@ -117,7 +114,8 @@ class EnumerationDetector(BaseDetector):
             f"404 Enumeration Scan from {event.ip}",
             (
                 f"Detected {count} 404 errors from IP {event.ip} across {unique_paths} "
-                f"unique paths in {window_minutes:.1f} minutes. Consistent with directory/file enumeration."
+                f"unique paths in {window_minutes:.1f} minutes. Consistent with "
+                "directory/file enumeration."
             ),
             evidence,
         )
@@ -210,7 +208,11 @@ class EnumerationDetector(BaseDetector):
             if isinstance(param_value, str):
                 for pattern in injection_patterns:
                     if re.search(pattern, param_value, re.IGNORECASE):
-                        matched.append({"parameter": param_name, "pattern": pattern, "value": param_value[:100]})
+                        matched.append({
+                            "parameter": param_name,
+                            "pattern": pattern,
+                            "value": param_value[:100],
+                        })
 
         if not matched:
             return None
@@ -251,7 +253,8 @@ class EnumerationDetector(BaseDetector):
             event,
             f"Parameter Tampering/Injection Attempt from {event.ip}",
             (
-                f"Detected {len(matched)} injection pattern(s) in request parameters from IP {event.ip}. "
+                f"Detected {len(matched)} injection pattern(s) in request parameters "
+                f"from IP {event.ip}. "
                 f"Total injection attempts in window: {injection_count}."
             ),
             evidence,

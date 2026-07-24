@@ -1,11 +1,9 @@
 """API abuse detection - rate limiting, scraping, etc."""
 
 from collections import defaultdict
-from datetime import timedelta
 from typing import Any
 
 from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.config import settings
 from hawkeye.models.enums import DetectionType, Severity
@@ -23,7 +21,6 @@ class APIAbuseDetector(BaseDetector):
 
     async def detect(self, context: DetectionContext) -> list[Alert]:
         """Detect API abuse patterns."""
-        event = context.event
         alerts = []
 
         # Check for high request rate
@@ -135,8 +132,6 @@ class APIAbuseDetector(BaseDetector):
         if len(unique_routes) < 20:
             return None
 
-        from collections import Counter
-        route_counts = Counter(routes)
         avg_requests_per_route = len(routes) / len(unique_routes)
 
         # If avg requests per route is very low (e.g., < 1.5), it's enumeration

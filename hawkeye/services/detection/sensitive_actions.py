@@ -1,11 +1,9 @@
 """Sensitive action detection - admin actions, data exports, privilege changes."""
 
 from collections import defaultdict
-from datetime import timedelta
 from typing import Any
 
 from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.config import settings
 from hawkeye.models.enums import DetectionType, EventType, Severity

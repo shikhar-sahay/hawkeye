@@ -1,15 +1,13 @@
 """Brute force detection module."""
 
 from collections import Counter
-from datetime import datetime, timedelta
 
 from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.config import settings
 from hawkeye.models.enums import DetectionType
 from hawkeye.models.events import NormalizedEvent
-from hawkeye.services.detection.base import Alert, DetectionContext, BaseDetector, Severity
+from hawkeye.services.detection.base import Alert, BaseDetector, DetectionContext, Severity
 
 
 class BruteForceDetector(BaseDetector):
