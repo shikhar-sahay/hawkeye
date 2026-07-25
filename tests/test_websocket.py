@@ -309,6 +309,85 @@ class TestWebSocketEndpoint:
             with client.websocket_connect("/ws?api_key=invalid_key") as ws:
                 pass
 
+    def test_websocket_with_bearer_token(self, client, test_source):
+        """Test WebSocket with Authorization: Bearer header."""
+        source, api_key = test_source
+
+        with client.websocket_connect(
+            "/ws",
+            headers={"Authorization": f"Bearer {api_key}"},
+        ) as ws:
+            data = ws.receive_json()
+            assert data["type"] == "connected"
+            assert data["data"]["source_id"] == source.id
+            assert "connection_id" in data["data"]
+
+    def test_websocket_with_x_api_key_header(self, client, test_source):
+        """Test WebSocket with X-API-Key header."""
+        source, api_key = test_source
+
+        with client.websocket_connect(
+            "/ws",
+            headers={"X-API-Key": api_key},
+        ) as ws:
+            data = ws.receive_json()
+            assert data["type"] == "connected"
+            assert data["data"]["source_id"] == source.id
+            assert "connection_id" in data["data"]
+
+    def test_websocket_with_query_param(self, client, test_source):
+        """Test WebSocket with query parameter (backward compatibility)."""
+        source, api_key = test_source
+
+        with client.websocket_connect(f"/ws?api_key={api_key}") as ws:
+            data = ws.receive_json()
+            assert data["type"] == "connected"
+            assert data["data"]["source_id"] == source.id
+            assert "connection_id" in data["data"]
+
+    def test_websocket_header_priority(self, client, test_source):
+        """Test that Authorization header takes priority over X-API-Key over query param."""
+        source, api_key = test_source
+
+        # Create another source with different key
+        from hawkeye.core.auth import generate_api_key
+        from hawkeye.database import get_session
+        from hawkeye.models.events import ApplicationSource, ApiKey
+        import asyncio
+
+        async def create_second_source():
+            async for session in get_session():
+                source2 = ApplicationSource(name="Source 2", description="Second source")
+                session.add(source2)
+                await session.commit()
+                await session.refresh(source2)
+
+                api_key2, key_hash2 = generate_api_key()
+                api_key_obj2 = ApiKey(
+                    source_id=source2.id,
+                    key_hash=key_hash2,
+                    name="Test Key 2",
+                    is_active=True,
+                )
+                session.add(api_key_obj2)
+                await session.commit()
+                await session.refresh(api_key_obj2)
+                return source2, api_key2
+
+        source2, api_key2 = asyncio.run(create_second_source())
+
+        # When both Authorization and X-API-Key are provided, Authorization should win
+        with client.websocket_connect(
+            "/ws",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "X-API-Key": api_key2,
+            },
+        ) as ws:
+            data = ws.receive_json()
+            # Should authenticate as source (first key), not source2
+            assert data["data"]["source_id"] == source.id
+
 
 class TestWebSocketStats:
     """Tests for WebSocket stats endpoint."""
