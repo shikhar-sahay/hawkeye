@@ -30,12 +30,12 @@ async def get_current_source(
 
     key_hash = hash_api_key(api_key)
 
-    result = await session.exec(
+    result = await session.execute(
         select(ApiKey)
         .where(ApiKey.key_hash == key_hash)
         .where(ApiKey.is_active)
     )
-    api_key_obj = result.first()
+    api_key_obj = result.scalars().first()
 
     if not api_key_obj:
         raise HTTPException(
@@ -45,10 +45,10 @@ async def get_current_source(
         )
 
     # Get source
-    result = await session.exec(
+    result = await session.execute(
         select(ApplicationSource).where(ApplicationSource.id == api_key_obj.source_id)
     )
-    source = result.first()
+    source = result.scalars().first()
 
     if not source or not source.is_active:
         raise HTTPException(
@@ -81,12 +81,12 @@ async def verify_api_key(
 
     key_hash = hash_api_key(api_key)
 
-    result = await session.exec(
+    result = await session.execute(
         select(ApiKey)
         .where(ApiKey.key_hash == key_hash)
         .where(ApiKey.is_active)
     )
-    api_key_obj = result.first()
+    api_key_obj = result.scalars().first()
 
     if not api_key_obj:
         raise HTTPException(
@@ -96,10 +96,10 @@ async def verify_api_key(
         )
 
     # Get source
-    result = await session.exec(
+    result = await session.execute(
         select(ApplicationSource).where(ApplicationSource.id == api_key_obj.source_id)
     )
-    source = result.first()
+    source = result.scalars().first()
 
     if not source or not source.is_active:
         raise HTTPException(

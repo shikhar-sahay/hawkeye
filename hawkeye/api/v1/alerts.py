@@ -7,8 +7,7 @@ from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.api.deps import get_current_source, get_session
-from hawkeye.models.events import Alert, NormalizedEvent
-from hawkeye.models.events import ApplicationSource
+from hawkeye.models.events import Alert, ApplicationSource, NormalizedEvent
 from hawkeye.schemas import (
     AlertFilter,
     AlertListResponse,
@@ -116,8 +115,8 @@ async def list_alerts(
     if filter_params.end_time:
         count_stmt = count_stmt.where(Alert.created_at <= filter_params.end_time)
 
-    total_result = await session.exec(count_stmt)
-    total = total_result.one()
+    total_result = await session.execute(count_stmt)
+    total = total_result.scalar_one()
 
     # Apply ordering and pagination
     stmt = (
@@ -126,8 +125,8 @@ async def list_alerts(
         .limit(filter_params.limit)
     )
 
-    result = await session.exec(stmt)
-    alerts = list(result.all())
+    result = await session.execute(stmt)
+    alerts = list(result.scalars().all())
 
     # Fetch related events for additional context
     alert_ids = [a.id for a in alerts]
@@ -136,7 +135,7 @@ async def list_alerts(
         event_stmt = select(NormalizedEvent).where(NormalizedEvent.id.in_(
             select(Alert.event_id).where(Alert.id.in_(alert_ids))
         ))
-        event_result = await session.exec(event_stmt)
+        event_result = await session.execute(event_stmt)
         events = list(event_result.all())
         events_map = {e.id: e for e in events}
 
@@ -163,8 +162,8 @@ async def get_alert_stats(
     """Get aggregate alert statistics."""
     # Total count
     total_stmt = select(func.count(Alert.id)).where(Alert.source_id == source.id)
-    total_result = await session.exec(total_stmt)
-    total = total_result.one()
+    total_result = await session.execute(total_stmt)
+    total = total_result.scalar_one()
 
     # By severity
     severity_stmt = (
@@ -172,7 +171,7 @@ async def get_alert_stats(
         .where(Alert.source_id == source.id)
         .group_by(Alert.severity)
     )
-    severity_result = await session.exec(severity_stmt)
+    severity_result = await session.execute(severity_stmt)
     by_severity = {row[0]: row[1] for row in severity_result.all()}
 
     # By status
@@ -181,7 +180,7 @@ async def get_alert_stats(
         .where(Alert.source_id == source.id)
         .group_by(Alert.status)
     )
-    status_result = await session.exec(status_stmt)
+    status_result = await session.execute(status_stmt)
     by_status = {row[0]: row[1] for row in status_result.all()}
 
     # By detection type
@@ -190,7 +189,7 @@ async def get_alert_stats(
         .where(Alert.source_id == source.id)
         .group_by(Alert.detection_type)
     )
-    det_type_result = await session.exec(det_type_stmt)
+    det_type_result = await session.execute(det_type_stmt)
     by_detection_type = {row[0]: row[1] for row in det_type_result.all()}
 
     # By detector
@@ -199,7 +198,7 @@ async def get_alert_stats(
         .where(Alert.source_id == source.id)
         .group_by(Alert.detector_name)
     )
-    detector_result = await session.exec(detector_stmt)
+    detector_result = await session.execute(detector_stmt)
     by_detector = {row[0]: row[1] for row in detector_result.all()}
 
     return AlertStatsResponse(
@@ -223,8 +222,8 @@ async def get_alert(
 ) -> AlertResponse:
     """Get a single alert by ID."""
     stmt = select(Alert).where(Alert.id == alert_id, Alert.source_id == source.id)
-    result = await session.exec(stmt)
-    alert = result.first()
+    result = await session.execute(stmt)
+    alert = result.scalars().first()
 
     if not alert:
         raise HTTPException(
@@ -234,8 +233,8 @@ async def get_alert(
 
     # Fetch related event
     event_stmt = select(NormalizedEvent).where(NormalizedEvent.id == alert.event_id)
-    event_result = await session.exec(event_stmt)
-    event = event_result.first()
+    event_result = await session.execute(event_stmt)
+    event = event_result.scalars().first()
 
     return _alert_to_response(alert, event)
 
@@ -253,8 +252,8 @@ async def update_alert_status(
 ) -> AlertResponse:
     """Update an alert's status."""
     stmt = select(Alert).where(Alert.id == alert_id, Alert.source_id == source.id)
-    result = await session.exec(stmt)
-    alert = result.first()
+    result = await session.execute(stmt)
+    alert = result.scalars().first()
 
     if not alert:
         raise HTTPException(
@@ -270,7 +269,7 @@ async def update_alert_status(
 
     # Fetch related event for response
     event_stmt = select(NormalizedEvent).where(NormalizedEvent.id == alert.event_id)
-    event_result = await session.exec(event_stmt)
-    event = event_result.first()
+    event_result = await session.execute(event_stmt)
+    event = event_result.scalars().first()
 
     return _alert_to_response(alert, event)

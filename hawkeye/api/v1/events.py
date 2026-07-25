@@ -7,11 +7,10 @@ from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.api.deps import get_current_source, get_session
-from hawkeye.models.events import Alert, NormalizedEvent
-from hawkeye.models.events import ApplicationSource
+from hawkeye.models.events import Alert, ApplicationSource, NormalizedEvent
 from hawkeye.schemas import EventListResponse, NormalizedEventResponse
 
-router = APIRouter(prefix="/events", tags=["events"])
+router = APIRouter(tags=["events"])
 
 
 @router.get(
@@ -86,13 +85,13 @@ async def query_events(
     if end_time:
         count_stmt = count_stmt.where(NormalizedEvent.timestamp <= end_time)
 
-    total_result = await session.exec(count_stmt)
-    total = total_result.one()
+    total_result = await session.execute(count_stmt)
+    total = total_result.scalar_one()
 
     # Apply pagination and ordering
     stmt = stmt.order_by(NormalizedEvent.timestamp.desc()).offset(offset).limit(limit)
-    result = await session.exec(stmt)
-    events = list(result.all())
+    result = await session.execute(stmt)
+    events = list(result.scalars().all())
 
     return EventListResponse(
         events=[NormalizedEventResponse.model_validate(e) for e in events],
@@ -117,8 +116,8 @@ async def get_event(
         NormalizedEvent.id == event_id,
         NormalizedEvent.source_id == source.id,
     )
-    result = await session.exec(stmt)
-    event = result.first()
+    result = await session.execute(stmt)
+    event = result.scalars().first()
 
     if not event:
         raise HTTPException(
@@ -144,8 +143,8 @@ async def get_event_alerts(
         NormalizedEvent.id == event_id,
         NormalizedEvent.source_id == source.id,
     )
-    event_result = await session.exec(event_stmt)
-    event = event_result.first()
+    event_result = await session.execute(event_stmt)
+    event = event_result.scalars().first()
 
     if not event:
         raise HTTPException(
@@ -155,5 +154,5 @@ async def get_event_alerts(
 
     # Get alerts for this event
     alert_stmt = select(Alert).where(Alert.event_id == event_id)
-    alert_result = await session.exec(alert_stmt)
-    return list(alert_result.all())
+    alert_result = await session.execute(alert_stmt)
+    return list(alert_result.scalars().all())

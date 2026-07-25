@@ -13,7 +13,7 @@ from hawkeye.schemas.ingestion import (
 )
 from hawkeye.services.ingestion_service import IngestionService
 
-router = APIRouter(prefix="/events", tags=["ingestion"])
+router = APIRouter(tags=["ingestion"])
 
 
 @router.post(

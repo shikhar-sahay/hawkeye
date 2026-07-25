@@ -7,8 +7,7 @@ from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.api.deps import get_current_source, get_session
-from hawkeye.models.events import Alert, Incident, IncidentAlert
-from hawkeye.models.events import ApplicationSource
+from hawkeye.models.events import Alert, ApplicationSource, Incident, IncidentAlert
 from hawkeye.schemas import (
     IncidentListResponse,
     IncidentResponse,
@@ -104,13 +103,13 @@ async def list_incidents(
 
     # Get total count
     count_stmt = select(func.count()).select_from(stmt.subquery())
-    total_result = await session.exec(count_stmt)
-    total = total_result.one()
+    total_result = await session.execute(count_stmt)
+    total = total_result.scalar_one()
 
     # Apply pagination and ordering
     stmt = stmt.order_by(Incident.created_at.desc()).offset(offset).limit(limit)
-    result = await session.exec(stmt)
-    incidents = list(result.all())
+    result = await session.execute(stmt)
+    incidents = list(result.scalars().all())
 
     # Fetch alerts for each incident
     incident_ids = [i.id for i in incidents]
@@ -118,14 +117,14 @@ async def list_incidents(
     if incident_ids:
         # Get incident-alert links
         link_stmt = select(IncidentAlert).where(IncidentAlert.incident_id.in_(incident_ids))
-        link_result = await session.exec(link_stmt)
-        links = list(link_result.all())
+        link_result = await session.execute(link_stmt)
+        links = list(link_result.scalars().all())
 
         # Get alerts
         alert_ids = [l.alert_id for l in links]
         alert_stmt = select(Alert).where(Alert.id.in_(alert_ids))
-        alert_result = await session.exec(alert_stmt)
-        alerts = {a.id: a for a in alert_result.all()}
+        alert_result = await session.execute(alert_stmt)
+        alerts = {a.id: a for a in alert_result.scalars().all()}
 
         # Group alerts by incident
         for link in links:
