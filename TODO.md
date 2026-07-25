@@ -35,241 +35,225 @@ Each task has:
 
 ### T-004: Verify all tests pass (pytest 100% green) ✅ DONE
 - **Command**: `pytest tests/ -v`
-- **Result**: 18/18 tests pass
+- **Result**: 18/18 tests pass (original) → 33/33 tests pass (with WebSocket)
 - **Dependencies**: T-001, T-002, T-003
 - **Verified**: Complete
 
 ---
 
-## P1 - High Priority (Milestone 1: Backend MVP) ✅ ALL COMPLETE
+## P0 - Integration Audit Blockers ✅ ALL COMPLETE
 
-### T-005: FastAPI application bootstrap ✅ DONE
-### T-006: Configuration management ✅ DONE
-### T-007: Database layer (SQLModel + SQLite/PostgreSQL) ✅ DONE
-### T-008: Core authentication (API keys + bcrypt) ✅ DONE
-### T-009: Event normalization + MITRE mapping ✅ DONE
+### T-030: Fix Double Route Prefix — Ingestion Endpoints ✅ DONE
+- **File**: `hawkeye/api/v1/ingestion.py` (remove `prefix="/events"` from router)
+- **Issue**: Endpoints resolve to `/api/v1/events/events/ingest` instead of `/api/v1/events/ingest`
+- **Dependencies**: None
+- **Completion Criteria**: `POST /api/v1/events/ingest` returns 202, `GET /api/v1/events/ingest` returns 405
+- **Estimated Effort**: 10 minutes
+- **Completed**: 2026-07-24
 
----
+### T-031: Fix Double Route Prefix — Events Query Endpoints ✅ DONE
+- **File**: `hawkeye/api/v1/events.py` (remove `prefix="/events"` from router)
+- **Issue**: Endpoints resolve to `/api/v1/events/events/query` instead of `/api/v1/events/query`
+- **Dependencies**: None
+- **Completion Criteria**: `GET /api/v1/events/query` returns 200 with valid response
+- **Estimated Effort**: 10 minutes
+- **Completed**: 2026-07-24
 
-## P1 - High Priority (Milestone 2: Real-time Dashboard Backend) ✅ ALL COMPLETE
+### T-032: Add Header/Cookie Auth to WebSocket (`get_ws_source`) ✅ DONE
+- **File**: `hawkeye/api/websocket.py` (get_ws_source function)
+- **Issue**: WebSocket auth only supports query param (`?api_key=`) — exposes keys in logs
+- **Dependencies**: None
+- **Completion Criteria**:
+  - `Authorization: Bearer <key>` header works (priority 1)
+  - `X-API-Key: <key>` header works (priority 2)
+  - `?api_key=<key>` query param still works for backward compatibility (priority 3)
+  - Priority order enforced: Bearer > X-API-Key > Query
+- **Estimated Effort**: 20 minutes
+- **Completed**: 2026-07-24
 
-### T-010: Add WebSocket support to FastAPI app ✅ DONE
-- **Files**: `hawkeye/main.py`, new `hawkeye/api/websocket.py`
-- **Completion Criteria**: WebSocket endpoint `/ws` accepts connections; connection manager handles multiple clients
-- **Dependencies**: T-004 (tests pass)
-- **Verified**: Complete — `/ws` endpoint with lifespan management in main.py
-
-### T-011: Implement real-time alert broadcast via WebSocket ✅ DONE
-- **Files**: `hawkeye/api/websocket.py`, `hawkeye/services/detection/engine.py`
-- **Completion Criteria**: When alert created, all connected WS clients receive JSON alert payload
-- **Dependencies**: T-010
-- **Verified**: Complete — `DetectionEngine._broadcast_alert()` called in `process_event()`
-
-### T-012: Implement real-time incident broadcast via WebSocket ✅ DONE
-- **Files**: `hawkeye/api/websocket.py`, `hawkeye/services/correlation/engine.py`
-- **Completion Criteria**: When incident created/updated, all connected WS clients receive JSON incident payload
-- **Dependencies**: T-010
-- **Verified**: Complete — `CorrelationEngine._broadcast_incident()` called on create/update
-
-### T-013: Add WebSocket authentication (API key) ✅ DONE
-- **Files**: `hawkeye/api/websocket.py`, `hawkeye/api/deps.py`
-- **Completion Criteria**: WS connection requires valid API key; rejects unauthorized connections
-- **Dependencies**: T-010
-- **Verified**: Complete — `get_ws_source` dependency validates API key from query param
-
-### T-014: Add WebSocket connection health/heartbeat ✅ DONE
-- **Files**: `hawkeye/api/websocket.py`
-- **Completion Criteria**: Ping/pong every 30s; auto-disconnect stale connections; connection count endpoint
-- **Dependencies**: T-010
-- **Verified**: Complete — `ConnectionManager._heartbeat_loop()`, ping/pong, `/ws/stats` endpoint
-
-### T-015: Create WebSocket connection manager ✅ DONE
-- **Files**: `hawkeye/api/websocket.py` (ConnectionManager class)
-- **Completion Criteria**: Centralized manager handles connect/disconnect/broadcast; tracks connections per source
-- **Dependencies**: T-010
-- **Verified**: Complete — Full ConnectionManager with subscriptions, per-source isolation, broadcast filtering
+### T-033: Implement WebSocket Reconnection Protocol ✅ DONE
+- **File**: `hawkeye/api/websocket.py` (ConnectionManager + endpoint handlers)
+- **Issue**: No WebSocket reconnection protocol — disconnect = permanent loss
+- **Dependencies**: T-032 (auth must work for reconnect)
+- **Completion Criteria**:
+  - Client can send `{"type": "reconnect", "data": {"session_id": "...", "last_event_id": N}}`
+  - Server validates session_id exists and not expired (1hr TTL)
+  - Server replays missed messages (event_id > last_event_id)
+  - ConnectionManager stores session data with message history (max 1000 msgs)
+  - New connection_id issued, same session_id preserved
+- **Estimated Effort**: 60 minutes
+- **Completed**: 2026-07-24
 
 ---
 
-## P2 - Medium Priority (Post-MVP Backend / Milestone 3: Frontend)
+## P1 - Milestone 2: WebSocket Backend ✅ ALL COMPLETE
 
-### T-020: Frontend Dashboard - React + TypeScript + Vite setup
-- **Files**: New `frontend/` directory
-- **Completion Criteria**: `npm run dev` starts Vite; TypeScript compiles; ESLint/Prettier configured
-- **Dependencies**: T-014 (WebSocket backend complete)
-- **Estimated Effort**: 4 hours
+### T-010: WebSocket endpoint `/ws` in FastAPI app with lifespan ✅ DONE
+- **Files**: `hawkeye/main.py`, `hawkeye/api/websocket.py`
+- **Completion Criteria**: WebSocket endpoint registered, lifespan starts/stops ConnectionManager
+- **Completed**: 2026-07-24
 
-### T-021: Frontend - Tailwind CSS + shadcn/ui components
-- **Files**: `frontend/src/components/`
-- **Completion Criteria**: Button, Card, Table, Badge, Alert, Dialog components available
+### T-011: Real-time alert broadcast via DetectionEngine ✅ DONE
+- **File**: `hawkeye/services/detection/engine.py` (_broadcast_alert method)
+- **Completion Criteria**: Alerts broadcast to ConnectionManager immediately on creation
+- **Completed**: 2026-07-24
+
+### T-012: Real-time incident broadcast via CorrelationEngine ✅ DONE
+- **File**: `hawkeye/services/correlation/engine.py` (_broadcast_incident method)
+- **Completion Criteria**: Incidents broadcast to ConnectionManager on create/update
+- **Completed**: 2026-07-24
+
+### T-013: WebSocket authentication via API key ✅ DONE (Enhanced in T-032)
+- **File**: `hawkeye/api/websocket.py` (get_ws_source)
+- **Completion Criteria**: Multiple auth methods supported with priority order
+- **Completed**: 2026-07-24
+
+### T-014: Heartbeat/ping-pong + stats endpoint ✅ DONE
+- **File**: `hawkeye/api/websocket.py` (ConnectionManager._heartbeat_loop, /ws/stats)
+- **Completion Criteria**: 30s ping/pong, stale cleanup, /ws/stats returns counts
+- **Completed**: 2026-07-24
+
+### T-015: ConnectionManager class with subscriptions ✅ DONE
+- **File**: `hawkeye/api/websocket.py` (ConnectionManager class)
+- **Completion Criteria**: connect/disconnect/broadcast, per-source isolation, subscriptions
+- **Completed**: 2026-07-24
+
+---
+
+## P1 - Milestone 3: Frontend Dashboard 🟢 NEXT UP
+
+### T-020: Frontend Setup — React + TypeScript + Vite 🟢 ACTIVE
+- **Files**: `frontend/` (new directory)
+- **Dependencies**: T-010 through T-015, T-030 through T-033 (ALL COMPLETE)
+- **Completion Criteria**:
+  - `npm create vite@latest frontend -- --template react-ts`
+  - Tailwind CSS configured
+  - shadcn/ui initialized
+  - ESLint + Prettier configured
+  - Dev server runs (`npm run dev`)
+  - TypeScript strict mode enabled
+- **Estimated Effort**: 2-3 hours
+
+### T-021: Tailwind + shadcn/ui Components
+- **Files**: `frontend/src/components/ui/`
 - **Dependencies**: T-020
-- **Estimated Effort**: 2 hours
+- **Completion Criteria**:
+  - Core components: Button, Card, Table, Badge, Avatar, Dropdown, Toast, Tabs, Dialog, ScrollArea, Separator, Label, Input, Select, Switch, Tooltip
+  - Dark/light theme provider working
+  - Components follow shadcn/ui patterns
 
-### T-022: Frontend - Real-time alert feed (WebSocket)
-- **Files**: `frontend/src/hooks/useWebSocket.ts`, `frontend/src/components/AlertFeed.tsx`
-- **Completion Criteria**: Alerts appear in real-time; auto-scroll; filter by severity
-- **Dependencies**: T-020, T-011
-- **Estimated Effort**: 3 hours
+### T-022: Real-time Alert Feed (WebSocket)
+- **Files**: `frontend/src/components/AlertFeed.tsx`, `frontend/src/hooks/useWebSocket.ts`
+- **Dependencies**: T-020, T-021
+- **Completion Criteria**:
+  - WebSocket hook connects to `/ws` with API key
+  - Auto-reconnect on disconnect (uses reconnection protocol)
+  - AlertFeed component displays real-time alerts with severity badges
+  - Subscribe/unsubscribe to alert types
+  - Shows connection status indicator
 
-### T-023: Frontend - Incident timeline view
+### T-023: Incident Timeline View
 - **Files**: `frontend/src/components/IncidentTimeline.tsx`
-- **Completion Criteria**: Visual timeline showing correlated alerts; click for detail
-- **Dependencies**: T-020, T-012
-- **Estimated Effort**: 3 hours
+- **Dependencies**: T-020, T-021
+- **Completion Criteria**:
+  - Timeline visualization of incidents with MITRE tactics
+  - Click to expand incident details
+  - Filter by status, severity, time range
+  - Real-time updates via WebSocket incident subscription
 
-### T-024: Frontend - Alert/Incident detail views
+### T-024: Alert/Incident Detail Views
 - **Files**: `frontend/src/components/AlertDetail.tsx`, `frontend/src/components/IncidentDetail.tsx`
-- **Completion Criteria**: Modal/drawer with full evidence, MITRE tags, related events
-- **Dependencies**: T-020
-- **Estimated Effort**: 2 hours
+- **Dependencies**: T-020, T-021
+- **Completion Criteria**:
+  - Modal/drawer views for alert and incident details
+  - Shows evidence, MITRE tags, affected entities, confidence
+  - Status update actions (acknowledge, resolve, suppress)
+  - Related events/alerts list
 
-### T-025: Frontend - Statistics dashboard with charts
+### T-025: Statistics Dashboard with Charts
 - **Files**: `frontend/src/components/StatsDashboard.tsx`, `frontend/src/components/charts/`
-- **Completion Criteria**: Alerts over time, by severity, by detector, by source; uses Recharts or similar
-- **Dependencies**: T-020
-- **Estimated Effort**: 3 hours
+- **Dependencies**: T-020, T-021
+- **Completion Criteria**:
+  - Overview cards: total alerts, open incidents, critical severity, sources
+  - Time-series chart: alerts over time (last 24h, 7d, 30d)
+  - Pie chart: alerts by severity
+  - Bar chart: alerts by detection type
+  - MITRE tactics heatmap
+  - Data fetched via REST API, updates via WebSocket
 
-### T-026: Frontend - Source/API key management UI
-- **Files**: `frontend/src/components/SourceManager.tsx`
-- **Completion Criteria**: Create/edit/delete sources; generate/revoke API keys; copy to clipboard
-- **Dependencies**: T-020
-- **Estimated Effort**: 2 hours
+### T-026: Source/API Key Management UI
+- **Files**: `frontend/src/components/SourceManager.tsx`, `frontend/src/pages/Settings.tsx`
+- **Dependencies**: T-020, T-021
+- **Completion Criteria**:
+  - List sources with status, event counts
+  - Create/edit/delete sources
+  - Generate/revoke/rotate API keys
+  - Copy API key to clipboard
+  - Key expiry management
 
-### T-027: Frontend - Dark/light theme
-- **Files**: `frontend/src/styles/theme.css`, `frontend/src/hooks/useTheme.ts`
-- **Completion Criteria**: Toggle persists in localStorage; all components respect theme
-- **Dependencies**: T-020
-- **Estimated Effort**: 1 hour
-
----
-
-## P3 - Low Priority (Post-MVP Features)
-
-### T-030: Browser Security Agent - Chrome Extension (Manifest V3)
-- **Files**: New `browser-agent/` directory
-- **Completion Criteria**: Extension loads in Chrome; content script injects; background service worker runs
-- **Dependencies**: T-027 (Frontend complete)
-- **Estimated Effort**: 8 hours
-
-### T-031: Browser Agent - CSP violation detection
-- **Files**: `browser-agent/src/content/csp.ts`
-- **Completion Criteria**: Reports CSP violations to HawkEye API with event metadata
-- **Dependencies**: T-030
-- **Estimated Effort**: 3 hours
-
-### T-032: Browser Agent - DOM integrity monitoring
-- **Files**: `browser-agent/src/content/dom.ts`
-- **Completion Criteria**: Detects script injection, iframe injection, form hijacking
-- **Dependencies**: T-030
-- **Estimated Effort**: 4 hours
-
-### T-033: Browser Agent - Bot/automation detection
-- **Files**: `browser-agent/src/content/bot.ts`
-- **Completion Criteria**: Detects Selenium, Puppeteer, Playwright; reports to API
-- **Dependencies**: T-030
-- **Estimated Effort**: 3 hours
-
-### T-034: Browser Agent - Event batching & send
-- **Files**: `browser-agent/src/background/batch.ts`
-- **Completion Criteria**: Batches events (max 50 or 5s); retries on failure; exponential backoff
-- **Dependencies**: T-030
-- **Estimated Effort**: 2 hours
-
-### T-035: Browser Agent - CSP Reporting integration
-- **Files**: `browser-agent/src/background/csp-report.ts`
-- **Completion Criteria**: Registers `report-uri` CSP directive; forwards reports to HawkEye
-- **Dependencies**: T-030
-- **Estimated Effort**: 2 hours
-
-### T-040: Flask/FastAPI/Express SDKs
-- **Files**: New `sdks/` directory
-- **Completion Criteria**: Middleware for each framework; auto-instruments requests; sends to HawkEye API
-- **Dependencies**: T-027
-- **Estimated Effort**: 6 hours
-
-### T-050: Attack Replay Engine
-- **Files**: New `hawkeye/services/replay/`
-- **Completion Criteria**: Replays captured attack sequences; parameterizes payloads; generates report
-- **Dependencies**: T-027
-- **Estimated Effort**: 8 hours
-
-### T-060: Docker/Kubernetes Deployment Configs
-- **Files**: `Dockerfile`, `docker-compose.yml`, `k8s/`
-- **Completion Criteria**: Multi-stage Dockerfile; compose for dev; K8s manifests for prod
-- **Dependencies**: T-004
-- **Estimated Effort**: 4 hours
-
-### T-061: Alembic Migrations for Production
-- **Files**: `alembic/`
-- **Completion Criteria**: Auto-generates migrations; runs on startup; rollback supported
-- **Dependencies**: T-004
-- **Estimated Effort**: 2 hours
-
-### T-062: Comprehensive Documentation
-- **Files**: `docs/`, OpenAPI spec
-- **Completion Criteria**: Architecture doc; API reference; integration guides; deployment guide
-- **Dependencies**: T-027
-- **Estimated Effort**: 6 hours
+### T-027: Dark/Light Theme
+- **Files**: `frontend/src/components/ThemeToggle.tsx`, `frontend/src/providers/ThemeProvider.tsx`
+- **Dependencies**: T-020, T-021
+- **Completion Criteria**:
+  - System preference detection
+  - Manual toggle in header
+  - Persists to localStorage
+  - All components respect theme
 
 ---
 
-## Dependency Graph Summary
+## P2 - Milestone 4: Browser Security Agent (Planned)
 
-```
-P0 Blockers:
-T-001 ──┐
-T-002 ──┼──→ T-004 (All Tests Pass)
-T-003 ──┘
-            │
-            ▼
-P1 MVP Backend (Milestone 1):
-T-005..T-009 → Complete ✅
-
-P1 Real-time Backend (Milestone 2):
-T-010 ──┬──→ T-011 ──┐
-T-010 ──┼──→ T-012 ──┤
-T-010 ──┼──→ T-013 ──┼──→ P2 Frontend
-T-010 ──┼──→ T-014 ──┤
-T-010 ──┴──→ T-015 ──┘
-                │
-                ▼
-P2 Frontend (Milestone 3):
-T-020 ──┬──→ T-021 ──┐
-T-020 ──┼──→ T-022 ──┤
-T-020 ──┼──→ T-023 ──┤
-T-020 ──┼──→ T-024 ──┼──→ P3 Features
-T-020 ──┼──→ T-025 ──┤
-T-020 ──┼──→ T-026 ──┤
-T-020 ──┴──→ T-027 ──┘
-                │
-                ▼
-P3 Post-MVP:
-T-030 → T-031..T-035 (Browser Agent)
-T-040 (SDKs)
-T-050 (Attack Replay)
-T-060..T-062 (Ops & Docs)
-```
+### T-040: Chrome MV3 Extension Scaffold
+### T-041: Content Script for DOM Monitoring
+### T-042: CSP Violation Detection & Reporting
+### T-043: DOM Integrity Monitoring
+### T-044: Bot/Automation Detection (Client-side)
+### T-045: Event Batching & Batch Send to API
+### T-046: CSP Reporting Endpoint Integration
 
 ---
 
-## Current Sprint Focus
-**Sprint Goal**: Milestone 1 & 2 COMPLETE ✅ → Begin Milestone 3 (Frontend Dashboard)
+## P2 - Milestone 5: SDK Integrations (Planned)
 
-**Next Task to Start**: **T-020** — Frontend Dashboard: React + TypeScript + Vite setup
+### T-050: Flask Middleware SDK
+### T-051: FastAPI Middleware SDK
+### T-052: Express.js Middleware SDK
+### T-053: Python SDK (Direct API Client)
+### T-054: Framework-Agnostic Client Library
 
 ---
 
-## Verification Commands Reference
-```bash
-# Run all tests
-pytest tests/ -v
+## P2 - Milestone 6: Attack Replay & Documentation (Planned)
 
-# Run WebSocket tests only
-pytest tests/test_websocket.py -v
+### T-060: Attack Replay Engine
+### T-061: Replay API Endpoints
+### T-062: Replay UI in Dashboard
+### T-063: Comprehensive API Documentation (OpenAPI)
+### T-064: Deployment Guides (Docker, K8s)
+### T-065: Architecture Documentation
+### T-066: Integration Guides
 
-# Lint
-ruff check hawkeye/
+---
 
-# Start dev server
-uvicorn hawkeye.main:app --reload
-```
+## Completed Tasks Summary
+
+| Task | Description | Completed |
+|------|-------------|-----------|
+| T-001 | BotDetector undefined variable | 2026-07-20 (commit 13ed3a2) |
+| T-002 | BotDetector duplicate return | 2026-07-20 (commit 13ed3a2) |
+| T-003 | DetectionContext time window | 2026-07-24 |
+| T-004 | All tests pass | 2026-07-24 |
+| T-010 | WebSocket endpoint + lifespan | 2026-07-24 |
+| T-011 | Alert broadcast | 2026-07-24 |
+| T-012 | Incident broadcast | 2026-07-24 |
+| T-013 | WebSocket auth (query param) | 2026-07-24 |
+| T-014 | Heartbeat + stats | 2026-07-24 |
+| T-015 | ConnectionManager | 2026-07-24 |
+| T-030 | Fix ingestion route prefix | 2026-07-24 |
+| T-031 | Fix events route prefix | 2026-07-24 |
+| T-032 | WebSocket header auth | 2026-07-24 |
+| T-033 | WebSocket reconnection | 2026-07-24 |
+
+**Total Completed: 18 tasks**
+**Next Active: T-020 (Frontend Setup)**
