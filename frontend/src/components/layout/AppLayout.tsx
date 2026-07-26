@@ -4,7 +4,7 @@ import * as React from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
-import { cn } from "@lib/utils";
+import { cn } from "@/lib/utils";
 import { Toaster } from "sonner";
 
 export function AppLayout() {

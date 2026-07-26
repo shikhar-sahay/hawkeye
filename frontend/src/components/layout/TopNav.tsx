@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@lib/utils";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTheme } from "next-themes";
 import {
   Bell,
   Search,
@@ -32,23 +33,13 @@ interface TopNavProps {
 
 export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [darkMode, setDarkMode] = React.useState(() => {
-    if (typeof window !== "undefined") {
-      return document.documentElement.classList.contains("dark");
-    }
-    return true; // Default to dark mode
-  });
+  const { theme, setTheme } = useTheme();
 
   const toggleDarkMode = () => {
-    const newDarkMode = !darkMode;
-    setDarkMode(newDarkMode);
-    if (newDarkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-    localStorage.setItem("theme", newDarkMode ? "dark" : "light");
+    setTheme(theme === "dark" ? "light" : "dark");
   };
+
+  const isDark = theme === "dark";
 
   return (
     <header
@@ -95,10 +86,11 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
             variant="ghost"
             size="icon"
             onClick={toggleDarkMode}
-            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-            title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
           >
-            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           </Button>
 
           {/* Notifications */}

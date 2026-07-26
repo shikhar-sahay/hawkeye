@@ -4,7 +4,7 @@ import * as React from "react";
 import * as ToastPrimitives from "@radix-ui/react-toast";
 import { cva, type VariantProps } from "class-variance-authority";
 import { X } from "lucide-react";
-import { cn } from "@lib/utils";
+import { cn } from "@/lib/utils";
 
 const ToastProvider = ToastPrimitives.Provider;
 
@@ -125,3 +125,15 @@ export {
   ToastClose,
   ToastAction,
 };
+
+// ============================================================================
+// Toaster - Convenience wrapper for ToastProvider + ToastViewport
+// ============================================================================
+
+export function Toaster(props: React.ComponentPropsWithoutRef<typeof ToastViewport>) {
+  return (
+    <ToastProvider>
+      <ToastViewport {...props} />
+    </ToastProvider>
+  );
+}
