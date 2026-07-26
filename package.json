@@ -1,0 +1,23 @@
+{
+  "name": "hawkeye",
+  "version": "1.0.0",
+  "description": "HawkEye is a lightweight cybersecurity simulation and visualization platform that models attack behavior, correlates events into attack paths, and computes real‑time risk scores. It is designed for learning, demonstrations, and experimentation in security analytics.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shikhar-sahay/hawkeye.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shikhar-sahay/hawkeye/issues"
+  },
+  "homepage": "https://github.com/shikhar-sahay/hawkeye#readme"
+}
