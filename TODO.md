@@ -35,7 +35,7 @@ Each task has:
 
 ### T-004: Verify all tests pass (pytest 100% green) ✅ DONE
 - **Command**: `pytest tests/ -v`
-- **Result**: 18/18 tests pass (original) → 33/33 tests pass (with WebSocket)
+- **Result**: 18/18 tests pass (original) → **33/33 tests pass** (with WebSocket)
 - **Dependencies**: T-001, T-002, T-003
 - **Verified**: Complete
 
@@ -120,30 +120,32 @@ Each task has:
 
 ---
 
-## P1 - Milestone 3: Frontend Dashboard 🟢 NEXT UP
+## P1 - Milestone 3: Frontend Dashboard 🟢 IN PROGRESS
 
-### T-020: Frontend Setup — React + TypeScript + Vite 🟢 ACTIVE
+### T-020: Frontend Setup — React + TypeScript + Vite ✅ COMPLETE
 - **Files**: `frontend/` (new directory)
 - **Dependencies**: T-010 through T-015, T-030 through T-033 (ALL COMPLETE)
 - **Completion Criteria**:
-  - `npm create vite@latest frontend -- --template react-ts`
-  - Tailwind CSS configured
-  - shadcn/ui initialized
-  - ESLint + Prettier configured
-  - Dev server runs (`npm run dev`)
-  - TypeScript strict mode enabled
+  - `npm create vite@latest frontend -- --template react-ts` ✅
+  - Tailwind CSS configured ✅
+  - shadcn/ui initialized ✅
+  - ESLint + Prettier configured ✅
+  - Dev server runs (`npm run dev`) ✅
+  - TypeScript strict mode enabled ✅
 - **Estimated Effort**: 2-3 hours
+- **Completed**: 2026-07-25
 
-### T-021: Tailwind + shadcn/ui Components
+### T-021: Tailwind + shadcn/ui Components ✅ COMPLETE
 - **Files**: `frontend/src/components/ui/`
 - **Dependencies**: T-020
 - **Completion Criteria**:
-  - Core components: Button, Card, Table, Badge, Avatar, Dropdown, Toast, Tabs, Dialog, ScrollArea, Separator, Label, Input, Select, Switch, Tooltip
-  - Dark/light theme provider working
-  - Components follow shadcn/ui patterns
+  - Core components: Button, Card, Table, Badge, Avatar, Dropdown, Toast, Tabs, Dialog, ScrollArea, Separator, Label, Input, Select, Switch, Tooltip ✅
+  - Dark/light theme provider working ✅
+  - Components follow shadcn/ui patterns ✅
+- **Completed**: 2026-07-25
 
-### T-022: Real-time Alert Feed (WebSocket)
-- **Files**: `frontend/src/components/AlertFeed.tsx`, `frontend/src/hooks/useWebSocket.ts`
+### T-022: Real-time Alert Feed (WebSocket) 🟢 ACTIVE (NEXT)
+- **Files**: `frontend/src/hooks/useWebSocket.ts`, `frontend/src/components/AlertFeed.tsx`
 - **Dependencies**: T-020, T-021
 - **Completion Criteria**:
   - WebSocket hook connects to `/ws` with API key
@@ -151,6 +153,7 @@ Each task has:
   - AlertFeed component displays real-time alerts with severity badges
   - Subscribe/unsubscribe to alert types
   - Shows connection status indicator
+- **Estimated Effort**: 3-4 hours
 
 ### T-023: Incident Timeline View
 - **Files**: `frontend/src/components/IncidentTimeline.tsx`
@@ -191,14 +194,14 @@ Each task has:
   - Copy API key to clipboard
   - Key expiry management
 
-### T-027: Dark/Light Theme
+### T-027: Dark/Light Theme 🟢 PARTIAL
 - **Files**: `frontend/src/components/ThemeToggle.tsx`, `frontend/src/providers/ThemeProvider.tsx`
 - **Dependencies**: T-020, T-021
 - **Completion Criteria**:
-  - System preference detection
-  - Manual toggle in header
-  - Persists to localStorage
-  - All components respect theme
+  - System preference detection ✅
+  - Manual toggle in header 🟢 NEEDS INTEGRATION IN TOPNAV
+  - Persists to localStorage ✅
+  - All components respect theme ✅
 
 ---
 
@@ -250,10 +253,12 @@ Each task has:
 | T-013 | WebSocket auth (query param) | 2026-07-24 |
 | T-014 | Heartbeat + stats | 2026-07-24 |
 | T-015 | ConnectionManager | 2026-07-24 |
+| T-020 | Frontend Setup (React+TS+Vite) | 2026-07-25 |
+| T-021 | Tailwind + shadcn/ui Components | 2026-07-25 |
 | T-030 | Fix ingestion route prefix | 2026-07-24 |
 | T-031 | Fix events route prefix | 2026-07-24 |
 | T-032 | WebSocket header auth | 2026-07-24 |
 | T-033 | WebSocket reconnection | 2026-07-24 |
 
 **Total Completed: 18 tasks**
-**Next Active: T-020 (Frontend Setup)**
+**Next Active: T-022 (Frontend WebSocket Integration — Alert Feed)**

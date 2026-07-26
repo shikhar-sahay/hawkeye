@@ -2,3 +2,9 @@
 __pycache__/
 *.pyc
 .venv/
+frontend/tsconfig.tsbuildinfo
+frontend/tsconfig.node.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+hawkeye.db
+hawkeye.egg-info/

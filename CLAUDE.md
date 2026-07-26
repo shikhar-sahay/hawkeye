@@ -6,7 +6,7 @@ This is the definitive operating manual for all Claude sessions working on HawkE
 
 ## 1. Project Overview
 
-**What HawkEye is:** A web application security monitoring platform (SIEM-lite) that ingests security events from web applications, normalizes them with MITRE ATT&CK tags, runs 7 detection engines, correlates alerts into incidents, and exposes everything via REST APIs.
+**What HawkEye is:** A web application security monitoring platform (SIEM-lite) that ingests security events from web applications, normalizes them with MITRE ATT&CK tags, runs 7 detection engines, correlates alerts into incidents, and exposes everything via REST APIs + WebSocket.
 
 **Final Vision:** A production-ready, self-hostable security monitoring stack with:
 - Real-time alert/incident dashboard (WebSocket + React)
@@ -71,6 +71,12 @@ Hawkeye/
 │   ├── api/
 │   │   ├── deps.py       # FastAPI dependencies (auth, session)
 │   │   └── v1/           # REST endpoints (ingestion, events, sources, alerts, incidents)
+│   │       ├── ingestion.py
+│   │       ├── events.py
+│   │       ├── sources.py
+│   │       ├── alerts.py
+│   │       ├── incidents.py
+│   │       └── websocket.py
 │   └── services/
 │       ├── ingestion_service.py
 │       ├── detection/
@@ -85,10 +91,27 @@ Hawkeye/
 │       │   └── api_abuse.py
 │       └── correlation/
 │           └── engine.py       # CorrelationEngine (time-window based)
-├── frontend/             # React + TypeScript + Vite (Milestone 3 — NOT STARTED)
+├── frontend/             # React + TypeScript + Vite (Milestone 3 — IN PROGRESS)
+│   ├── src/
+│   │   ├── api/client.ts       # TanStack Query API client
+│   │   ├── components/
+│   │   │   ├── ui/             # shadcn/ui primitives (14 components)
+│   │   │   ├── layout/         # AppLayout, Sidebar, TopNav
+│   │   │   └── providers/      # ThemeProvider
+│   │   ├── hooks/              # use-toast, useWebSocket (TODO)
+│   │   ├── pages/              # Dashboard, Events, Alerts, Incidents, Sources, Settings
+│   │   ├── types/index.ts      # TypeScript types matching backend schemas
+│   │   ├── lib/utils.ts        # cn() helper
+│   │   ├── App.tsx             # Router + routes
+│   │   └── main.tsx            # Entry point
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── tailwind.config.js
+│   └── vite.config.ts
 ├── tests/                # Unit tests (pytest + pytest-asyncio)
 │   ├── test_detection.py
-│   └── test_ingestion.py
+│   ├── test_ingestion.py
+│   └── test_websocket.py
 ├── legacy-v1/            # ARCHIVED — Old Flask implementation, reference only
 ├── alembic/              # Database migrations (Milestone 6 — NOT STARTED)
 ├── pyproject.toml        # Build config, dependencies, ruff/mypy/pytest settings
@@ -119,7 +142,8 @@ Hawkeye/
   7. APIAbuseDetector
 - **Correlation Engine:** Time-window based alert grouping → Incident creation + MITRE aggregation
 - **REST APIs:** `/api/v1/events`, `/api/v1/sources`, `/api/v1/alerts`, `/api/v1/incidents`
-- **Planned:** WebSocket layer (Milestone 2), React frontend (Milestone 3), SDKs (Milestone 5)
+- **WebSocket API:** `/ws` with multi-method auth, subscriptions, heartbeat, reconnection
+- **Planned:** React frontend (Milestone 3), SDKs (Milestone 5)
 
 ---
 
@@ -127,12 +151,12 @@ Hawkeye/
 
 | # | Milestone | Target | Status |
 |---|-----------|--------|--------|
-| 1 | **Backend MVP** | 2026-07-27 | ~90% — P0 bugs remain |
-| 2 | **Real-time Dashboard Backend** | After M1 | 0% — WebSocket server + broadcasts |
-| 3 | **Frontend Dashboard** | After M2 | 0% — React + TS + WebSocket client |
-| 4 | **Browser Security Agent** | After M3 | 0% — Chrome MV3 extension |
-| 5 | **SDK Integrations** | After M4 | 0% — Flask/FastAPI/Express |
-| 6 | **Attack Replay & Docs** | After M5 | 0% — Replay engine + deployment |
+| 1 | **Backend MVP** | 2026-07-27 | ✅ 100% — Achieved 2026-07-24 |
+| 2 | **Real-time Dashboard Backend** | After M1 | ✅ 100% — Achieved 2026-07-24 |
+| 3 | **Frontend Dashboard** | After M2 | 🟢 ~40% IN PROGRESS |
+| 4 | **Browser Security Agent** | After M3 | ⏳ 0% |
+| 5 | **SDK Integrations** | After M4 | ⏳ 0% |
+| 6 | **Attack Replay & Docs** | After M5 | ⏳ 0% |
 
 Full details in `ROADMAP.md`. Do not duplicate here.
 
@@ -140,9 +164,10 @@ Full details in `ROADMAP.md`. Do not duplicate here.
 
 ## 5. Current Development Status
 
-- **Active Milestone:** 1 — Backend MVP (~90% complete)
-- **What's Done:** All APIs, all 7 detectors, correlation engine, auth, database, 18 unit tests passing
-- **What's Blocked:** 3 P0 bugs in `bot.py` and `base.py` (undefined variable, duplicate return, wrong time window config)
+- **Active Milestone:** 3 — Frontend Dashboard (~40% complete)
+- **What's Done (Backend - Milestones 1 & 2):** All APIs, all 7 detectors, correlation engine, auth, database, **33/33 unit tests passing**
+- **What's Done (Frontend - Milestone 3):** React+TS+Vite setup, Tailwind+shadcn/ui (14 components), ThemeProvider, React Router, TanStack Query, API client with full types, Dashboard page, Events page, AppLayout with Sidebar+TopNav, routing for all 7 pages
+- **What's Blocked:** Nothing critical. Next task is T-022: Frontend WebSocket integration (Alert Feed)
 - **Source of Truth for Active Task:** `SESSION.md` — always contains exactly one current engineering task with status, files, verification commands, and handoff notes
 
 ---
@@ -180,12 +205,12 @@ Full details in `ROADMAP.md`. Do not duplicate here.
 
 ### Session Completion Checklist (MANDATORY — exact order)
 
-□ **1. Verify the implementation** — Run all relevant tests; confirm they pass  
-□ **2. Update SESSION.md** — Current status, verification results, next action, handoff notes  
-□ **3. Update TODO.md** — Mark completed tasks; adjust dependencies if needed  
-□ **4. Update CHANGELOG.md** — Add completed work under current version  
-□ **5. Update ROADMAP.md** — Only if milestone progress % or status changed  
-□ **6. Only then stop**
+☐ **1. Verify the implementation** — Run all relevant tests; confirm they pass  
+☐ **2. Update SESSION.md** — Current status, verification results, next action, handoff notes  
+☐ **3. Update TODO.md** — Mark completed tasks; adjust dependencies if needed  
+☐ **4. Update CHANGELOG.md** — Add completed work under current version  
+☐ **5. Update ROADMAP.md** — Only if milestone progress % or status changed  
+☐ **6. Only then stop**
 
 ---
 
@@ -205,18 +230,14 @@ Full details in `ROADMAP.md`. Do not duplicate here.
 
 ## 9. Development Priorities
 
-**Current Priority (Milestone 1):**
-Finish Backend MVP — fix 3 P0 bugs → all tests pass → milestone complete.
+**Current Priority (Milestone 3):**
+Finish Frontend Dashboard — WebSocket integration (Alert Feed) → Incident Timeline → Detail Views → Statistics Charts → Source/API Key Management → Theme Toggle.
 
-**After Backend MVP (Milestone 2):**
-Implement WebSocket backend — connection manager, alert/incident broadcasts, auth, heartbeat, health endpoints.
+**After Frontend (Milestone 4):**
+Implement Browser Security Agent — Chrome MV3 extension scaffold, content script for DOM monitoring, CSP violation detection, DOM integrity monitoring, bot/automation detection, event batching.
 
-**After WebSocket Backend (Milestone 3):**
-Build functional frontend — React + TS + Vite, real-time alert feed, incident timeline, detail views, stats dashboard, source management, dark/light theme.
-
-**After Frontend (Milestone 4–5):**
-- Browser Security Agent (Chrome MV3 extension)
-- SDKs (Flask, FastAPI, Express middleware + Python/JS clients)
+**After Browser Agent (Milestone 5):**
+SDK Integrations — Flask, FastAPI, Express middleware + framework-agnostic clients.
 
 **Finally (Milestone 6):**
 - Attack Replay engine
@@ -259,6 +280,12 @@ uvicorn hawkeye.main:app --reload
 
 # Install in editable mode
 pip install -e .
+
+# Frontend commands (in frontend/ directory)
+npm install
+npm run dev      # Dev server
+npm run build    # TypeScript compile + Vite build
+npm run lint     # ESLint check
 ```
 
 ---
@@ -267,9 +294,118 @@ pip install -e .
 
 | Task | Primary Files |
 |------|---------------|
-| T-001 (BotDetector undefined var) | `hawkeye/services/detection/bot.py:113` |
-| T-002 (BotDetector duplicate return) | `hawkeye/services/detection/bot.py:167-177` |
-| T-003 (DetectionContext time window) | `hawkeye/services/detection/base.py` |
-| T-010 (WebSocket support) | `hawkeye/main.py`, new `hawkeye/api/websocket.py` |
+| T-022 (WebSocket Alert Feed) | `frontend/src/hooks/useWebSocket.ts`, `frontend/src/components/AlertFeed.tsx`, `frontend/src/pages/Alerts.tsx` |
+| T-023 (Incident Timeline) | `frontend/src/components/IncidentTimeline.tsx`, `frontend/src/pages/Incidents.tsx` |
+| T-024 (Detail Views) | `frontend/src/components/AlertDetail.tsx`, `frontend/src/components/IncidentDetail.tsx` |
+| T-025 (Stats Dashboard) | `frontend/src/components/StatsDashboard.tsx`, `frontend/src/components/charts/` |
+| T-026 (Source Management) | `frontend/src/components/SourceManager.tsx`, `frontend/src/pages/Sources.tsx`, `frontend/src/pages/Settings.tsx` |
+| T-027 (Theme Toggle) | `frontend/src/components/ThemeToggle.tsx`, `frontend/src/components/layout/TopNav.tsx` |
+| T-034 (Backend Lint Cleanup) | `hawkeye/api/v1/*.py`, `hawkeye/services/detection/*.py` (C901, E741, E501) |
 
 Read `SESSION.md` for current task details. Read `TODO.md` for full backlog.
+
+---
+
+## WebSocket Protocol Reference (Backend → Frontend)
+
+**Endpoint:** `ws://host/ws`
+**Auth (priority order):**
+1. `Authorization: Bearer <api_key>` header
+2. `X-API-Key: <api_key>` header
+3. `?api_key=<api_key>` query param (backward compat)
+
+**Client → Server Messages:**
+```json
+{"type": "pong"}
+{"type": "subscribe", "data": {"types": ["alerts", "incidents"]}}
+{"type": "unsubscribe", "data": {"types": ["alerts"]}}
+{"type": "ping"}
+{"type": "reconnect", "data": {"session_id": "...", "last_event_id": 123}}
+```
+
+**Server → Client Messages:**
+```json
+{"type": "connected", "timestamp": "...", "data": {"connection_id": "...", "source_id": 1, "source_name": "...", "subscriptions": ["alerts"], "session_id": "..."}}
+{"type": "alert", "timestamp": "...", "event_id": 1, "data": {...}}
+{"type": "incident", "timestamp": "...", "event_id": 2, "data": {...}}
+{"type": "ping", "timestamp": "..."}
+{"type": "pong", "timestamp": "..."}
+{"type": "error", "timestamp": "...", "data": {"code": "...", "message": "..."}}
+```
+
+**ConnectionManager Singleton:** `hawkeye.api.websocket.connection_manager`
+**Broadcast Methods:** `broadcast_alert()`, `broadcast_incident()`, `broadcast_custom()`
+
+---
+
+## API Conventions
+
+- **Prefix:** All REST endpoints under `/api/v1`
+- **Auth:** `X-API-Key` header (required for all endpoints except `/health`, `/`)
+- **Pagination:** `limit` (default 50, max 100), `offset` (default 0)
+- **Filtering:** Query parameters (e.g., `?severity=high&status=new`)
+- **Response Envelope:** Lists return `{ items: [], total: N, limit: L, offset: O }`
+- **Error Format:** `{ "detail": "error message" }` with appropriate HTTP status
+- **WebSocket:** Separate router at `/ws`, no `/api/v1` prefix
+
+---
+
+## Testing Workflow
+
+```bash
+# All tests
+pytest tests/ -v
+
+# Specific module
+pytest tests/test_detection.py -v
+pytest tests/test_websocket.py -v
+
+# With coverage
+pytest tests/ --cov=hawkeye --cov-report=term-missing
+
+# Run single test
+pytest tests/test_detection.py::TestBruteForceDetector::test_brute_force_threshold -v
+```
+
+**Test Structure:**
+- `test_detection.py` — DetectionEngine, all 7 detectors, DetectionContext
+- `test_ingestion.py` — IngestionService, NormalizationEngine, schemas
+- `test_websocket.py` — ConnectionManager, WebSocket endpoint, stats, auth, reconnection
+
+---
+
+## Documentation Workflow
+
+1. **Implementation complete** → Run tests → Verify pass
+2. **Update SESSION.md** with results, next action, handoff
+3. **Update TODO.md** — mark task complete, adjust deps
+4. **Update CHANGELOG.md** — add entry under current version
+5. **Update ROADMAP.md** — only if milestone % changed
+6. **Commit changes** with descriptive message
+
+---
+
+## Important Design Decisions
+
+1. **SQLModel over raw SQLAlchemy** — Type-safe models, less boilerplate
+2. **FastAPI lifespan for WebSocket manager** — Auto start/stop with app
+3. **DetectionContext with time window** — 60-min default for detection, separate from 24hr correlation window
+4. **ConnectionManager as singleton** — Import from `hawkeye.api.websocket.connection_manager`
+5. **Session-based WebSocket reconnection** — 1hr TTL, 1000 msg history, event_id ordering
+6. **Per-source isolation** — Connections only see their source's alerts/incidents
+7. **shadcn/ui for frontend** — Accessible, customizable, Tailwind-native components
+8. **TanStack Query for server state** — Caching, deduping, background refetch
+
+---
+
+## Session Handoff Process
+
+When ending a session, ensure `SESSION.md` contains:
+- Current date, commit hash
+- Active task ID and status
+- Files modified
+- Verification commands run and results
+- Next action (specific, actionable)
+- Handoff notes explaining what was done and context for continuation
+
+A new session should be able to read `CLAUDE.md` + `SESSION.md` and immediately know what to do next.
