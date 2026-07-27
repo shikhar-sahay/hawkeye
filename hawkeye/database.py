@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import SQLModel
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.config import settings
 
