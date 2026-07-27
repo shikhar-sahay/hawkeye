@@ -108,7 +108,7 @@ export function EventsPage() {
                       </TableCell>
                       <TableCell className="font-mono text-sm">{event.eventType}</TableCell>
                       <TableCell>
-                        <Badge variant={event.severity as any}>{event.severity}</Badge>
+                        <Badge variant={getSeverityBadgeVariant(event.severity)}>{event.severity}</Badge>
                       </TableCell>
                       <TableCell>{event.userId || "-"}</TableCell>
                       <TableCell className="font-mono text-sm">{event.ip || "-"}</TableCell>

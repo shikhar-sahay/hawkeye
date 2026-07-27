@@ -25,6 +25,7 @@ import type {
   EventIngestResponse,
   BatchIngestResponse,
   DashboardStats,
+  TimeSeriesDataPoint,
 } from "@/types";
 
 const API_BASE = "/api/v1";
@@ -161,6 +162,10 @@ class ApiClient {
     return this.request<AlertStats>("/alerts/stats");
   }
 
+  async getAlertsOverTime(hours: number = 24): Promise<TimeSeriesDataPoint[]> {
+    return this.request<TimeSeriesDataPoint[]>(`/alerts/over-time?hours=${hours}`);
+  }
+
   // ==================== Incidents ====================
 
   async getIncidents(params: IncidentListParams = {}): Promise<{ incidents: Incident[]; total: number; limit: number; offset: number }> {
@@ -254,6 +259,7 @@ export const queryKeys = {
     list: (params: AlertListParams) => ["alerts", "list", params] as const,
     detail: (id: number) => ["alerts", id] as const,
     stats: ["alerts", "stats"] as const,
+    overTime: (hours: number) => ["alerts", "over-time", hours] as const,
   },
   incidents: {
     all: ["incidents"] as const,

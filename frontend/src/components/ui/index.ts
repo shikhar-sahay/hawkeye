@@ -15,4 +15,5 @@ export * from "./stat-card";
 export * from "./page-container";
 export * from "./empty-state";
 export * from "./loading-spinner";
+export * from "./skeleton";
 export * from "./error-boundary";

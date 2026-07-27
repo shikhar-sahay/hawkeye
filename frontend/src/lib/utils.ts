@@ -102,3 +102,32 @@ export function getSeverityBadgeVariant(severity: string): "default" | "destruct
       return 'outline'
   }
 }
+
+export function getStatusBadgeVariant(status: string): "default" | "destructive" | "outline" | "secondary" {
+  switch (status?.toLowerCase()) {
+    case 'open':
+      return 'destructive'
+    case 'acknowledged':
+      return 'default'
+    case 'investigating':
+      return 'default'
+    case 'resolved':
+      return 'secondary'
+    case 'suppressed':
+      return 'outline'
+    case 'closed':
+      return 'outline'
+    default:
+      return 'outline'
+  }
+}
+
+export function formatNumber(num: number): string {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M'
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K'
+  }
+  return num.toString()
+}
