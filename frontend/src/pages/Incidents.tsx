@@ -6,11 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertFeed } from "@/components/AlertFeed";
-import { AlertDetail } from "@/components/AlertDetail";
-import { useWebSocket, type AlertPayload } from "@/hooks/useWebSocket";
+import { IncidentTimeline } from "@/components/IncidentTimeline";
+import { IncidentDetail } from "@/components/IncidentDetail";
+import { useWebSocket, type IncidentPayload } from "@/hooks/useWebSocket";
 import { apiClient, queryKeys } from "@/api/client";
 import {
   Search,
@@ -19,18 +25,18 @@ import {
   AlertTriangle,
   ChevronDown,
 } from "lucide-react";
-import { cn, getSeverityBadgeVariant } from "@/lib/utils";
-import type { Alert, AlertListParams } from "@/types";
+import { cn, getSeverityBadgeVariant, getStatusBadgeVariant } from "@/lib/utils";
+import type { Incident, IncidentListParams } from "@/types";
 
 /**
- * AlertsPage - Main alerts management page
- * Fetches initial alerts via REST API, receives real-time updates via WebSocket
+ * IncidentsPage - Main incidents management page
+ * Fetches initial incidents via REST API, receives real-time updates via WebSocket
  */
-export function AlertsPage() {
+export function IncidentsPage() {
   const queryClient = useQueryClient();
 
   // Filter state
-  const [filters, setFilters] = React.useState<AlertListParams>({
+  const [filters, setFilters] = React.useState<IncidentListParams>({
     limit: 50,
     offset: 0,
   });
@@ -38,79 +44,79 @@ export function AlertsPage() {
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
 
   // WebSocket state
-  const [liveAlerts, setLiveAlerts] = React.useState<AlertPayload[]>([]);
+  const [liveIncidents, setLiveIncidents] = React.useState<IncidentPayload[]>([]);
   const [sessionId, setSessionId] = React.useState<string | null>(null);
-  const [selectedAlert, setSelectedAlert] = React.useState<Alert | null>(null);
+  const [selectedIncident, setSelectedIncident] = React.useState<Incident | null>(null);
 
-  // Fetch initial alerts via TanStack Query
+  // Fetch initial incidents via TanStack Query
   const {
-    data: alertsResponse,
+    data: incidentsResponse,
     isLoading,
     isError,
     error,
     refetch,
   } = useQuery({
-    queryKey: queryKeys.alerts.list(filters),
-    queryFn: () => apiClient.getAlerts(filters),
+    queryKey: queryKeys.incidents.list(filters),
+    queryFn: () => apiClient.getIncidents(filters),
     staleTime: 30000, // 30 seconds
     placeholderData: (previousData) => previousData,
   });
 
-  // Combine REST alerts with live alerts
-  // Live alerts are prepended to the list, but we need to deduplicate
-  const combinedAlerts = React.useMemo(() => {
-    const restAlerts = alertsResponse?.alerts || [];
-    const restAlertIds = new Set(restAlerts.map((a) => a.id));
+  // Combine REST incidents with live incidents
+  const combinedIncidents = React.useMemo(() => {
+    const restIncidents = incidentsResponse?.incidents || [];
+    const restIncidentIds = new Set(restIncidents.map((i) => i.id));
 
-    // Convert live alerts to Alert format
-    const liveAlertsConverted: Alert[] = liveAlerts
-      .filter((la) => !restAlertIds.has(la.id))
-      .map((la) => ({
-        id: la.id,
-        source_id: la.source_id,
-        event_id: la.id, // Use alert ID as event_id for now
-        detection_type: la.detection_type,
-        title: la.title,
-        description: la.description,
-        severity: la.severity,
-        confidence: la.confidence,
-        status: la.status,
-        evidence: la.evidence,
-        mitre_tactics: la.mitre_tactics,
-        mitre_techniques: la.mitre_techniques,
-        created_at: la.created_at,
-        updated_at: la.updated_at,
-        acknowledged_at: null,
-        acknowledged_by: null,
-        resolved_at: null,
+    // Convert live incidents to Incident format and filter out duplicates
+    const liveIncidentsConverted: Incident[] = liveIncidents
+      .filter((li) => !restIncidentIds.has(li.id))
+      .map((li) => ({
+        id: li.id,
+        source_id: li.source_id,
+        title: li.title,
+        description: li.description,
+        severity: li.severity,
+        status: li.status,
+        affected_ips: li.affected_ips,
+        affected_users: li.affected_users,
+        mitre_tactics: li.mitre_tactics,
+        mitre_techniques: li.mitre_techniques,
+        alert_count: li.alert_count,
+        created_at: li.created_at,
+        updated_at: li.updated_at,
+        closed_at: li.closed_at,
+        alerts: undefined,
       }));
 
-    return [...liveAlertsConverted, ...restAlerts];
-  }, [alertsResponse?.alerts, liveAlerts]);
+    return [...liveIncidentsConverted, ...restIncidents];
+  }, [incidentsResponse?.incidents, liveIncidents]);
 
   // Apply client-side filtering for search
-  const filteredAlerts = React.useMemo(() => {
-    if (!searchQuery.trim()) return combinedAlerts;
+  const filteredIncidents = React.useMemo(() => {
+    if (!searchQuery.trim()) return combinedIncidents;
 
     const query = searchQuery.toLowerCase();
-    return combinedAlerts.filter(
-      (alert) =>
-        alert.title.toLowerCase().includes(query) ||
-        alert.description.toLowerCase().includes(query) ||
-        alert.detection_type.toLowerCase().includes(query) ||
-        String(alert.id).includes(query) ||
-        alert.mitre_tactics.some((tactic: string) => tactic.toLowerCase().includes(query)) ||
-        alert.mitre_techniques.some((technique: string) => technique.toLowerCase().includes(query))
+    return combinedIncidents.filter(
+      (incident) =>
+        incident.title.toLowerCase().includes(query) ||
+        incident.description.toLowerCase().includes(query) ||
+        incident.status.toLowerCase().includes(query) ||
+        incident.severity.toLowerCase().includes(query) ||
+        String(incident.id).includes(query) ||
+        incident.mitre_tactics.some((tactic: string) => tactic.toLowerCase().includes(query)) ||
+        incident.mitre_techniques.some((technique: string) => technique.toLowerCase().includes(query)) ||
+        incident.affected_ips.some((ip: string) => ip.toLowerCase().includes(query)) ||
+        incident.affected_users.some((user: string) => user.toLowerCase().includes(query))
     );
-  }, [combinedAlerts, searchQuery]);
+  }, [combinedIncidents, searchQuery]);
 
-  // Get API key from localStorage (or auth context)
+  // Get API key from localStorage
   const apiKey = React.useMemo(() => {
     if (typeof window === "undefined") return null;
     return localStorage.getItem("hawkeye_api_key");
   }, []);
 
-  // WebSocket hook
+  // WebSocket hook for real-time incident updates
   const {
     status: wsConnectionStatus,
     sessionId: wsSessionId,
@@ -119,17 +125,14 @@ export function AlertsPage() {
     disconnect,
   } = useWebSocket({
     apiKey: apiKey || "",
-    subscriptions: ["alerts"],
+    subscriptions: ["incidents"],
     autoReconnect: true,
-    onStatusChange: () => {}, // Connection status available via wsConnectionStatus
-    onAlert: (alert) => {
-      // Prepend new alert to live alerts
-      setLiveAlerts((prev) => [alert, ...prev.slice(0, 99)]); // Keep max 100 live alerts
+    onStatusChange: () => {}, // Status available via wsConnectionStatus
+    onIncident: (incident) => {
+      // Prepend new incident to live incidents
+      setLiveIncidents((prev) => [incident, ...prev.slice(0, 99)]); // Keep max 100 live incidents
       // Invalidate query to refresh if needed
-      queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all });
-    },
-    onIncident: () => {
-      // Could add incident notifications here
+      queryClient.invalidateQueries({ queryKey: queryKeys.incidents.all });
     },
     onError: (error) => {
       console.error("WebSocket error:", error);
@@ -144,7 +147,7 @@ export function AlertsPage() {
   }, [wsSessionId]);
 
   // Handle filter changes
-  const handleFilterChange = (key: keyof AlertListParams, value: string | number | undefined) => {
+  const handleFilterChange = (key: keyof IncidentListParams, value: string | number | undefined) => {
     setFilters((prev) => ({ ...prev, [key]: value, offset: 0 }));
   };
 
@@ -158,9 +161,9 @@ export function AlertsPage() {
   };
 
   const hasActiveFilters =
-    filters.severity || filters.status || filters.detection_type || filters.start_time || filters.end_time;
+    filters.severity || filters.status || filters.affected_ip || filters.affected_user || filters.start_time || filters.end_time;
 
-  // Load more alerts (pagination)
+  // Load more incidents (pagination)
   const loadMore = () => {
     setFilters((prev) => ({ ...prev, offset: (prev.offset ?? 0) + (prev.limit ?? 50) }));
   };
@@ -171,9 +174,9 @@ export function AlertsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Alerts</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Incidents</h1>
           <p className="text-muted-foreground">
-            Manage and investigate security alerts from all sources
+            Investigate and manage correlated security incidents
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -183,7 +186,7 @@ export function AlertsPage() {
           </Button>
           <Button onClick={() => setIsFilterOpen(!isFilterOpen)} variant="outline" size="sm">
             <Filter className="h-4 w-4 mr-2" />
-            Filters {hasActiveFilters && <Badge variant="secondary">{Object.keys(filters).filter((k) => filters[k as keyof AlertListParams] && k !== "limit" && k !== "offset").length}</Badge>}
+            Filters {hasActiveFilters && <Badge variant="secondary">{Object.keys(filters).filter((k) => filters[k as keyof IncidentListParams] && k !== "limit" && k !== "offset").length}</Badge>}
           </Button>
         </div>
       </div>
@@ -195,7 +198,7 @@ export function AlertsPage() {
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search alerts by title, description, MITRE tags..."
+                placeholder="Search incidents by title, description, MITRE tags, IPs, users..."
                 value={searchQuery}
                 onChange={handleSearch}
                 className="pl-10"
@@ -229,28 +232,22 @@ export function AlertsPage() {
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="acknowledged">Acknowledged</SelectItem>
+                  <SelectItem value="investigating">Investigating</SelectItem>
                   <SelectItem value="resolved">Resolved</SelectItem>
-                  <SelectItem value="suppressed">Suppressed</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
                 </SelectContent>
               </Select>
 
               <Select
-                value={filters.detection_type || "all"}
-                onValueChange={(value) => handleFilterChange("detection_type", value === "all" ? undefined : value)}
+                value={filters.affected_ip || "all"}
+                onValueChange={(value) => handleFilterChange("affected_ip", value === "all" ? undefined : value)}
               >
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Detection Type" />
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Affected IP" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="brute_force">Brute Force</SelectItem>
-                  <SelectItem value="credential_stuffing">Credential Stuffing</SelectItem>
-                  <SelectItem value="enumeration">Enumeration</SelectItem>
-                  <SelectItem value="bot">Bot Detection</SelectItem>
-                  <SelectItem value="sensitive_action">Sensitive Action</SelectItem>
-                  <SelectItem value="session_hijacking">Session Hijacking</SelectItem>
-                  <SelectItem value="api_abuse">API Abuse</SelectItem>
+                  <SelectItem value="all">All IPs</SelectItem>
+                  {/* In a real app, this would be populated from actual data */}
                 </SelectContent>
               </Select>
 
@@ -264,52 +261,35 @@ export function AlertsPage() {
         </CardContent>
       </Card>
 
-      {/* Alert Feed & Table */}
+      {/* Incident Timeline & Table */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Real-time Alert Feed (left column - wider on desktop) */}
+        {/* Real-time Incident Timeline (left column - wider on desktop) */}
         <div className="lg:col-span-2">
-          <AlertFeed
-            alerts={filteredAlerts.map((alert) => ({
-              id: alert.id,
-              source_id: alert.source_id,
-              detection_type: alert.detection_type,
-              severity: alert.severity,
-              status: alert.status,
-              confidence: alert.confidence,
-              title: alert.title,
-              description: alert.description,
-              evidence: alert.evidence,
-              mitre_tactics: alert.mitre_tactics,
-              mitre_techniques: alert.mitre_techniques,
-              affected_entities: {},
-              created_at: alert.created_at,
-              updated_at: alert.updated_at,
-            }))}
+          <IncidentTimeline
+            incidents={filteredIncidents}
             connectionStatus={wsConnectionStatus}
-            onAlertClick={(alert) => {
-              // Fetch full alert details and open detail view
-              apiClient.getAlert(alert.id).then((fullAlert) => {
-                setSelectedAlert(fullAlert);
+            onIncidentClick={(incident) => {
+              apiClient.getIncident(incident.id).then((fullIncident) => {
+                setSelectedIncident(fullIncident);
               }).catch(() => {
-                // Fallback to basic alert data
-                setSelectedAlert(alert);
+                setSelectedIncident(incident);
               });
             }}
           />
         </div>
 
-        {/* Alert Table / List (right column) */}
+        {/* Incident Table / List (right column) */}
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Alert List</CardTitle>
-                <Badge variant="secondary">{filteredAlerts.length}</Badge>
+                <CardTitle className="text-lg">Incident List</CardTitle>
+                <Badge variant="secondary">{filteredIncidents.length}</Badge>
               </div>
-              <CardDescription>Click an alert to view details</CardDescription>
+              <CardDescription>Click an incident to view details</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              {isLoading && alertsResponse === undefined ? (
+              {isLoading && incidentsResponse === undefined ? (
                 <div className="p-8 text-center">
                   <div className="animate-pulse space-y-3">
                     {[1, 2, 3].map((i) => (
@@ -320,16 +300,16 @@ export function AlertsPage() {
               ) : isError ? (
                 <div className="p-8 text-center text-destructive">
                   <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Failed to load alerts</p>
+                  <p>Failed to load incidents</p>
                   <p className="text-sm text-muted-foreground mt-1">{error?.message}</p>
                   <Button className="mt-4" variant="outline" size="sm" onClick={() => refetch()}>
                     Retry
                   </Button>
                 </div>
-              ) : filteredAlerts.length === 0 ? (
+              ) : filteredIncidents.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground">
                   <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No alerts found</p>
+                  <p>No incidents found</p>
                   <p className="text-sm mt-1">Try adjusting your filters or search query</p>
                 </div>
               ) : (
@@ -340,20 +320,20 @@ export function AlertsPage() {
                         <TableHead className="w-8"></TableHead>
                         <TableHead>Severity</TableHead>
                         <TableHead>Title</TableHead>
-                        <TableHead className="hidden md:table-cell">Type</TableHead>
+                        <TableHead className="hidden md:table-cell">Status</TableHead>
                         <TableHead className="hidden lg:table-cell">Time</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredAlerts.map((alert) => (
+                      {filteredIncidents.map((incident) => (
                         <TableRow
-                          key={alert.id}
+                          key={incident.id}
                           className="cursor-pointer hover:bg-muted/50 transition-colors"
                           onClick={() => {
-                            apiClient.getAlert(alert.id).then((fullAlert) => {
-                              setSelectedAlert(fullAlert);
+                            apiClient.getIncident(incident.id).then((fullIncident) => {
+                              setSelectedIncident(fullIncident);
                             }).catch(() => {
-                              setSelectedAlert(alert);
+                              setSelectedIncident(incident);
                             });
                           }}
                         >
@@ -363,34 +343,34 @@ export function AlertsPage() {
                               size="icon"
                               className="h-7 w-7 p-0"
                               onClick={(e) => e.stopPropagation()}
-                              aria-label="Expand alert"
+                              aria-label="Expand incident"
                             >
                               <ChevronDown className="h-4 w-4" />
                             </Button>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={getSeverityBadgeVariant(alert.severity)}>{alert.severity}</Badge>
+                            <Badge variant={getSeverityBadgeVariant(incident.severity)}>{incident.severity}</Badge>
                           </TableCell>
-                          <TableCell className="max-w-[200px] truncate font-medium">{alert.title}</TableCell>
-                          <TableCell className="hidden md:table-cell font-mono text-xs">
-                            {alert.detection_type}
+                          <TableCell className="max-w-[200px] truncate font-medium">{incident.title}</TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            <Badge variant={getStatusBadgeVariant(incident.status)}>{incident.status}</Badge>
                           </TableCell>
                           <TableCell className="hidden lg:table-cell font-mono text-xs text-muted-foreground">
-                            {new Date(alert.created_at).toLocaleTimeString()}
+                            {new Date(incident.created_at).toLocaleTimeString()}
                           </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
-                </div>
-              )}
 
-              {/* Load More */}
-              {(alertsResponse?.total ?? 0) > (filters.offset || 0) + (filters.limit || 50) && !isLoading && (
-                <div className="p-4 border-t">
-                  <Button variant="outline" className="w-full" onClick={loadMore} disabled={isLoading}>
-                    Load More ({filteredAlerts.length} of {alertsResponse?.total})
-                  </Button>
+                  {/* Load More */}
+                  {(incidentsResponse?.total ?? 0) > (filters.offset || 0) + (filters.limit || 50) && !isLoading && (
+                    <div className="p-4 border-t">
+                      <Button variant="outline" className="w-full" onClick={loadMore} disabled={isLoading}>
+                        Load More ({filteredIncidents.length} of {incidentsResponse?.total})
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -443,12 +423,12 @@ export function AlertsPage() {
       </Card>
     </div>
 
-    {/* Alert Detail Dialog */}
-    <AlertDetail
-      alert={selectedAlert}
-      open={!!selectedAlert}
+    {/* Incident Detail Dialog */}
+    <IncidentDetail
+      incident={selectedIncident}
+      open={!!selectedIncident}
       onOpenChange={(open) => {
-        if (!open) setSelectedAlert(null);
+        if (!open) setSelectedIncident(null);
       }}
     />
   </>
