@@ -144,45 +144,60 @@ Each task has:
   - Components follow shadcn/ui patterns ✅
 - **Completed**: 2026-07-25
 
-### T-022: Real-time Alert Feed (WebSocket) 🟢 ACTIVE (NEXT)
-- **Files**: `frontend/src/hooks/useWebSocket.ts`, `frontend/src/components/AlertFeed.tsx`
+### T-022: Real-time Alert Feed (WebSocket) ✅ COMPLETE
+- **Files**: `frontend/src/hooks/useWebSocket.ts`, `frontend/src/components/AlertFeed.tsx`, `frontend/src/pages/Alerts.tsx`
 - **Dependencies**: T-020, T-021
 - **Completion Criteria**:
-  - WebSocket hook connects to `/ws` with API key
-  - Auto-reconnect on disconnect (uses reconnection protocol)
-  - AlertFeed component displays real-time alerts with severity badges
-  - Subscribe/unsubscribe to alert types
-  - Shows connection status indicator
+  - WebSocket hook connects to `/ws` with API key ✅
+  - Auto-reconnect on disconnect (uses reconnection protocol) ✅
+  - AlertFeed component displays real-time alerts with severity badges ✅
+  - Subscribe/unsubscribe to alert types ✅
+  - Shows connection status indicator ✅
 - **Estimated Effort**: 3-4 hours
+- **Completed**: 2026-07-27
 
-### T-023: Incident Timeline View
-- **Files**: `frontend/src/components/IncidentTimeline.tsx`
+### T-023: Incident Timeline View ✅ COMPLETE
+- **Files**: `frontend/src/components/IncidentTimeline.tsx`, `frontend/src/pages/Incidents.tsx`
 - **Dependencies**: T-020, T-021
 - **Completion Criteria**:
-  - Timeline visualization of incidents with MITRE tactics
-  - Click to expand incident details
-  - Filter by status, severity, time range
-  - Real-time updates via WebSocket incident subscription
+  - Timeline visualization of incidents with MITRE tactics ✅
+  - Click to expand incident details ✅
+  - Filter by status, severity, time range ✅
+  - Real-time updates via WebSocket incident subscription ✅
+- **Estimated Effort**: 3-4 hours
+- **Completed**: 2026-07-27
 
-### T-024: Alert/Incident Detail Views
+### T-024: Alert/Incident Detail Views ✅ COMPLETE
 - **Files**: `frontend/src/components/AlertDetail.tsx`, `frontend/src/components/IncidentDetail.tsx`
 - **Dependencies**: T-020, T-021
 - **Completion Criteria**:
-  - Modal/drawer views for alert and incident details
-  - Shows evidence, MITRE tags, affected entities, confidence
-  - Status update actions (acknowledge, resolve, suppress)
-  - Related events/alerts list
+  - Modal/drawer views for alert and incident details ✅
+  - Shows evidence, MITRE tags, affected entities, confidence ✅
+  - Status update actions (acknowledge, resolve, suppress) ✅
+  - Related events/alerts list ✅
+- **Estimated Effort**: 3-4 hours
+- **Status**: ✅ COMPLETE — 2026-07-27
 
-### T-025: Statistics Dashboard with Charts
+### T-025: Statistics Dashboard with Charts ✅ COMPLETE
 - **Files**: `frontend/src/components/StatsDashboard.tsx`, `frontend/src/components/charts/`
 - **Dependencies**: T-020, T-021
 - **Completion Criteria**:
-  - Overview cards: total alerts, open incidents, critical severity, sources
-  - Time-series chart: alerts over time (last 24h, 7d, 30d)
-  - Pie chart: alerts by severity
-  - Bar chart: alerts by detection type
-  - MITRE tactics heatmap
-  - Data fetched via REST API, updates via WebSocket
+  - Overview cards: total alerts, open incidents, critical severity, sources ✅
+  - Time-series chart: alerts over time (last 24h, 7d, 30d) ✅
+  - Pie chart: alerts by severity ✅
+  - Bar chart: alerts by detection type ✅
+  - MITRE tactics heatmap ✅
+  - Data fetched via REST API, updates via WebSocket ✅
+- **Estimated Effort**: 4-5 hours
+- **Status**: ✅ COMPLETE — 2026-07-27
+
+**Charts Implemented**:
+- `AlertsOverTimeChart.tsx` — Time-series area chart with gradient fill
+- `SeverityDistributionChart.tsx` — Donut chart (Critical/High/Medium/Low)
+- `DetectionTypeChart.tsx` — Vertical/horizontal bar chart (7 detection types)
+- `MITRECoverageChart.tsx` — Horizontal bar chart (14 MITRE tactics)
+- `EventsBySourceChart.tsx` — Stacked horizontal bar (events/alerts/incidents by source)
+- `RecentActivityPanel.tsx` — Summary cards with icons and counts
 
 ### T-026: Source/API Key Management UI
 - **Files**: `frontend/src/components/SourceManager.tsx`, `frontend/src/pages/Settings.tsx`
@@ -193,15 +208,19 @@ Each task has:
   - Generate/revoke/rotate API keys
   - Copy API key to clipboard
   - Key expiry management
+- **Estimated Effort**: 3-4 hours
+- **Status**: ⏳ PENDING — **NEXT TASK**
 
 ### T-027: Dark/Light Theme 🟢 PARTIAL
-- **Files**: `frontend/src/components/ThemeToggle.tsx`, `frontend/src/providers/ThemeProvider.tsx`
+- **Files**: `frontend/src/components/ThemeToggle.tsx`, `frontend/src/components/layout/TopNav.tsx`
 - **Dependencies**: T-020, T-021
 - **Completion Criteria**:
   - System preference detection ✅
   - Manual toggle in header 🟢 NEEDS INTEGRATION IN TOPNAV
   - Persists to localStorage ✅
   - All components respect theme ✅
+- **Estimated Effort**: 1 hour
+- **Status**: 🟢 PARTIAL (ThemeProvider done, toggle needs TopNav integration)
 
 ---
 
@@ -255,10 +274,14 @@ Each task has:
 | T-015 | ConnectionManager | 2026-07-24 |
 | T-020 | Frontend Setup (React+TS+Vite) | 2026-07-25 |
 | T-021 | Tailwind + shadcn/ui Components | 2026-07-25 |
+| T-022 | Real-time Alert Feed (WebSocket) | 2026-07-27 |
+| T-023 | Incident Timeline View | 2026-07-27 |
+| T-024 | Alert/Incident Detail Views | 2026-07-27 |
+| T-025 | Statistics Dashboard with Charts | 2026-07-27 |
 | T-030 | Fix ingestion route prefix | 2026-07-24 |
 | T-031 | Fix events route prefix | 2026-07-24 |
 | T-032 | WebSocket header auth | 2026-07-24 |
 | T-033 | WebSocket reconnection | 2026-07-24 |
 
-**Total Completed: 18 tasks**
-**Next Active: T-022 (Frontend WebSocket Integration — Alert Feed)**
+**Total Completed: 22 tasks**
+**Next Active: T-026 (Source/API Key Management UI)**

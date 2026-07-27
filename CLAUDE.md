@@ -153,7 +153,7 @@ Hawkeye/
 |---|-----------|--------|--------|
 | 1 | **Backend MVP** | 2026-07-27 | ✅ 100% — Achieved 2026-07-24 |
 | 2 | **Real-time Dashboard Backend** | After M1 | ✅ 100% — Achieved 2026-07-24 |
-| 3 | **Frontend Dashboard** | After M2 | 🟢 ~40% IN PROGRESS |
+| 3 | **Frontend Dashboard** | After M2 | 🟢 ~85% IN PROGRESS |
 | 4 | **Browser Security Agent** | After M3 | ⏳ 0% |
 | 5 | **SDK Integrations** | After M4 | ⏳ 0% |
 | 6 | **Attack Replay & Docs** | After M5 | ⏳ 0% |
@@ -164,10 +164,10 @@ Full details in `ROADMAP.md`. Do not duplicate here.
 
 ## 5. Current Development Status
 
-- **Active Milestone:** 3 — Frontend Dashboard (~40% complete)
+- **Active Milestone:** 3 — Frontend Dashboard (~85% complete)
 - **What's Done (Backend - Milestones 1 & 2):** All APIs, all 7 detectors, correlation engine, auth, database, **33/33 unit tests passing**
-- **What's Done (Frontend - Milestone 3):** React+TS+Vite setup, Tailwind+shadcn/ui (14 components), ThemeProvider, React Router, TanStack Query, API client with full types, Dashboard page, Events page, AppLayout with Sidebar+TopNav, routing for all 7 pages
-- **What's Blocked:** Nothing critical. Next task is T-022: Frontend WebSocket integration (Alert Feed)
+- **What's Done (Frontend - Milestone 3):** React+TS+Vite setup, Tailwind+shadcn/ui (14 components), ThemeProvider, React Router, TanStack Query, API client with full types, Dashboard page with StatsDashboard + 5 charts, Events page, Alerts page (real-time alert feed + WebSocket), Incidents page (incident timeline + WebSocket), AlertDetail, IncidentDetail, AppLayout with Sidebar+TopNav, routing for all 7 pages
+- **What's Blocked:** Nothing critical. Next task is T-026: Source/API Key Management UI
 - **Source of Truth for Active Task:** `SESSION.md` — always contains exactly one current engineering task with status, files, verification commands, and handoff notes
 
 ---
@@ -231,7 +231,7 @@ Full details in `ROADMAP.md`. Do not duplicate here.
 ## 9. Development Priorities
 
 **Current Priority (Milestone 3):**
-Finish Frontend Dashboard — WebSocket integration (Alert Feed) → Incident Timeline → Detail Views → Statistics Charts → Source/API Key Management → Theme Toggle.
+Finish Frontend Dashboard — Source/API Key Management (T-026) → Theme Toggle Integration (T-027).
 
 **After Frontend (Milestone 4):**
 Implement Browser Security Agent — Chrome MV3 extension scaffold, content script for DOM monitoring, CSP violation detection, DOM integrity monitoring, bot/automation detection, event batching.
@@ -294,11 +294,7 @@ npm run lint     # ESLint check
 
 | Task | Primary Files |
 |------|---------------|
-| T-022 (WebSocket Alert Feed) | `frontend/src/hooks/useWebSocket.ts`, `frontend/src/components/AlertFeed.tsx`, `frontend/src/pages/Alerts.tsx` |
-| T-023 (Incident Timeline) | `frontend/src/components/IncidentTimeline.tsx`, `frontend/src/pages/Incidents.tsx` |
-| T-024 (Detail Views) | `frontend/src/components/AlertDetail.tsx`, `frontend/src/components/IncidentDetail.tsx` |
-| T-025 (Stats Dashboard) | `frontend/src/components/StatsDashboard.tsx`, `frontend/src/components/charts/` |
-| T-026 (Source Management) | `frontend/src/components/SourceManager.tsx`, `frontend/src/pages/Sources.tsx`, `frontend/src/pages/Settings.tsx` |
+| T-026 (Source Management) | `frontend/src/components/SourceManager.tsx`, `frontend/src/pages/Settings.tsx` |
 | T-027 (Theme Toggle) | `frontend/src/components/ThemeToggle.tsx`, `frontend/src/components/layout/TopNav.tsx` |
 | T-034 (Backend Lint Cleanup) | `hawkeye/api/v1/*.py`, `hawkeye/services/detection/*.py` (C901, E741, E501) |
 

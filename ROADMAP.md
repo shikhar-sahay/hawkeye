@@ -31,14 +31,14 @@ Build a production-ready Web Application Security Monitoring Platform (SIEM) wit
 
 ### Milestone 3: Frontend Dashboard
 **Target: TBD (after Milestone 2)**
-**Status: 🟢 ~40% IN PROGRESS — Backend 100% Ready**
+**Status: 🟢 ~85% IN PROGRESS — Backend 100% Ready**
 - React + TypeScript + Vite setup ✅ COMPLETE
 - Tailwind CSS + shadcn/ui components ✅ COMPLETE
-- Real-time alert feed (WebSocket) 🟢 NEXT (T-022)
-- Incident timeline view 🟢 PENDING (T-023)
-- Alert/Incident detail views 🟢 PENDING (T-024)
-- Statistics dashboard with charts 🟢 PENDING (T-025)
-- Source/API key management UI 🟢 PENDING (T-026)
+- Real-time alert feed (WebSocket) ✅ COMPLETE
+- Incident timeline view ✅ COMPLETE
+- Alert/Incident detail views ✅ COMPLETE
+- Statistics dashboard with charts ✅ COMPLETE (2026-07-27)
+- Source/API key management UI 🟢 **NEXT (T-026)**
 - Dark/light theme 🟢 PARTIAL (ThemeProvider ✅, Toggle 🟢)
 
 ### Milestone 4: Browser Security Agent
@@ -76,7 +76,7 @@ Build a production-ready Web Application Security Monitoring Platform (SIEM) wit
 
 ## Current Status
 **Active Milestone: Milestone 3 - Frontend Dashboard**
-**Progress: ~40% (Backend 100% Ready, Frontend scaffold + Dashboard + Events page complete)**
+**Progress: ~85% (Backend 100% Ready, Frontend scaffold + Dashboard + Events + Alerts + Incidents + Detail Views + Statistics Dashboard complete)**
 
 ---
 
@@ -110,21 +110,34 @@ Milestone 5 (SDKs) → Milestone 6 (Attack Replay & Docs)
 | API client with full TypeScript types | ✅ | `frontend/src/api/client.ts` |
 | AppLayout with collapsible Sidebar | ✅ | `frontend/src/components/layout/AppLayout.tsx`, `Sidebar.tsx` |
 | TopNav with ThemeToggle | ✅ | `frontend/src/components/layout/TopNav.tsx`, `frontend/src/components/ThemeToggle.tsx` |
-| DashboardPage (stats cards, quick actions, recent alerts placeholder) | ✅ | `frontend/src/pages/Dashboard.tsx` |
+| DashboardPage (stats cards, quick actions, StatsDashboard with charts) | ✅ | `frontend/src/pages/Dashboard.tsx` |
 | EventsPage (filterable/searchable table with placeholder data) | ✅ | `frontend/src/pages/Events.tsx` |
+| AlertsPage (real-time alert feed + REST-backed alert list with WebSocket) | ✅ | `frontend/src/pages/Alerts.tsx` |
+| IncidentsPage (real-time incident timeline + incident list with WebSocket) | ✅ | `frontend/src/pages/Incidents.tsx` |
 | Routing for all 7 pages (Dashboard, Events, Alerts, Incidents, Sources, API Keys, Settings) | ✅ | `frontend/src/App.tsx` |
+| WebSocket hook (`useWebSocket`) with auto-reconnect, session resume, subscriptions | ✅ | `frontend/src/hooks/useWebSocket.ts` |
+| AlertFeed component (real-time alerts, severity badges, MITRE tags, new alert highlight) | ✅ | `frontend/src/components/AlertFeed.tsx` |
+| IncidentTimeline component (vertical timeline, expandable cards, MITRE tactics/techniques, metadata, action buttons) | ✅ | `frontend/src/components/IncidentTimeline.tsx` |
+| **AlertDetail component (modal with Overview, Evidence, MITRE ATT&CK, Actions tabs; status actions: Acknowledge, Resolve, Suppress, Reopen)** | ✅ | `frontend/src/components/AlertDetail.tsx` |
+| **IncidentDetail component (modal with Overview, Timeline, Related Alerts, MITRE ATT&CK, Actions tabs; status actions: Open, Investigating, Resolve, Close)** | ✅ | `frontend/src/components/IncidentDetail.tsx` |
+| **Statistics Dashboard with Charts** | ✅ | `frontend/src/components/StatsDashboard.tsx`, `frontend/src/components/charts/` |
+| **6 Chart Components (Recharts)** | ✅ | `frontend/src/components/charts/` |
+
+### 📊 Chart Components Implemented
+| Chart | Type | Description |
+|-------|------|-------------|
+| `AlertsOverTimeChart` | Area chart | Time-series alerts over 24h/7d/30d with gradient fill |
+| `SeverityDistributionChart` | Donut chart | Critical/High/Medium/Low severity distribution |
+| `DetectionTypeChart` | Bar chart | 7 detection types (vertical/horizontal) |
+| `MITRECoverageChart` | Horizontal bar | 14 MITRE ATT&CK tactics with distinct colors |
+| `EventsBySourceChart` | Stacked horizontal bar | Events/Alerts/Incidents by source |
+| `RecentActivityPanel` | Summary cards | Icon + count summary for key metrics |
 
 ### 🟢 IN PROGRESS / NEXT
 | Task | Status | Details |
 |------|--------|---------|
-| T-022: WebSocket hook (`useWebSocket`) | 🟢 NEXT | Connect to `/ws`, auto-reconnect, session resume, subscriptions |
-| T-022: AlertFeed component | 🟢 NEXT | Real-time alert list with severity badges, MITRE tags |
-| T-022: Alerts page | 🟢 NEXT | Integrate AlertFeed, add filtering, status actions |
-| T-023: Incident timeline | ⏳ PENDING | Timeline viz, MITRE tactics, real-time updates |
-| T-024: Alert/Incident detail views | ⏳ PENDING | Modal/drawer, evidence, MITRE, status actions |
-| T-025: Statistics dashboard with charts | ⏳ PENDING | Overview cards, time-series, pie/bar charts, MITRE heatmap |
-| T-026: Source/API Key management UI | ⏳ PENDING | List, CRUD, key gen/revoke/rotate, copy to clipboard |
-| T-027: Theme toggle in header | 🟢 PARTIAL | ThemeProvider done, need Toggle in TopNav |
+| T-026: Source/API Key Management UI | ⏳ PENDING | List, CRUD, key gen/revoke/rotate, copy to clipboard, expiry |
+| T-027: Theme Toggle in TopNav | 🟢 PARTIAL | ThemeProvider done, need Toggle integration in TopNav |
 
 ### 📦 ALREADY INSTALLED DEPENDENCIES (package.json)
 - `react`, `react-dom`, `react-router-dom`

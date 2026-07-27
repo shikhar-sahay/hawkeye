@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.2.0] - 2026-07-27 - Frontend Statistics Dashboard Complete
+
+### Added
+- **T-025**: Statistics Dashboard with Charts (`frontend/src/components/StatsDashboard.tsx`, `frontend/src/components/charts/`)
+  - 7 KPI cards: Total Events, Active Alerts, Active Incidents, Registered Sources, Detection Rate, Avg Confidence, Events Today
+  - `AlertsOverTimeChart` — Time-series area chart with gradient fill (24h/7d/30d)
+  - `SeverityDistributionChart` — Donut chart for Critical/High/Medium/Low severity distribution
+  - `DetectionTypeChart` — Vertical/horizontal bar chart for 7 detection types
+  - `MITRECoverageChart` — Horizontal bar chart for 14 MITRE ATT&CK tactics with distinct colors
+  - `EventsBySourceChart` — Stacked horizontal bar chart (Events/Alerts/Incidents by source)
+  - `RecentActivityPanel` — Summary cards with icons and counts
+- Dashboard page integration with time range selector and auto-refresh (60s)
+- TanStack Query integration for all dashboard stats with caching and background refetch
+
+### Changed
+- Frontend milestone 3 progress: ~85% complete (Dashboard + Events + Alerts + Incidents + Detail Views + Stats Dashboard)
+
+### Verified
+- Frontend build succeeds (TypeScript + Vite)
+- Frontend lint clean (0 errors, 0 warnings)
+- All 33 backend tests pass
+- Backend lint: 49 style/complexity warnings (no critical errors)
+
+---
+
 ## [2.1.0] - 2026-07-25 - Integration Blockers Resolved, Backend Production-Ready
 
 ### Fixed
