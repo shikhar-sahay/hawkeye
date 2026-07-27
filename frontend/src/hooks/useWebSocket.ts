@@ -202,14 +202,17 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     new Set(subscriptions)
   );
 
-  // Refs for values that need to be accessed in callbacks without triggering re-renders
-  const wsRef = React.useRef<WebSocket | null>(null);
-  const reconnectAttemptsRef = React.useRef(0);
-  const reconnectTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const heartbeatIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
-  const isMountedRef = React.useRef(true);
-  const isIntentionalDisconnectRef = React.useRef(false);
-  const messageQueueRef = React.useRef<Array<{ message: WSClientMessage; resolve: (value: void) => void }>>([]);
+  // Refs for callback options to avoid dependency issues
+  const onAlertRef = React.useRef(onAlert);
+  onAlertRef.current = onAlert;
+  const onIncidentRef = React.useRef(onIncident);
+  onIncidentRef.current = onIncident;
+  const onConnectRef = React.useRef(onConnect);
+  onConnectRef.current = onConnect;
+  const onErrorRef = React.useRef(onError);
+  onErrorRef.current = onError;
+  const onDisconnectRef = React.useRef(onDisconnect);
+  onDisconnectRef.current = onDisconnect;
 
   // Build WebSocket URL
   const getWsUrl = React.useCallback(() => {
@@ -317,7 +320,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
             updateStatus("connected");
             startHeartbeat();
             processMessageQueue();
-            onConnect?.(data);
+            onConnectRef.current?.(data);
             break;
           }
 
@@ -325,7 +328,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
             const alert = message.data as AlertPayload;
             const eventId = message.event_id || 0;
             setLastEventId(eventId);
-            onAlert?.(alert, eventId);
+            onAlertRef.current?.(alert, eventId);
             break;
           }
 
@@ -333,7 +336,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
             const incident = message.data as IncidentPayload;
             const eventId = message.event_id || 0;
             setLastEventId(eventId);
-            onIncident?.(incident, eventId);
+            onIncidentRef.current?.(incident, eventId);
             break;
           }
 
@@ -367,7 +370,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
         console.error("Failed to parse WebSocket message:", error);
       }
     },
-    [onAlert, onIncident, onConnect, send, startHeartbeat, processMessageQueue, updateStatus]
+    [send, startHeartbeat, processMessageQueue, updateStatus]
   );
 
   // Connect to WebSocket
@@ -402,7 +405,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
 
         if (isMountedRef.current) {
           updateStatus("disconnected");
-          onDisconnect?.();
+          onDisconnectRef.current?.();
 
           // Attempt reconnection if not intentional and auto-reconnect is enabled
           if (!isIntentionalDisconnectRef.current && autoReconnect) {
@@ -452,7 +455,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
         console.error("WebSocket error:", error);
         if (isMountedRef.current) {
           updateStatus("error");
-          onError?.(new Error("WebSocket connection error"));
+          onErrorRef.current?.(new Error("WebSocket connection error"));
         }
       };
 
@@ -461,9 +464,10 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
       console.error("Failed to create WebSocket:", error);
       if (isMountedRef.current) {
         updateStatus("error");
-        onError?.(error as Error);
+        onErrorRef.current?.(error as Error);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     getWsUrl,
     handleMessage,
@@ -477,10 +481,8 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     reconnectMaxDelay,
     sessionId,
     lastEventId,
-    onConnect,
-    onDisconnect,
-    onError,
     send,
+    onErrorRef,
   ]);
 
   // Disconnect
