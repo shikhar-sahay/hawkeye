@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -141,7 +142,7 @@ export function SettingsPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground">
-          Configure your HawkEye dashboard preferences
+          Configure your Hawkeye dashboard preferences
         </p>
       </div>
 
@@ -287,7 +288,7 @@ export function SettingsPage() {
                   onChange={(e) => setApiEndpoint(e.target.value)}
                 />
                 <p className="text-sm text-muted-foreground">
-                  The base URL for the HawkEye REST API. Include the version path (e.g., /api/v1).
+                  The base URL for the Hawkeye REST API. Include the version path (e.g., /api/v1).
                 </p>
               </div>
               <div className="flex gap-2">
