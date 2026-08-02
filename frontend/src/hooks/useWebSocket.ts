@@ -8,6 +8,7 @@ import * as React from "react";
 export type WSMessageType =
   | "alert"
   | "incident"
+  | "event"
   | "ping"
   | "pong"
   | "connected"
@@ -83,6 +84,28 @@ export interface IncidentPayload {
 }
 
 /**
+ * Event payload from WebSocket
+ */
+export interface EventPayload {
+  id: number;
+  source_id: number;
+  category: string;
+  event_type: string;
+  severity: "critical" | "high" | "medium" | "low";
+  timestamp: string;
+  user_id: string | null;
+  ip: string | null;
+  route: string | null;
+  method: string | null;
+  status_code: number | null;
+  user_agent: string | null;
+  metadata: Record<string, unknown>;
+  mitre_tactic: string | null;
+  mitre_technique: string | null;
+  created_at: string;
+}
+
+/**
  * Connected confirmation message data
  */
 export interface ConnectedData {
@@ -120,7 +143,7 @@ export interface UseWebSocketOptions {
   /** WebSocket server URL (defaults to /ws on same origin) */
   url?: string;
   /** Event types to subscribe to */
-  subscriptions?: ("alerts" | "incidents")[];
+  subscriptions?: ("alerts" | "incidents" | "events")[];
   /** Enable automatic reconnection */
   autoReconnect?: boolean;
   /** Maximum reconnection attempts (0 = infinite) */
@@ -137,6 +160,8 @@ export interface UseWebSocketOptions {
   onAlert?: (alert: AlertPayload, eventId: number) => void;
   /** Callback when an incident is received */
   onIncident?: (incident: IncidentPayload, eventId: number) => void;
+  /** Callback when an event is received */
+  onEvent?: (event: EventPayload, eventId: number) => void;
   /** Callback when connection error occurs */
   onError?: (error: Error) => void;
   /** Callback when connected */
@@ -189,6 +214,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     onStatusChange,
     onAlert,
     onIncident,
+    onEvent,
     onError,
     onConnect,
     onDisconnect,
@@ -202,11 +228,24 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     new Set(subscriptions)
   );
 
+  // Refs for mounted state, WebSocket, timeouts, and queues
+  const isMountedRef = React.useRef(true);
+  const wsRef = React.useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const heartbeatIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const messageQueueRef = React.useRef<Array<{ message: WSClientMessage; resolve: () => void }>>([]);
+  const reconnectAttemptsRef = React.useRef(0);
+  const isIntentionalDisconnectRef = React.useRef(false);
+
   // Refs for callback options to avoid dependency issues
+  const onStatusChangeRef = React.useRef(onStatusChange);
+  onStatusChangeRef.current = onStatusChange;
   const onAlertRef = React.useRef(onAlert);
   onAlertRef.current = onAlert;
   const onIncidentRef = React.useRef(onIncident);
   onIncidentRef.current = onIncident;
+  const onEventRef = React.useRef(onEvent);
+  onEventRef.current = onEvent;
   const onConnectRef = React.useRef(onConnect);
   onConnectRef.current = onConnect;
   const onErrorRef = React.useRef(onError);
@@ -229,9 +268,9 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     (newStatus: ConnectionStatus) => {
       if (!isMountedRef.current) return;
       setStatus(newStatus);
-      onStatusChange?.(newStatus);
+      onStatusChangeRef.current?.(newStatus);
     },
-    [onStatusChange]
+    []
   );
 
   // Clear reconnect timeout
@@ -285,25 +324,28 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     });
   }, []);
 
+  // Valid subscription types
+  const validTypes = React.useMemo(() => new Set(["alerts", "incidents", "events"]), []);
+
   // Subscribe to event types
   const subscribe = React.useCallback(
-    (types: ("alerts" | "incidents")[]) => {
-      const newSubs = new Set([...currentSubscriptions, ...types]);
+    (types: ("alerts" | "incidents" | "events")[]) => {
+      const newSubs = new Set([...currentSubscriptions, ...types.filter((t) => validTypes.has(t))]);
       setCurrentSubscriptions(newSubs);
       send({ type: "subscribe", data: { types: Array.from(newSubs) } });
     },
-    [currentSubscriptions, send]
+    [currentSubscriptions, send, validTypes]
   );
 
   // Unsubscribe from event types
   const unsubscribe = React.useCallback(
-    (types: ("alerts" | "incidents")[]) => {
+    (types: ("alerts" | "incidents" | "events")[]) => {
       const newSubs = new Set(currentSubscriptions);
-      types.forEach((t) => newSubs.delete(t));
+      types.filter((t) => validTypes.has(t)).forEach((t) => newSubs.delete(t));
       setCurrentSubscriptions(newSubs);
       send({ type: "unsubscribe", data: { types: Array.from(newSubs) } });
     },
-    [currentSubscriptions, send]
+    [currentSubscriptions, send, validTypes]
   );
 
   // Handle incoming messages
@@ -337,6 +379,14 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
             const eventId = message.event_id || 0;
             setLastEventId(eventId);
             onIncidentRef.current?.(incident, eventId);
+            break;
+          }
+
+          case "event": {
+            const event = message.data as EventPayload;
+            const eventId = message.event_id || 0;
+            setLastEventId(eventId);
+            onEventRef.current?.(event, eventId);
             break;
           }
 
@@ -503,9 +553,9 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
 
     if (isMountedRef.current) {
       updateStatus("disconnected");
-      onDisconnect?.();
+      onDisconnectRef.current?.();
     }
-  }, [clearReconnectTimeout, clearHeartbeat, updateStatus, onDisconnect]);
+  }, [clearReconnectTimeout, clearHeartbeat, updateStatus]);
 
   // Reconnect manually
   const reconnect = React.useCallback(() => {

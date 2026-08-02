@@ -1,128 +1,515 @@
 "use client";
 
 import * as React from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Search,
+  Filter,
+  RefreshCw,
+  AlertTriangle,
+  Download,
+  X,
+} from "lucide-react";
+import { cn, getSeverityBadgeVariant, formatTimestamp } from "@/lib/utils";
+import { ConnectionStatusCard } from "@/components/ConnectionStatusCard";
+import { apiClient, queryKeys } from "@/api/client";
+import { useWebSocket } from "@/hooks/useWebSocket";
+import type { NormalizedEvent, EventListParams } from "@/types";
 
+/**
+ * EventsPage - Main events management page
+ * Fetches initial events via REST API, supports server-side filtering/pagination/search
+ * Real-time updates via WebSocket (events subscription)
+ */
 export function EventsPage() {
-  const [searchQuery, setSearchQuery] = React.useState("");
-  const [selectedCategory, setSelectedCategory] = React.useState("all");
+  const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const categories = ["all", "authentication", "authorization", "network", "application", "system"];
+  // Filter state (mirrors backend EventListParams)
+  const [filters, setFilters] = React.useState<EventListParams>({
+    limit: 50,
+    offset: 0,
+  });
+  const [searchQuery, setSearchQuery] = React.useState(() => searchParams.get("search") || "");
+  const [isFilterOpen, setIsFilterOpen] = React.useState(false);
 
-  // Placeholder data
-  const events = [
-    { id: 1, timestamp: "2026-07-25T10:30:00Z", category: "authentication", eventType: "login_success", severity: "low", userId: "user123", ip: "192.168.1.1", route: "/api/login", method: "POST", status: 200 },
-    { id: 2, timestamp: "2026-07-25T10:31:00Z", category: "authorization", eventType: "access_denied", severity: "medium", userId: "user123", ip: "192.168.1.1", route: "/api/admin", method: "GET", status: 403 },
-    { id: 3, timestamp: "2026-07-25T10:32:00Z", category: "network", eventType: "port_scan", severity: "high", userId: null, ip: "10.0.0.50", route: null, method: null, status: null },
-  ];
+  // WebSocket state for live events
+  const [liveEvents, setLiveEvents] = React.useState<NormalizedEvent[]>([]);
+  const [sessionId, setSessionId] = React.useState<string | null>(null);
+
+  // Fetch initial events via TanStack Query
+  const {
+    data: eventsResponse,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: queryKeys.events.list(filters),
+    queryFn: () => apiClient.getEvents(filters),
+    staleTime: 30000, // 30 seconds
+    placeholderData: (previousData) => previousData,
+  });
+
+  // Combine REST events with live events (deduplicated)
+  const combinedEvents = React.useMemo(() => {
+    const restEvents = eventsResponse?.events || [];
+    const restEventIds = new Set(restEvents.map((e) => e.id));
+
+    // Filter out live events that are already in REST response
+    const liveEventsFiltered = liveEvents.filter((le) => !restEventIds.has(le.id));
+
+    const allEvents = [...liveEventsFiltered, ...restEvents];
+
+    // Apply client-side search filter (backend doesn't have generic search param)
+    if (!searchQuery.trim()) {
+      return allEvents;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    return allEvents.filter((event) => {
+      const searchableFields = [
+        event.category,
+        event.event_type,
+        event.user_id,
+        event.ip,
+        event.route,
+        event.method,
+        event.status_code?.toString(),
+        event.severity,
+      ].filter(Boolean);
+
+      return searchableFields.some((field) =>
+        field.toLowerCase().includes(query)
+      );
+    });
+  }, [eventsResponse?.events, liveEvents, searchQuery]);
+
+  // Get API key from localStorage for WebSocket auth
+  const apiKey = React.useMemo(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("hawkeye_api_key");
+  }, []);
+
+  // WebSocket hook for real-time event updates
+  const {
+    status: wsConnectionStatus,
+    sessionId: wsSessionId,
+    lastEventId: wsLastEventId,
+    reconnect,
+    disconnect,
+  } = useWebSocket({
+    apiKey: apiKey || "",
+    subscriptions: ["alerts", "incidents", "events"],
+    autoReconnect: true,
+    onStatusChange: () => {}, // Status available via wsConnectionStatus
+    onAlert: () => {
+      // Alerts received - could invalidate events query if needed
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.all });
+    },
+    onIncident: () => {
+      // Incidents received
+      queryClient.invalidateQueries({ queryKey: queryKeys.incidents.all });
+    },
+    onEvent: (event) => {
+      // Prepend new event to live events
+      setLiveEvents((prev) => [event, ...prev.slice(0, 99)]); // Keep max 100 live events
+      // Invalidate query to refresh if needed
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.all });
+    },
+    onError: (err) => {
+      console.error("WebSocket error:", err);
+    },
+  });
+
+  // Sync session ID for reconnection
+  React.useEffect(() => {
+    if (wsSessionId) {
+      setSessionId(wsSessionId);
+    }
+  }, [wsSessionId]);
+
+  // Sync search query with URL params
+  React.useEffect(() => {
+    const currentSearch = searchParams.get("search") || "";
+    if (currentSearch !== searchQuery) {
+      setSearchQuery(currentSearch);
+    }
+  }, [searchParams, searchQuery]);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    if (searchQuery.trim()) {
+      params.set("search", searchQuery.trim());
+    } else {
+      params.delete("search");
+    }
+    setSearchParams(params, { replace: true });
+  }, [searchQuery, searchParams, setSearchParams]);
+
+  // Handle filter changes
+  const handleFilterChange = (key: keyof EventListParams, value: string | number | undefined) => {
+    setFilters((prev) => ({ ...prev, [key]: value, offset: 0 }));
+  };
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const clearFilters = () => {
+    setFilters({ limit: 50, offset: 0 });
+    setSearchQuery("");
+  };
+
+  // Export events to CSV
+  const handleExport = () => {
+    const eventsToExport = combinedEvents;
+    if (eventsToExport.length === 0) {
+      return;
+    }
+
+    // Convert events to CSV
+    const headers = [
+      "Timestamp",
+      "Category",
+      "Event Type",
+      "Severity",
+      "User ID",
+      "IP",
+      "Route",
+      "Method",
+      "Status Code",
+    ];
+
+    const rows = eventsToExport.map((event) => [
+      formatTimestamp(event.timestamp),
+      event.category,
+      event.event_type,
+      event.severity,
+      event.user_id || "",
+      event.ip || "",
+      event.route || "",
+      event.method || "",
+      event.status_code?.toString() || "",
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+    ].join("\n");
+
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `hawkeye-events-${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const hasActiveFilters =
+    searchQuery ||
+    filters.category ||
+    filters.event_type ||
+    filters.severity ||
+    filters.user_id ||
+    filters.ip ||
+    filters.route ||
+    filters.method ||
+    filters.status_code ||
+    filters.start_time ||
+    filters.end_time;
+
+  // Load more events (pagination)
+  const loadMore = () => {
+    setFilters((prev) => ({ ...prev, offset: (prev.offset ?? 0) + (prev.limit ?? 50) }));
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Live Events</h1>
-          <p className="text-muted-foreground">Real-time event stream from all sources</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2" size="sm">
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search events..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="flex h-10 w-full max-w-xs items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat === "all" ? "All Categories" : cat.charAt(0).toUpperCase() + cat.slice(1)}
-                </option>
-              ))}
-            </select>
-            <Button variant="outline" className="gap-2">
-              <Filter className="h-4 w-4" />
+    <>
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Live Events</h1>
+            <p className="text-muted-foreground">Real-time event stream from all sources</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="gap-2" onClick={handleExport} disabled={combinedEvents.length === 0}>
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
+              <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
+              Refresh
+            </Button>
+            <Button onClick={() => setIsFilterOpen(!isFilterOpen)} variant="outline" size="sm">
+              <Filter className="h-4 w-4 mr-2" />
               Filters
+              {hasActiveFilters && (
+                <Badge variant="secondary">
+                  {Object.keys(filters).filter(
+                    (k) => filters[k as keyof EventListParams] && k !== "limit" && k !== "offset"
+                  ).length}
+                </Badge>
+              )}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Events Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Event Stream</CardTitle>
-          <CardDescription>
-            {events.length} events displayed. Connect to WebSocket for real-time updates.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Event Type</TableHead>
-                  <TableHead>Severity</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead>IP</TableHead>
-                  <TableHead>Route</TableHead>
-                  <TableHead>Method</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {events.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                      No events found. Ingest events via API to see them here.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  events.map((event) => (
-                    <TableRow key={event.id}>
-                      <TableCell className="font-mono text-sm">{new Date(event.timestamp).toLocaleTimeString()}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{event.category}</Badge>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">{event.eventType}</TableCell>
-                      <TableCell>
-                        <Badge variant={getSeverityBadgeVariant(event.severity)}>{event.severity}</Badge>
-                      </TableCell>
-                      <TableCell>{event.userId || "-"}</TableCell>
-                      <TableCell className="font-mono text-sm">{event.ip || "-"}</TableCell>
-                      <TableCell className="font-mono text-sm truncate max-w-xs">{event.route || "-"}</TableCell>
-                      <TableCell>{event.method || "-"}</TableCell>
-                      <TableCell>{event.status || "-"}</TableCell>
-                    </TableRow>
-                  ))
+        {/* Search & Filters */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search events by category, type, user, IP, route..."
+                  value={searchQuery}
+                  onChange={handleSearch}
+                  className="pl-10"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2" style={{ display: isFilterOpen ? "flex" : "none" }}>
+                <Select
+                  value={filters.category || "all"}
+                  onValueChange={(value) => handleFilterChange("category", value === "all" ? undefined : value)}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="authentication">Authentication</SelectItem>
+                    <SelectItem value="authorization">Authorization</SelectItem>
+                    <SelectItem value="network">Network</SelectItem>
+                    <SelectItem value="application">Application</SelectItem>
+                    <SelectItem value="system">System</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={filters.severity || "all"}
+                  onValueChange={(value) => handleFilterChange("severity", value === "all" ? undefined : value)}
+                >
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Severity" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Severities</SelectItem>
+                    <SelectItem value="critical">Critical</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={filters.event_type || "all"}
+                  onValueChange={(value) => handleFilterChange("event_type", value === "all" ? undefined : value)}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Event Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Event Types</SelectItem>
+                    <SelectItem value="login_success">Login Success</SelectItem>
+                    <SelectItem value="login_failure">Login Failure</SelectItem>
+                    <SelectItem value="logout">Logout</SelectItem>
+                    <SelectItem value="access_denied">Access Denied</SelectItem>
+                    <SelectItem value="privilege_escalation">Privilege Escalation</SelectItem>
+                    <SelectItem value="port_scan">Port Scan</SelectItem>
+                    <SelectItem value="api_abuse">API Abuse</SelectItem>
+                    <SelectItem value="bot_detected">Bot Detected</SelectItem>
+                    <SelectItem value="sensitive_action">Sensitive Action</SelectItem>
+                    <SelectItem value="session_anomaly">Session Anomaly</SelectItem>
+                  </SelectContent                >
+                </Select>
+
+                <Input
+                  placeholder="User ID"
+                  value={(filters.user_id as string) || ""}
+                  onChange={(e) => handleFilterChange("user_id", e.target.value || undefined)}
+                  className="w-[160px]"
+                />
+
+                <Input
+                  placeholder="IP Address"
+                  value={(filters.ip as string) || ""}
+                  onChange={(e) => handleFilterChange("ip", e.target.value || undefined)}
+                  className="w-[160px]"
+                />
+
+                <Input
+                  placeholder="Route"
+                  value={(filters.route as string) || ""}
+                  onChange={(e) => handleFilterChange("route", e.target.value || undefined)}
+                  className="w-[160px]"
+                />
+
+                <Select
+                  value={filters.method || "all"}
+                  onValueChange={(value) => handleFilterChange("method", value === "all" ? undefined : value)}
+                >
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Methods</SelectItem>
+                    <SelectItem value="GET">GET</SelectItem>
+                    <SelectItem value="POST">POST</SelectItem>
+                    <SelectItem value="PUT">PUT</SelectItem>
+                    <SelectItem value="DELETE">DELETE</SelectItem>
+                    <SelectItem value="PATCH">PATCH</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                    <X className="h-4 w-4 mr-1" />
+                    Clear filters
+                  </Button>
                 )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Events Table */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Event Stream</CardTitle>
+              <Badge variant="secondary">{combinedEvents.length} events</Badge>
+            </div>
+            <CardDescription>
+              {eventsResponse !== undefined
+                ? `Showing ${combinedEvents.length} of ${eventsResponse.total} events`
+                : "Loading..."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            {isLoading && eventsResponse === undefined ? (
+              <div className="p-8 text-center">
+                <div className="animate-pulse space-y-3">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="h-12 bg-muted rounded" />
+                  ))}
+                </div>
+              </div>
+            ) : isError ? (
+              <div className="p-8 text-center text-destructive">
+                <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Failed to load events</p>
+                <p className="text-sm text-muted-foreground mt-1">{error?.message}</p>
+                <Button className="mt-4" variant="outline" size="sm" onClick={() => refetch()}>
+                  Retry
+                </Button>
+              </div>
+            ) : combinedEvents.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">
+                <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No events found</p>
+                <p className="text-sm mt-1">
+                  {hasActiveFilters || searchQuery
+                    ? "Try adjusting your filters or search query"
+                    : "Ingest events via API to see them here"}
+                </p>
+              </div>
+            ) : (
+              <div className="max-h-[700px] overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-32">Time</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Event Type</TableHead>
+                      <TableHead>Severity</TableHead>
+                      <TableHead>User</TableHead>
+                      <TableHead>IP</TableHead>
+                      <TableHead className="hidden md:table-cell">Route</TableHead>
+                      <TableHead className="hidden lg:table-cell">Method</TableHead>
+                      <TableHead className="hidden lg:table-cell">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {combinedEvents.map((event) => (
+                      <TableRow key={event.id} className="hover:bg-muted/50 transition-colors">
+                        <TableCell className="font-mono text-sm whitespace-nowrap">
+                          {formatTimestamp(event.timestamp)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{event.category}</Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">{event.event_type}</TableCell>
+                        <TableCell>
+                          <Badge variant={getSeverityBadgeVariant(event.severity)}>{event.severity}</Badge>
+                        </TableCell>
+                        <TableCell>{event.user_id || "-"}</TableCell>
+                        <TableCell className="font-mono text-sm">{event.ip || "-"}</TableCell>
+                        <TableCell className="hidden md:table-cell font-mono text-sm truncate max-w-xs">
+                          {event.route || "-"}
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">{event.method || "-"}</TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          {event.status_code ? (
+                            <Badge variant={event.status_code >= 400 ? "destructive" : "default"}>
+                              {event.status_code}
+                            </Badge>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                {/* Load More Pagination */}
+                {(eventsResponse?.total ?? 0) > (filters.offset || 0) + (filters.limit || 50) && !isLoading && (
+                  <div className="p-4 border-t">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={loadMore}
+                      disabled={isLoading}
+                    >
+                      Load More ({combinedEvents.length} of {eventsResponse?.total})
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Connection Status Indicator (bottom) */}
+        <ConnectionStatusCard
+          status={wsConnectionStatus}
+          sessionId={sessionId}
+          lastEventId={wsLastEventId}
+          onReconnect={reconnect}
+          onDisconnect={disconnect}
+          alwaysShow={true}
+        />
+      </div>
+    </>
   );
 }

@@ -28,6 +28,15 @@ export interface Source {
   updated_at: string;
 }
 
+export interface SourceEventCounts {
+  source_id: number;
+  source_name: string;
+  event_count: number;
+  alert_count: number;
+  incident_count: number;
+  is_active: boolean;
+}
+
 export interface SourceCreate {
   name: string;
   description?: string;
@@ -72,17 +81,15 @@ export interface NormalizedEvent {
   severity: "critical" | "high" | "medium" | "low";
   timestamp: string;
   user_id: string | null;
+  session_id: string | null;
   ip: string | null;
+  user_agent: string | null;
   route: string | null;
   method: string | null;
   status_code: number | null;
-  user_agent: string | null;
-  request_body: Record<string, unknown> | null;
-  response_body: Record<string, unknown> | null;
-  headers: Record<string, unknown> | null;
-  mitre_tactics: string[];
-  mitre_techniques: string[];
-  raw_event_id: number;
+  metadata: Record<string, unknown>;
+  mitre_tactic: string | null;
+  mitre_technique: string | null;
   created_at: string;
 }
 
@@ -146,6 +153,7 @@ export interface AlertStats {
   by_severity: Record<string, number>;
   by_detection_type: Record<string, number>;
   recent_24h: number;
+  avg_confidence?: number | null;
 }
 
 // ==================== Incident Types ====================
@@ -293,6 +301,12 @@ export interface DetectionTypeDistribution {
 
 export interface MITRETacticDistribution {
   [tactic: string]: number;
+}
+
+export interface MITRECoverage {
+  by_tactic: Record<string, number>;
+  by_technique: Record<string, number>;
+  total_alerts_with_mitre: number;
 }
 
 // ==================== Settings Types ====================
