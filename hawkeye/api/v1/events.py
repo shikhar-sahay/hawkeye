@@ -29,6 +29,7 @@ async def query_events(
     status_code: int | None = Query(None),
     start_time: datetime | None = Query(None),
     end_time: datetime | None = Query(None),
+    search: str | None = Query(None),
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     source: ApplicationSource = Depends(get_current_source),
@@ -59,6 +60,18 @@ async def query_events(
         stmt = stmt.where(NormalizedEvent.timestamp >= start_time)
     if end_time:
         stmt = stmt.where(NormalizedEvent.timestamp <= end_time)
+    if search:
+        # Search across multiple text fields
+        search_term = f"%{search}%"
+        stmt = stmt.where(
+            NormalizedEvent.category.ilike(search_term) |
+            NormalizedEvent.event_type.ilike(search_term) |
+            NormalizedEvent.user_id.ilike(search_term) |
+            NormalizedEvent.ip.ilike(search_term) |
+            NormalizedEvent.route.ilike(search_term) |
+            NormalizedEvent.method.ilike(search_term) |
+            NormalizedEvent.user_agent.ilike(search_term)
+        )
 
     # Get total count - build separate count query to avoid subquery issues
     count_stmt = select(func.count(NormalizedEvent.id)).where(
@@ -84,6 +97,17 @@ async def query_events(
         count_stmt = count_stmt.where(NormalizedEvent.timestamp >= start_time)
     if end_time:
         count_stmt = count_stmt.where(NormalizedEvent.timestamp <= end_time)
+    if search:
+        search_term = f"%{search}%"
+        count_stmt = count_stmt.where(
+            NormalizedEvent.category.ilike(search_term) |
+            NormalizedEvent.event_type.ilike(search_term) |
+            NormalizedEvent.user_id.ilike(search_term) |
+            NormalizedEvent.ip.ilike(search_term) |
+            NormalizedEvent.route.ilike(search_term) |
+            NormalizedEvent.method.ilike(search_term) |
+            NormalizedEvent.user_agent.ilike(search_term)
+        )
 
     total_result = await session.execute(count_stmt)
     total = total_result.scalar_one()

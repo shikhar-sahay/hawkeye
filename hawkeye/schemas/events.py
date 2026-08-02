@@ -52,5 +52,6 @@ class EventFilter(BaseModel):
     status_code: int | None = None
     start_time: datetime | None = None
     end_time: datetime | None = None
+    search: str | None = None
     limit: int = Field(default=100, ge=1, le=1000)
     offset: int = Field(default=0, ge=0)
