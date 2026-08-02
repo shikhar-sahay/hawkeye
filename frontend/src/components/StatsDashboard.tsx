@@ -22,13 +22,39 @@ import { apiClient, queryKeys } from "@/api/client";
 import type { AlertStats, IncidentStats } from "@/types";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  AlertsOverTimeChart,
-} from "@/components/charts/AlertsOverTimeChart";
+
+// Static imports for debugging - lazy imports fail because components use named exports
+import { AlertsOverTimeChart } from "@/components/charts/AlertsOverTimeChart";
 import { SeverityDistributionChart } from "@/components/charts/SeverityDistributionChart";
 import { DetectionTypeChart } from "@/components/charts/DetectionTypeChart";
 import { MITRECoverageChart } from "@/components/charts/MITRECoverageChart";
 import { EventsBySourceChart } from "@/components/charts/EventsBySourceChart";
+
+// DEBUG: Custom hook to trace query execution
+function useDebugQuery<T>(queryKey: string[], queryFn: () => Promise<T>, options: any = {}) {
+  const result = useQuery({
+    queryKey,
+    queryFn: async () => {
+      console.log(`[DEBUG] Query START: ${queryKey.join("/")}`);
+      try {
+        const data = await queryFn();
+        console.log(`[DEBUG] Query SUCCESS: ${queryKey.join("/")}`, data);
+        return data;
+      } catch (error) {
+        console.error(`[DEBUG] Query ERROR: ${queryKey.join("/")}`, error);
+        throw error;
+      }
+    },
+    ...options,
+  });
+
+  // Log status changes
+  React.useEffect(() => {
+    console.log(`[DEBUG] Query STATUS: ${queryKey.join("/")} - isLoading: ${result.isLoading}, isError: ${result.isError}, isSuccess: ${result.isSuccess}`, result.error);
+  }, [result.isLoading, result.isError, result.isSuccess, result.error, queryKey.join("/")]);
+
+  return result;
+}
 
 interface StatsDashboardProps {
   /** Time range for time-series data */
@@ -66,37 +92,62 @@ export function StatsDashboard({ timeRange = "24h", refreshInterval = 60000 }: S
     staleTime: 30000,
   });
 
-  // Fetch sources for events by source chart
-  const { data: sources, isLoading: sourcesLoading } = useQuery({
-    queryKey: queryKeys.sources.all,
-    queryFn: () => apiClient.getSources(),
+  // Fetch MITRE coverage stats
+  const { data: mitreCoverage, isLoading: mitreCoverageLoading, error: mitreCoverageError } = useQuery({
+    queryKey: ["alerts", "mitre-coverage"],
+    queryFn: () => apiClient.getMITRECoverage(),
     refetchInterval: refreshInterval,
-    staleTime: 60000,
+    staleTime: 30000,
+  });
+
+  // Fetch source event counts
+  const { data: sourceEventCounts, isLoading: sourceEventCountsLoading, error: sourceEventCountsError } = useQuery({
+    queryKey: ["sources", "event-counts"],
+    queryFn: () => apiClient.getSourceEventCounts(),
+    refetchInterval: refreshInterval,
+    staleTime: 30000,
   });
 
   // Fetch alerts over time for time-series chart
   const hours = timeRange === "24h" ? 24 : timeRange === "7d" ? 168 : 720;
-  const { data: alertsOverTime, isLoading: alertsOverTimeLoading } = useQuery({
+  const { data: alertsOverTime, isLoading: alertsOverTimeLoading, error: alertsOverTimeError } = useQuery({
     queryKey: queryKeys.alerts.overTime(hours),
     queryFn: () => apiClient.getAlertsOverTime(hours),
     refetchInterval: refreshInterval,
     staleTime: 30000,
   });
 
-  const isLoading = statsLoading || alertStatsLoading || incidentStatsLoading || sourcesLoading || alertsOverTimeLoading;
-  const hasError = statsError || alertStatsError || incidentStatsError;
+  const isLoading = statsLoading || alertStatsLoading || incidentStatsLoading || sourceEventCountsLoading || alertsOverTimeLoading || mitreCoverageLoading;
+  const hasError = statsError || alertStatsError || incidentStatsError || sourceEventCountsError;
+
+  // DEBUG: Log query states
+  React.useEffect(() => {
+    console.log('[DEBUG] StatsDashboard render:', {
+      statsLoading, statsError,
+      alertStatsLoading, alertStatsError,
+      incidentStatsLoading, incidentStatsError,
+      sourceEventCountsLoading, sourceEventCountsError,
+      alertsOverTimeLoading, alertsOverTimeError,
+      mitreCoverageLoading, mitreCoverageError,
+      hasError,
+      isLoading,
+      dashboardStats,
+      alertStats,
+      incidentStats,
+    });
+  }, [statsLoading, statsError, alertStatsLoading, alertStatsError, incidentStatsLoading, incidentStatsError, hasError, isLoading]);
 
   // Build source data for events by source chart
   const sourceChartData = React.useMemo(() => {
-    if (!sources || !dashboardStats) return [];
-    return sources.map((source) => ({
-      name: source.name,
-      events: Math.floor(Math.random() * 1000) + 100, // Placeholder - would come from API
-      alerts: Math.floor(Math.random() * 50),
-      incidents: Math.floor(Math.random() * 10),
+    if (!sourceEventCounts) return [];
+    return sourceEventCounts.map((source) => ({
+      name: source.source_name,
+      events: source.event_count,
+      alerts: source.alert_count,
+      incidents: source.incident_count,
       isActive: source.is_active,
     }));
-  }, [sources, dashboardStats]);
+  }, [sourceEventCounts]);
 
   if (hasError) {
     return (
@@ -104,8 +155,10 @@ export function StatsDashboard({ timeRange = "24h", refreshInterval = 60000 }: S
         <EmptyState
           title="Failed to load dashboard"
           description="Unable to fetch statistics data. Please try again later."
-          actionLabel="Retry"
-          onAction={() => window.location.reload()}
+          action={{
+            label: "Retry",
+            onClick: () => window.location.reload(),
+          }}
           icon={<AlertTriangle className="h-12 w-12 text-destructive" />}
         />
       </div>
@@ -120,14 +173,14 @@ export function StatsDashboard({ timeRange = "24h", refreshInterval = 60000 }: S
           title="Total Events"
           value={dashboardStats?.events_24h ? formatNumber(dashboardStats.events_24h) : "—"}
           subtitle="Last 24 hours"
-          icon={<Activity className="h-5 w-5" />}
+          icon={Activity}
           trend={dashboardStats?.events_24h && dashboardStats.events_24h > 0 ? "up" : "neutral"}
         />
         <StatCard
           title="Active Alerts"
           value={alertStats ? formatNumber(alertStats.open + alertStats.acknowledged) : "—"}
           subtitle={alertStats ? `${alertStats.open} open, ${alertStats.acknowledged} acknowledged` : "Loading..."}
-          icon={<AlertTriangle className="h-5 w-5" />}
+          icon={AlertTriangle}
           trend={alertStats && alertStats.open > 10 ? "up" : "neutral"}
           badge={alertStats && alertStats.open > 0 ? <Badge variant="destructive">{alertStats.open} critical</Badge> : null}
         />
@@ -135,14 +188,14 @@ export function StatsDashboard({ timeRange = "24h", refreshInterval = 60000 }: S
           title="Active Incidents"
           value={incidentStats ? formatNumber(incidentStats.open + incidentStats.investigating) : "—"}
           subtitle={incidentStats ? `${incidentStats.open} open, ${incidentStats.investigating} investigating` : "Loading..."}
-          icon={<AlertCircle className="h-5 w-5" />}
+          icon={AlertCircle}
           trend={incidentStats && incidentStats.open > 5 ? "up" : "neutral"}
         />
         <StatCard
           title="Registered Sources"
           value={dashboardStats?.sources ? formatNumber(dashboardStats.sources.total) : "—"}
           subtitle={dashboardStats?.sources ? `${dashboardStats.sources.active} active, ${dashboardStats.sources.inactive} inactive` : "Loading..."}
-          icon={<Server className="h-5 w-5" />}
+          icon={Server}
         />
         <StatCard
           title="Detection Rate"
@@ -150,24 +203,22 @@ export function StatsDashboard({ timeRange = "24h", refreshInterval = 60000 }: S
             ? `${((alertStats.total / dashboardStats.events_24h) * 100).toFixed(1)}%`
             : "—"}
           subtitle="Alerts per event"
-          icon={<Gauge className="h-5 w-5" />}
+          icon={Gauge}
           trend="neutral"
         />
         <StatCard
           title="Avg Confidence"
-          value={alertStats && alertStats.by_detection_type
-            ? Object.values(alertStats.by_detection_type).reduce((a, b) => a + b, 0) > 0
-              ? `${Math.round(Object.entries(alertStats.by_detection_type).reduce((sum, [, count]) => sum + count * 75, 0) / Object.values(alertStats.by_detection_type).reduce((a, b) => a + b, 0))}%`
-              : "—"
+          value={alertStats && alertStats.avg_confidence !== undefined && alertStats.avg_confidence !== null
+            ? `${Math.round(alertStats.avg_confidence * 100)}%`
             : "—"}
           subtitle="Across all detections"
-          icon={<Target className="h-5 w-5" />}
+          icon={Target}
         />
         <StatCard
           title="Events Today"
           value={dashboardStats?.events_24h ? formatNumber(dashboardStats.events_24h) : "—"}
           subtitle="Last 24 hours"
-          icon={<TrendingUp className="h-5 w-5" />}
+          icon={TrendingUp}
         />
       </div>
 
@@ -187,10 +238,12 @@ export function StatsDashboard({ timeRange = "24h", refreshInterval = 60000 }: S
           </CardHeader>
           <CardContent>
             <div style={{ height: 300 }}>
-              <AlertsOverTimeChart
-                data={alertsOverTime || []}
-                isLoading={alertsOverTimeLoading}
-              />
+              <React.Suspense fallback={<div className="h-full w-full flex items-center justify-center"><Skeleton className="h-[300px] w-full" /></div>}>
+                <AlertsOverTimeChart
+                  data={alertsOverTime || []}
+                  isLoading={alertsOverTimeLoading}
+                />
+              </React.Suspense>
             </div>
           </CardContent>
         </Card>
@@ -204,15 +257,17 @@ export function StatsDashboard({ timeRange = "24h", refreshInterval = 60000 }: S
           </CardHeader>
           <CardContent>
             <div style={{ height: 280 }}>
-              <SeverityDistributionChart
-                data={alertStats ? [
-                  { name: "critical", value: alertStats.by_severity?.critical || 0, fill: "hsl(var(--destructive))" },
-                  { name: "high", value: alertStats.by_severity?.high || 0, fill: "hsl(var(--warning))" },
-                  { name: "medium", value: alertStats.by_severity?.medium || 0, fill: "hsl(var(--accent))" },
-                  { name: "low", value: alertStats.by_severity?.low || 0, fill: "hsl(var(--primary))" },
-                ] : []}
-                isLoading={isLoading}
-              />
+              <React.Suspense fallback={<div className="h-full w-full flex items-center justify-center"><Skeleton className="h-[280px] w-full" /></div>}>
+                <SeverityDistributionChart
+                  data={alertStats ? [
+                    { name: "critical", value: alertStats.by_severity?.critical || 0, fill: "hsl(var(--destructive))" },
+                    { name: "high", value: alertStats.by_severity?.high || 0, fill: "hsl(var(--warning))" },
+                    { name: "medium", value: alertStats.by_severity?.medium || 0, fill: "hsl(var(--accent))" },
+                    { name: "low", value: alertStats.by_severity?.low || 0, fill: "hsl(var(--primary))" },
+                  ] : []}
+                  isLoading={isLoading}
+                />
+              </React.Suspense>
             </div>
           </CardContent>
         </Card>
@@ -229,13 +284,15 @@ export function StatsDashboard({ timeRange = "24h", refreshInterval = 60000 }: S
           </CardHeader>
           <CardContent>
             <div style={{ height: 300 }}>
-              <DetectionTypeChart
-                data={alertStats ? Object.entries(alertStats.by_detection_type || {}).map(([name, value]) => ({
-                  name,
-                  value,
-                })) : []}
-                isLoading={isLoading}
-              />
+              <React.Suspense fallback={<div className="h-full w-full flex items-center justify-center"><Skeleton className="h-[300px] w-full" /></div>}>
+                <DetectionTypeChart
+                  data={alertStats ? Object.entries(alertStats.by_detection_type || {}).map(([name, value]) => ({
+                    name,
+                    value,
+                  })) : []}
+                  isLoading={isLoading}
+                />
+              </React.Suspense>
             </div>
           </CardContent>
         </Card>
@@ -249,10 +306,15 @@ export function StatsDashboard({ timeRange = "24h", refreshInterval = 60000 }: S
           </CardHeader>
           <CardContent>
             <div style={{ height: 300 }}>
-              <MITRECoverageChart
-                data={[]} // Would come from alerts with MITRE tags
-                isLoading={isLoading}
-              />
+              <React.Suspense fallback={<div className="h-full w-full flex items-center justify-center"><Skeleton className="h-[300px] w-full" /></div>}>
+                <MITRECoverageChart
+                  data={mitreCoverage ? [
+                    ...Object.entries(mitreCoverage.by_tactic).map(([name, value]) => ({ name, value, type: "tactic" as const })),
+                    ...Object.entries(mitreCoverage.by_technique).map(([name, value]) => ({ name, value, type: "technique" as const })),
+                  ] : []}
+                  isLoading={mitreCoverageLoading}
+                />
+              </React.Suspense>
             </div>
           </CardContent>
         </Card>
@@ -269,10 +331,12 @@ export function StatsDashboard({ timeRange = "24h", refreshInterval = 60000 }: S
           </CardHeader>
           <CardContent>
             <div style={{ height: 250 }}>
-              <EventsBySourceChart
-                data={sourceChartData}
-                isLoading={sourcesLoading}
-              />
+              <React.Suspense fallback={<div className="h-full w-full flex items-center justify-center"><Skeleton className="h-[250px] w-full" /></div>}>
+                <EventsBySourceChart
+                  data={sourceChartData}
+                  isLoading={sourceEventCountsLoading}
+                />
+              </React.Suspense>
             </div>
           </CardContent>
         </Card>
