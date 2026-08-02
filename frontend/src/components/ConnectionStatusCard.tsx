@@ -45,6 +45,7 @@ export function ConnectionStatusCard({
 
   const isConnected = status === "connected";
   const isConnecting = status === "connecting" || status === "reconnecting";
+  const isError = status === "error";
 
   const statusConfig = {
     connected: { icon: Wifi, color: "text-green-500", bg: "bg-green-500", label: "Connected" },

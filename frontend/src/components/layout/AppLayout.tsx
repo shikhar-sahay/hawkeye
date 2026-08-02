@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
 import { cn } from "@/lib/utils";
 import { Toaster } from "sonner";
+import { WebSocketProvider } from "@/context/WebSocketContext";
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
@@ -21,55 +22,58 @@ export function AppLayout() {
   const toggleSidebarCollapsed = () => setSidebarCollapsed(!sidebarCollapsed);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Sidebar */}
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={toggleSidebarCollapsed}
-      />
-
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-          aria-hidden="true"
+    <WebSocketProvider>
+      <div className="min-h-screen bg-background">
+        {/* Sidebar */}
+        <Sidebar
+          collapsed={sidebarCollapsed}
+          onToggle={toggleSidebarCollapsed}
         />
-      )}
 
-      {/* Main content area */}
-      <div
-        className={cn(
-          "min-h-screen transition-all duration-200",
-          sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"
+        {/* Mobile sidebar overlay */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
         )}
-      >
-        {/* Top Navigation */}
-        <TopNav
-          onMenuClick={toggleSidebar}
-          sidebarCollapsed={sidebarCollapsed}
-        />
 
-        {/* Page content */}
-        <main
+        {/* Main content area */}
+        <div
           className={cn(
-            "pt-16 min-h-screen transition-all duration-200",
-            sidebarCollapsed ? "lg:ml-16 lg:pl-6" : "lg:ml-64 lg:pl-6",
-            "pr-6 pb-6"
+            "min-h-screen transition-all duration-200",
+            sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"
           )}
-          role="main"
         >
-          <Outlet />
-        </main>
-      </div>
+          {/* Top Navigation */}
+          <TopNav
+            onMenuClick={toggleSidebar}
+            sidebarCollapsed={sidebarCollapsed}
+          />
 
-      {/* Toaster for notifications */}
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          className: "bg-popover text-popover-foreground border-border",
-        }}
-      />
-    </div>
+          {/* Page content */}
+          <main
+            className={cn(
+              "pt-16 min-h-screen transition-all duration-200",
+              "lg:pr-6 pb-6"
+            )}
+            role="main"
+          >
+            <div className="max-w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+              <Outlet />
+            </div>
+          </main>
+        </div>
+
+        {/* Toaster for notifications */}
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            className: "bg-popover text-popover-foreground border-border",
+          }}
+        />
+      </div>
+    </WebSocketProvider>
   );
 }
