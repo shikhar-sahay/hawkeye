@@ -1,4 +1,4 @@
-"""Model exports for HawkEye."""
+"""Model exports for Hawkeye."""
 
 from hawkeye.models.enums import (
     AlertStatus,

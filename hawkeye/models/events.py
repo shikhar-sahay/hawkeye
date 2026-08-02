@@ -1,4 +1,4 @@
-"""SQLModel database models for HawkEye."""
+"""SQLModel database models for Hawkeye."""
 
 from datetime import datetime
 from typing import Optional

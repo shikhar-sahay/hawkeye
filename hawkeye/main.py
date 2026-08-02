@@ -1,4 +1,4 @@
-"""HawkEye main FastAPI application."""
+"""Hawkeye main FastAPI application."""
 
 from contextlib import asynccontextmanager
 

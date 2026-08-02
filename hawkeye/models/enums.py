@@ -1,4 +1,4 @@
-"""Enumeration types for HawkEye models."""
+"""Enumeration types for Hawkeye models."""
 
 from enum import Enum
 

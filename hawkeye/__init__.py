@@ -1,4 +1,4 @@
-"""HawkEye - AI-powered Web Application Security Monitoring Platform."""
+"""Hawkeye - AI-powered Web Application Security Monitoring Platform."""
 
 from hawkeye.config import settings
 
