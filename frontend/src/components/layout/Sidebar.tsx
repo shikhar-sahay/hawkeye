@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -37,10 +38,10 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
       <div className="flex h-full flex-col">
         {/* Logo */}
         <div className={cn("flex h-16 items-center justify-center border-b px-4", collapsed && "justify-center")}>
-          <NavLink to="/" className="flex items-center gap-2" aria-label="HawkEye Dashboard">
-            <img src="/assets/hawkeyelogo.png" alt="" className="h-8 w-8" />
+          <NavLink to="/" className="flex items-center gap-2" aria-label="Hawkeye Dashboard">
+            <Logo size={28} />
             {!collapsed && (
-              <span className="text-xl font-bold tracking-tight text-foreground">HawkEye</span>
+              <span className="text-xl font-bold tracking-tight text-foreground">Hawkeye</span>
             )}
           </NavLink>
         </div>
