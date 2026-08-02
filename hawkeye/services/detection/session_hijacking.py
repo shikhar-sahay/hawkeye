@@ -331,7 +331,7 @@ class SessionHijackingDetector(BaseDetector):
         event = context.event
 
         # Look for session activity before login
-        if event.event_type not in {EventType.LOGIN_SUCCESS.value, EventType.LOGIN.value}:
+        if event.event_type != EventType.LOGIN_SUCCESS.value:
             return None
 
         if not event.session_id:
