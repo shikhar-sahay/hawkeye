@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { IncidentTimeline } from "@/components/IncidentTimeline";
 import { IncidentDetail } from "@/components/IncidentDetail";
 import { useWebSocket, type IncidentPayload } from "@/hooks/useWebSocket";
+import { ConnectionStatusCard } from "@/components/ConnectionStatusCard";
 import { apiClient, queryKeys } from "@/api/client";
 import {
   Search,
@@ -379,48 +380,13 @@ export function IncidentsPage() {
       </div>
 
       {/* Connection Status Indicator (bottom) */}
-      <Card className="border-dashed">
-        <CardContent className="pt-4">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-4">
-              <span className={cn("flex items-center gap-2", wsConnectionStatus === "connected" && "text-green-600")}>
-                <span
-                  className={cn(
-                    "h-2 w-2 rounded-full",
-                    wsConnectionStatus === "connected" && "bg-green-500",
-                    wsConnectionStatus === "connecting" && "bg-yellow-500 animate-pulse",
-                    wsConnectionStatus === "reconnecting" && "bg-yellow-500 animate-pulse",
-                    wsConnectionStatus === "error" && "bg-destructive",
-                    wsConnectionStatus === "disconnected" && "bg-muted-foreground"
-                  )}
-                />
-                WebSocket:{" "}
-                <span className="font-medium capitalize">{wsConnectionStatus}</span>
-              </span>
-              {sessionId && (
-                <span className="text-muted-foreground font-mono text-xs">
-                  Session: {sessionId.slice(0, 8)}...
-                </span>
-              )}
-              {wsLastEventId > 0 && (
-                <span className="text-muted-foreground font-mono text-xs">
-                  Last Event: #{wsLastEventId}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {wsConnectionStatus !== "connected" && (
-                <Button variant="outline" size="sm" onClick={reconnect}>
-                  Reconnect
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={() => disconnect()}>
-                Disconnect
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <ConnectionStatusCard
+        status={wsConnectionStatus}
+        sessionId={sessionId}
+        lastEventId={wsLastEventId}
+        onReconnect={reconnect}
+        onDisconnect={disconnect}
+      />
     </div>
 
     {/* Incident Detail Dialog */}
