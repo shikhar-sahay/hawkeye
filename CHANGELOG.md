@@ -7,6 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.3.0] - 2026-08-02 - Milestone 3 Complete: Frontend Dashboard
+
+### Added
+- **Milestone 3 Complete** — Full Frontend Dashboard with all 6 pages, real-time WebSocket, code-split charts
+  - Dashboard Page: KPI cards + 6 charts (lazy-loaded, ~42% bundle reduction)
+  - Events Page: Filterable table, search, pagination, CSV export, WebSocket live updates
+  - Alerts Page: Real-time alert feed with WebSocket, AlertDetail modal (5 tabs)
+  - Incidents Page: Timeline visualization, IncidentDetail modal (5 tabs)
+  - Sources Page: Full CRUD + API key lifecycle (generate/rotate/revoke) + pagination
+  - Settings Page: 4 tabs (General, API, WebSocket, About) with theme selector
+  - AppLayout: Collapsible Sidebar, TopNav with search, theme toggle, connection status
+  - WebSocket hook: Auto-reconnect, session resume, multi-subscription support
+  - ConnectionStatusCard: Reusable inline (TopNav) and full card (Events) components
+
+### Changed
+- **T-031: Code-split Chart Components Actually Working** — React.lazy() + dynamic imports
+  - All 5 chart components switched to default exports
+  - StatsDashboard uses React.lazy() with Suspense skeleton fallbacks
+  - Vite manual chunks: vendor-react, vendor-query, vendor-charts, vendor-ui, 6 chart chunks
+  - Build: Main chunk 608 KB (gzipped: 174 KB) vs 1.04 MB before
+- **Frontend Stabilization** — All 12 runtime error fixes completed
+  - ConnectionStatusCard `isError` ReferenceError fixed
+  - Dashboard widget type mismatches (AlertStats/IncidentStats) resolved
+  - Sources page `sources.map` TypeError fixed (added SourceListResponse type, fixed array access)
+  - Settings page `Badge` ReferenceError fixed (added import)
+  - Events page `combinedEvents` ReferenceError fixed (added useMemo merge logic)
+  - TopNav duplicate BrowserRouter removed
+  - Settings page nested BrowserRouter removed
+  - WebSocket context API key reactivity fixed (useState + storage event listener)
+  - Dashboard layout max-width constraint removed (full-width responsive)
+  - Dashboard avg_confidence display fixed (decimal → percentage)
+  - Branding/logo issues resolved
+
+### Fixed
+- **T-031: Code-split Chart Components** — React.lazy() now works correctly
+  - Changed all 5 chart components to use default exports (`export default function ComponentName`)
+  - Updated `StatsDashboard.tsx` to use `React.lazy()` with dynamic imports for all charts
+  - Build now produces separate chart chunks (2-28 KB each) instead of single 1MB bundle
+  - Main chunk: 608 KB (gzipped: 174 KB) — matches documented ~600 KB target
+  - Recharts vendor chunk: 350 KB (gzipped: 98 KB)
+
+### Verified
+- All 33 backend tests pass
+- Frontend build succeeds with proper code-splitting
+- Frontend lint: 0 errors, 8 warnings (pre-existing, unrelated)
+- Backend lint: 57 style/complexity warnings (no critical errors — T-034 optional)
+
+---
+
+## [2.2.3] - 2026-08-02 - T-031 Code-split Chart Components Actually Working
+
+### Fixed
+- **T-031: Code-split Chart Components** — React.lazy() now works correctly
+  - Changed all 5 chart components to use default exports (`export default function ComponentName`)
+  - Updated `StatsDashboard.tsx` to use `React.lazy()` with dynamic imports for all charts
+  - Build now produces separate chart chunks (2-28 KB each) instead of single 1MB bundle
+  - Main chunk: 608 KB (gzipped: 174 KB) — matches documented ~600 KB target
+  - Recharts vendor chunk: 350 KB (gzipped: 98 KB)
+
+### Verified
+- All 33 backend tests pass
+- Frontend build succeeds with proper code-splitting
+- Frontend lint: 0 errors, 8 warnings (pre-existing, unrelated)
+
+---
+
 ## [2.2.2] - 2026-07-29 - Documentation Audit & Synchronization + Frontend Polish
 
 ### Added

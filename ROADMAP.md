@@ -37,7 +37,7 @@ Build a production-ready Web Application Security Monitoring Platform (SIEM-lite
 
 ### Milestone 3: Frontend Dashboard
 **Target: TBD (after Milestone 2)**  
-**Status: 🟢 ~99% IN PROGRESS — Backend 100% Ready, All 6 Pages Implemented**
+**Status: ✅ 100% COMPLETE — Achieved 2026-08-02**
 
 | Component | Status | Location |
 |-----------|--------|----------|
@@ -86,7 +86,7 @@ Build a production-ready Web Application Security Monitoring Platform (SIEM-lite
 
 ### Milestone 4: Browser Security Agent
 **Target: TBD (after Milestone 3)**  
-**Status: ⏳ PLANNED — 0%**
+**Status: 🟢 IN PROGRESS — 0% (T-040: Chrome MV3 Extension Scaffold starting)**
 
 - Browser extension (Manifest V3)
 - Content script for DOM monitoring
@@ -126,10 +126,10 @@ Build a production-ready Web Application Security Monitoring Platform (SIEM-lite
 
 ## Current Status
 
-**Active Milestone: Milestone 3 - Frontend Dashboard**  
-**Progress: ~99% (Backend 100% Ready, All 6 Pages Complete, Real-time WebSocket Connected, Bundle Optimized)**
+**Active Milestone: Milestone 4 - Browser Security Agent**  
+**Progress: 0% (Starting T-040: Chrome MV3 Extension Scaffold)**
 
-Only remaining: Optional backend lint cleanup (T-034).
+Milestone 3 (Frontend Dashboard) is 100% complete — all 6 pages implemented, connected to real backend, real-time WebSocket, code-split charts.
 
 ---
 
@@ -181,7 +181,10 @@ Milestone 5 (SDKs) → Milestone 6 (Attack Replay & Docs)
 ### 🟢 IN PROGRESS / NEXT
 | Task | Status | Details |
 |------|--------|---------|
-| **T-034: Backend lint cleanup** | ⏳ OPTIONAL | 52 ruff issues (C901, E501, E741, ANN201, SIM102) — style only, no functional impact |
+| **T-034: Backend lint cleanup** | ⏳ OPTIONAL | 57 ruff issues (C901, E501, E741, ANN201, SIM102, I001, ERA001, F401, F811) — style only, no functional impact |
+| **T-040: Chrome MV3 Extension Scaffold** | 🟢 IN PROGRESS | Create browser-agent/ directory with manifest.json, background service worker, content scripts, shared types, build config |
+
+---
 
 ---
 

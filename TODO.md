@@ -120,7 +120,7 @@ Each task has:
 
 ---
 
-## P1 - Milestone 3: Frontend Dashboard 🟢 IN PROGRESS
+## P1 - Milestone 3: Frontend Dashboard ✅ ALL COMPLETE
 
 ### T-020: Frontend Setup — React + TypeScript + Vite ✅ COMPLETE
 - **Files**: `frontend/` (new directory)
@@ -291,7 +291,7 @@ Each task has:
   - Verify build passes, no regressions ✅
 - **Estimated Effort**: 2-3 hours
 - **Priority**: P1 (build warns about chunk size)
-- **Status**: ✅ COMPLETE — 2026-07-29
+- **Status**: ✅ COMPLETE — 2026-08-02 (code-splitting actually implemented; was documented complete but used static imports)
   - Initial bundle: ~1.04 MB → ~600 KB (gzipped: 287 KB → 171 KB)
   - 6 chart chunks loaded on demand
   - Build passes, lint clean, tests pass
@@ -299,22 +299,102 @@ Each task has:
 ### T-034: Backend Lint Cleanup 🟢 OPTIONAL POLISH
 - **Files**: `hawkeye/api/v1/*.py`, `hawkeye/services/detection/*.py`
 - **Dependencies**: None
-- **Completion Criteria**: Fix 52 ruff issues (C901 complexity, E501 line length, E741 ambiguous vars, ANN201 missing types, SIM102 nested ifs)
+- **Completion Criteria**: Fix 57 ruff issues (C901 complexity, E501 line length, E741 ambiguous vars, ANN201 missing types, SIM102 nested ifs, I001 import sorting, ERA001 commented code, F401 unused imports, F811 redefinitions)
 - **Estimated Effort**: 3-4 hours
 - **Priority**: P3 (style only, no functional impact)
 - **Status**: Optional — can be done after Milestone 3
 
 ---
 
-## P2 - Milestone 4: Browser Security Agent (Planned)
+## P2 - Milestone 4: Browser Security Agent (Planned → IN PROGRESS)
 
-### T-040: Chrome MV3 Extension Scaffold
+### T-040: Chrome MV3 Extension Scaffold 🟢 NEXT
+- **Files**: `browser-agent/` (new directory)
+- **Dependencies**: Milestone 3 complete (ALL COMPLETE)
+- **Completion Criteria**:
+  - `manifest.json` — MV3 manifest with permissions, host_permissions, background service worker, content scripts
+  - `background/service-worker.ts` — Event batching, API communication, CSP report handling
+  - `content/dom-monitor.ts` — DOM mutation observer, CSP violation listener, DOM integrity checks
+  - `content/bot-detector.ts` — Client-side bot/automation detection
+  - `shared/types.ts` — Event schemas matching HawkEye backend (RawEvent, NormalizedEvent, etc.)
+  - `shared/api-client.ts` — HTTP client for HawkEye REST API + WebSocket
+  - `vite.config.ts` — Build config for extension (multiple entry points)
+  - `package.json` — Dependencies and build scripts
+  - Extension loads in Chrome without errors
+  - Background service worker registers and handles messages
+  - Content script injects on target pages
+  - Basic message passing between content script and background works
+  - Build produces valid extension bundle in `dist/`
+- **Estimated Effort**: 4-6 hours
+- **Priority**: P1 (starts Milestone 4)
+
 ### T-041: Content Script for DOM Monitoring
+- **Files**: `browser-agent/content/dom-monitor.ts`, `browser-agent/content/bot-detector.ts`
+- **Dependencies**: T-040
+- **Completion Criteria**:
+  - MutationObserver tracks DOM changes (script injection, iframe insertion, form modifications)
+  - CSP violation detection via `SecurityPolicyViolationEvent` listener
+  - DOM integrity monitoring (checksum/hash of critical elements)
+  - Event batching with configurable flush interval
+  - Events sent to background script via `chrome.runtime.sendMessage`
+- **Estimated Effort**: 4-5 hours
+
 ### T-042: CSP Violation Detection & Reporting
+- **Files**: `browser-agent/content/csp-reporter.ts`, `browser-agent/background/csp-handler.ts`
+- **Dependencies**: T-041
+- **Completion Criteria**:
+  - Listen for `securitypolicyviolation` events on document
+  - Extract violation details: directive, blocked URI, violated directive, source file, line/column
+  - Report to background script for batching
+  - Background forwards to HawkEye `/api/v1/events/ingest` with `category: "csp_violation"`
+  - Handle report-only vs enforce mode
+- **Estimated Effort**: 2-3 hours
+
 ### T-043: DOM Integrity Monitoring
+- **Files**: `browser-agent/content/integrity-monitor.ts`
+- **Dependencies**: T-041
+- **Completion Criteria**:
+  - Define critical DOM elements to monitor (forms, payment fields, auth buttons, scripts)
+  - Compute baseline hashes on page load
+  - Periodic re-check (configurable interval) for unauthorized modifications
+  - Detect: attribute changes, innerHTML changes, script src changes, new script/iframe injection
+  - Report anomalies to background script with element details and before/after state
+- **Estimated Effort**: 3-4 hours
+
 ### T-044: Bot/Automation Detection (Client-side)
+- **Files**: `browser-agent/content/bot-detector.ts`
+- **Dependencies**: T-040
+- **Completion Criteria**:
+  - Detect headless browser indicators (webdriver, automation properties)
+  - Check for automation frameworks (Puppeteer, Playwright, Selenium signatures)
+  - Analyze navigator properties, permissions, WebGL fingerprints
+  - Behavioral analysis: mouse movement entropy, click timing, scroll patterns
+  - Score 0-100, report if threshold exceeded
+  - Events sent with `category: "bot_detection"`, `detection_type: "bot"`
+- **Estimated Effort**: 3-4 hours
+
 ### T-045: Event Batching & Batch Send to API
+- **Files**: `browser-agent/background/event-batcher.ts`, `browser-agent/shared/api-client.ts`
+- **Dependencies**: T-040, T-041
+- **Completion Criteria**:
+  - Queue events in memory (IndexedDB for persistence across restarts)
+  - Configurable batch size (default 50) and flush interval (default 30s)
+  - Retry logic with exponential backoff (max 3 retries)
+  - Offline queue persistence — flush when connectivity restored
+  - Send to HawkEye `/api/v1/events/ingest/batch` with API key auth
+  - Handle 429/5xx responses gracefully
+- **Estimated Effort**: 3-4 hours
+
 ### T-046: CSP Reporting Endpoint Integration
+- **Files**: `hawkeye/api/v1/csp.py` (new), `browser-agent/background/csp-handler.ts`
+- **Dependencies**: T-042, T-045
+- **Completion Criteria**:
+  - Backend: New endpoint `POST /api/v1/csp/report` accepting CSP violation reports
+  - Endpoint creates `RawEvent` with `category: "csp_violation"`, normalizes, runs detection
+  - Frontend: Background script receives CSP reports from content script, forwards to endpoint
+  - Extension manifest includes `csp_report` directive pointing to backend
+  - Verified end-to-end: CSP violation on page → extension captures → backend ingests → alert if anomalous
+- **Estimated Effort**: 2-3 hours
 
 ---
 
@@ -373,7 +453,7 @@ Each task has:
 | T-028e | TopNav WebSocket status | 2026-07-28 (already done) |
 | T-029 | Source event counts column | 2026-07-28 (already done) |
 | T-030 | Sources pagination | 2026-07-29 (already done) |
-| T-031 | Code-split chart components | 2026-07-29 |
+| T-031 | Code-split chart components | 2026-08-02 (fixed implementation) |
 
 **Total Completed: 34 tasks**
-**Next Active: T-034 (Backend lint cleanup — optional)**
+**Next Active: T-040 (Chrome MV3 Extension Scaffold)**
