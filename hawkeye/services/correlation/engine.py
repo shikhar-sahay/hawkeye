@@ -67,6 +67,17 @@ class CorrelationEngine:
         """Calculate correlation score between alert and incident."""
         score = 0.0
 
+        # Load event for the new alert
+        from hawkeye.models.events import NormalizedEvent
+        stmt = select(NormalizedEvent).where(NormalizedEvent.id == alert.event_id)
+        result = await self.session.exec(stmt)
+        alert_event = result.first()
+
+        alert_ip = alert_event.ip if alert_event else None
+        alert_user_id = alert_event.user_id if alert_event else None
+        alert_session_id = alert_event.session_id if alert_event else None
+        alert_route = alert_event.route if alert_event else None
+
         # Get alerts in this incident
         stmt = select(IncidentAlert).where(IncidentAlert.incident_id == incident.id)
         result = await self.session.exec(stmt)
@@ -81,17 +92,33 @@ class CorrelationEngine:
         result = await self.session.exec(stmt)
         existing_alerts = list(result.all())
 
+        # Load events for existing alerts
+        existing_events = {}
+        if existing_alerts:
+            existing_event_ids = [ea.event_id for ea in existing_alerts]
+            stmt = select(NormalizedEvent).where(NormalizedEvent.id.in_(existing_event_ids))
+            result = await self.session.exec(stmt)
+            for ev in result.all():
+                existing_events[ev.id] = ev
+
         # 1. Same IP correlation
-        if alert.ip and any(a.ip == alert.ip for a in existing_alerts if a.ip):
+        if alert_ip and any(
+            existing_events.get(ea.event_id) and existing_events[ea.event_id].ip == alert_ip
+            for ea in existing_alerts
+        ):
             score += 3
 
         # 2. Same user correlation
-        if alert.user_id and any(a.user_id == alert.user_id for a in existing_alerts if a.user_id):
+        if alert_user_id and any(
+            existing_events.get(ea.event_id) and existing_events[ea.event_id].user_id == alert_user_id
+            for ea in existing_alerts
+        ):
             score += 3
 
         # 3. Same session correlation
-        if alert.session_id and any(
-            a.session_id == alert.session_id for a in existing_alerts if a.session_id
+        if alert_session_id and any(
+            existing_events.get(ea.event_id) and existing_events[ea.event_id].session_id == alert_session_id
+            for ea in existing_alerts
         ):
             score += 4
 
@@ -114,7 +141,10 @@ class CorrelationEngine:
                 score += 1
 
         # 7. Same route/endpoint
-        if alert.route and any(a.route == alert.route for a in existing_alerts if a.route):
+        if alert_route and any(
+            existing_events.get(ea.event_id) and existing_events[ea.event_id].route == alert_route
+            for ea in existing_alerts
+        ):
             score += 1
 
         return score
@@ -149,6 +179,12 @@ class CorrelationEngine:
 
     async def _create_incident_from_alert(self, alert: Alert) -> Incident:
         """Create a new incident from a single alert."""
+        # Load the event to get ip, user_id, route
+        from hawkeye.models.events import NormalizedEvent
+        stmt = select(NormalizedEvent).where(NormalizedEvent.id == alert.event_id)
+        result = await self.session.exec(stmt)
+        event = result.first()
+
         # Determine incident severity from alert
         severity_map = {
             Severity.LOW: IncidentSeverity.LOW,
@@ -162,13 +198,17 @@ class CorrelationEngine:
         title = f"{alert.detection_type.replace('_', ' ').title()}: {alert.title}"
 
         # Build description
+        ip = event.ip if event else None
+        user_id = event.user_id if event else None
+        route = event.route if event else None
+
         description = (
             f"Incident created from alert: {alert.title}\n"
             f"Detection: {alert.detector_name} ({alert.detection_type})\n"
             f"Severity: {alert.severity}\n"
             f"Confidence: {alert.confidence:.0%}\n"
-            f"Source IP: {alert.ip or 'N/A'}\n"
-            f"User: {alert.user_id or 'N/A'}"
+            f"Source IP: {ip or 'N/A'}\n"
+            f"User: {user_id or 'N/A'}"
         )
 
         # Extract MITRE ATT&CK info
@@ -182,9 +222,9 @@ class CorrelationEngine:
             severity=incident_severity.value,
             status=IncidentStatus.OPEN.value,
             confidence=alert.confidence,
-            affected_ips=[alert.ip] if alert.ip else [],
-            affected_users=[alert.user_id] if alert.user_id else [],
-            affected_routes=[alert.route] if alert.route else [],
+            affected_ips=[ip] if ip else [],
+            affected_users=[user_id] if user_id else [],
+            affected_routes=[route] if route else [],
             mitre_tactics=mitre_tactics,
             mitre_techniques=mitre_techniques,
             first_event_at=alert.created_at,
@@ -216,6 +256,16 @@ class CorrelationEngine:
 
     async def _add_alert_to_incident(self, alert: Alert, incident: Incident) -> Incident:
         """Add an alert to an existing incident."""
+        # Load the event to get ip, user_id, route
+        from hawkeye.models.events import NormalizedEvent
+        stmt = select(NormalizedEvent).where(NormalizedEvent.id == alert.event_id)
+        result = await self.session.exec(stmt)
+        event = result.first()
+
+        ip = event.ip if event else None
+        user_id = event.user_id if event else None
+        route = event.route if event else None
+
         # Get current max sequence
         stmt = select(IncidentAlert).where(IncidentAlert.incident_id == incident.id)
         result = await self.session.exec(stmt)
@@ -236,12 +286,12 @@ class CorrelationEngine:
         incident.confidence = max(incident.confidence, alert.confidence)
 
         # Update affected entities
-        if alert.ip and alert.ip not in incident.affected_ips:
-            incident.affected_ips.append(alert.ip)
-        if alert.user_id and alert.user_id not in incident.affected_users:
-            incident.affected_users.append(alert.user_id)
-        if alert.route and alert.route not in incident.affected_routes:
-            incident.affected_routes.append(alert.route)
+        if ip and ip not in incident.affected_ips:
+            incident.affected_ips.append(ip)
+        if user_id and user_id not in incident.affected_users:
+            incident.affected_users.append(user_id)
+        if route and route not in incident.affected_routes:
+            incident.affected_routes.append(route)
 
         # Update MITRE ATT&CK
         new_tactics = self._get_mitre_tactics(alert.detection_type)
