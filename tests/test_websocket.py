@@ -24,9 +24,11 @@ async def test_source():
         await session.refresh(source)
 
         api_key, key_hash = generate_api_key()
+        key_prefix = api_key.split("_")[0] + "_" if "_" in api_key else api_key[:8]
         api_key_obj = ApiKey(
             source_id=source.id,
             key_hash=key_hash,
+            key_prefix=key_prefix,
             name="Test Key",
             is_active=True,
         )
