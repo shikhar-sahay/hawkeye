@@ -6,6 +6,7 @@ from hawkeye.schemas.alerts import (
     AlertResponse,
     AlertStatsResponse,
     AlertStatusUpdate,
+    MITRECoverageResponse,
 )
 from hawkeye.schemas.events import (
     EventFilter,
@@ -33,6 +34,7 @@ from hawkeye.schemas.sources import (
     ApiKeyResponse,
     ApiKeyUpdate,
     SourceCreate,
+    SourceEventCountsResponse,
     SourceListResponse,
     SourceResponse,
     SourceUpdate,
@@ -49,6 +51,7 @@ __all__ = [
     "AlertResponse",
     "AlertStatusUpdate",
     "AlertStatsResponse",
+    "MITRECoverageResponse",
     "IncidentAlertLink",
     "IncidentFilter",
     "IncidentListResponse",
@@ -62,6 +65,7 @@ __all__ = [
     "ApiKeyResponse",
     "ApiKeyUpdate",
     "SourceCreate",
+    "SourceEventCountsResponse",
     "SourceListResponse",
     "SourceResponse",
     "SourceUpdate",

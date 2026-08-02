@@ -26,9 +26,12 @@ import type {
   BatchIngestResponse,
   DashboardStats,
   TimeSeriesDataPoint,
+  MITRECoverage,
+  SourceEventCounts,
 } from "@/types";
 
 const API_BASE = "/api/v1";
+const API_KEY = import.meta.env.VITE_API_KEY || "";
 
 class ApiClient {
   private baseUrl: string;
@@ -38,6 +41,7 @@ class ApiClient {
     this.baseUrl = baseUrl;
     this.defaultHeaders = {
       "Content-Type": "application/json",
+      ...(API_KEY && { "X-API-Key": API_KEY }),
     };
   }
 
@@ -68,8 +72,11 @@ class ApiClient {
 
   // ==================== Sources ====================
 
-  async getSources(): Promise<Source[]> {
-    return this.request<Source[]>("/sources");
+  async getSources(limit: number = 50, offset: number = 0): Promise<{ sources: Source[]; total: number; limit: number; offset: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", String(limit));
+    params.append("offset", String(offset));
+    return this.request(`/sources?${params.toString()}`);
   }
 
   async getSource(id: number): Promise<Source> {
@@ -113,6 +120,10 @@ class ApiClient {
     return this.request<void>(`/sources/${sourceId}/api-keys/${keyId}`, {
       method: "DELETE",
     });
+  }
+
+  async getSourceEventCounts(): Promise<SourceEventCounts[]> {
+    return this.request<SourceEventCounts[]>("/sources/event-counts");
   }
 
   // ==================== Events ====================
@@ -163,7 +174,11 @@ class ApiClient {
   }
 
   async getAlertsOverTime(hours: number = 24): Promise<TimeSeriesDataPoint[]> {
-    return this.request<TimeSeriesDataPoint[]>(`/alerts/over-time?hours=${hours}`);
+    return this.request<TimeSeriesDataPoint[]>(`/alerts/time-series?hours=${hours}`);
+  }
+
+  async getMITRECoverage(): Promise<MITRECoverage> {
+    return this.request<MITRECoverage>("/alerts/mitre-coverage");
   }
 
   // ==================== Incidents ====================
@@ -216,12 +231,13 @@ class ApiClient {
   // ==================== Dashboard ====================
 
   async getDashboardStats(): Promise<DashboardStats> {
-    const [alertStats, incidentStats] = await Promise.all([
+    const [alertStats, incidentStats, sourcesResponse] = await Promise.all([
       this.getAlertStats(),
       this.getIncidentStats(),
+      this.getSources(),
     ]);
 
-    const sources = await this.getSources();
+    const sources = sourcesResponse.sources;
 
     return {
       alerts: alertStats,
@@ -260,6 +276,7 @@ export const queryKeys = {
     detail: (id: number) => ["alerts", id] as const,
     stats: ["alerts", "stats"] as const,
     overTime: (hours: number) => ["alerts", "over-time", hours] as const,
+    mitreCoverage: ["alerts", "mitre-coverage"] as const,
   },
   incidents: {
     all: ["incidents"] as const,
