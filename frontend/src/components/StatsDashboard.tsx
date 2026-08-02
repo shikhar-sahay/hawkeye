@@ -23,38 +23,12 @@ import type { AlertStats, IncidentStats } from "@/types";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 
-// Static imports for debugging - lazy imports fail because components use named exports
-import { AlertsOverTimeChart } from "@/components/charts/AlertsOverTimeChart";
-import { SeverityDistributionChart } from "@/components/charts/SeverityDistributionChart";
-import { DetectionTypeChart } from "@/components/charts/DetectionTypeChart";
-import { MITRECoverageChart } from "@/components/charts/MITRECoverageChart";
-import { EventsBySourceChart } from "@/components/charts/EventsBySourceChart";
-
-// DEBUG: Custom hook to trace query execution
-function useDebugQuery<T>(queryKey: string[], queryFn: () => Promise<T>, options: any = {}) {
-  const result = useQuery({
-    queryKey,
-    queryFn: async () => {
-      console.log(`[DEBUG] Query START: ${queryKey.join("/")}`);
-      try {
-        const data = await queryFn();
-        console.log(`[DEBUG] Query SUCCESS: ${queryKey.join("/")}`, data);
-        return data;
-      } catch (error) {
-        console.error(`[DEBUG] Query ERROR: ${queryKey.join("/")}`, error);
-        throw error;
-      }
-    },
-    ...options,
-  });
-
-  // Log status changes
-  React.useEffect(() => {
-    console.log(`[DEBUG] Query STATUS: ${queryKey.join("/")} - isLoading: ${result.isLoading}, isError: ${result.isError}, isSuccess: ${result.isSuccess}`, result.error);
-  }, [result.isLoading, result.isError, result.isSuccess, result.error, queryKey.join("/")]);
-
-  return result;
-}
+// Lazy-loaded chart components for code-splitting
+const AlertsOverTimeChart = React.lazy(() => import("@/components/charts/AlertsOverTimeChart").then((m) => ({ default: m.default })));
+const SeverityDistributionChart = React.lazy(() => import("@/components/charts/SeverityDistributionChart").then((m) => ({ default: m.default })));
+const DetectionTypeChart = React.lazy(() => import("@/components/charts/DetectionTypeChart").then((m) => ({ default: m.default })));
+const MITRECoverageChart = React.lazy(() => import("@/components/charts/MITRECoverageChart").then((m) => ({ default: m.default })));
+const EventsBySourceChart = React.lazy(() => import("@/components/charts/EventsBySourceChart").then((m) => ({ default: m.default })));
 
 interface StatsDashboardProps {
   /** Time range for time-series data */
@@ -93,7 +67,7 @@ export function StatsDashboard({ timeRange = "24h", refreshInterval = 60000 }: S
   });
 
   // Fetch MITRE coverage stats
-  const { data: mitreCoverage, isLoading: mitreCoverageLoading, error: mitreCoverageError } = useQuery({
+  const { data: mitreCoverage, isLoading: mitreCoverageLoading } = useQuery({
     queryKey: ["alerts", "mitre-coverage"],
     queryFn: () => apiClient.getMITRECoverage(),
     refetchInterval: refreshInterval,
@@ -110,7 +84,7 @@ export function StatsDashboard({ timeRange = "24h", refreshInterval = 60000 }: S
 
   // Fetch alerts over time for time-series chart
   const hours = timeRange === "24h" ? 24 : timeRange === "7d" ? 168 : 720;
-  const { data: alertsOverTime, isLoading: alertsOverTimeLoading, error: alertsOverTimeError } = useQuery({
+  const { data: alertsOverTime, isLoading: alertsOverTimeLoading } = useQuery({
     queryKey: queryKeys.alerts.overTime(hours),
     queryFn: () => apiClient.getAlertsOverTime(hours),
     refetchInterval: refreshInterval,
@@ -119,23 +93,6 @@ export function StatsDashboard({ timeRange = "24h", refreshInterval = 60000 }: S
 
   const isLoading = statsLoading || alertStatsLoading || incidentStatsLoading || sourceEventCountsLoading || alertsOverTimeLoading || mitreCoverageLoading;
   const hasError = statsError || alertStatsError || incidentStatsError || sourceEventCountsError;
-
-  // DEBUG: Log query states
-  React.useEffect(() => {
-    console.log('[DEBUG] StatsDashboard render:', {
-      statsLoading, statsError,
-      alertStatsLoading, alertStatsError,
-      incidentStatsLoading, incidentStatsError,
-      sourceEventCountsLoading, sourceEventCountsError,
-      alertsOverTimeLoading, alertsOverTimeError,
-      mitreCoverageLoading, mitreCoverageError,
-      hasError,
-      isLoading,
-      dashboardStats,
-      alertStats,
-      incidentStats,
-    });
-  }, [statsLoading, statsError, alertStatsLoading, alertStatsError, incidentStatsLoading, incidentStatsError, hasError, isLoading]);
 
   // Build source data for events by source chart
   const sourceChartData = React.useMemo(() => {
@@ -171,25 +128,25 @@ export function StatsDashboard({ timeRange = "24h", refreshInterval = 60000 }: S
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
         <StatCard
           title="Total Events"
-          value={dashboardStats?.events_24h ? formatNumber(dashboardStats.events_24h) : "—"}
+          value={dashboardStats?.events_24h !== undefined ? formatNumber(dashboardStats.events_24h || 0) : "—"}
           subtitle="Last 24 hours"
           icon={Activity}
           trend={dashboardStats?.events_24h && dashboardStats.events_24h > 0 ? "up" : "neutral"}
         />
         <StatCard
           title="Active Alerts"
-          value={alertStats ? formatNumber(alertStats.open + alertStats.acknowledged) : "—"}
-          subtitle={alertStats ? `${alertStats.open} open, ${alertStats.acknowledged} acknowledged` : "Loading..."}
+          value={alertStats ? formatNumber((alertStats.by_status?.new || 0) + (alertStats.by_status?.processing || 0)) : "—"}
+          subtitle={alertStats ? `${alertStats.by_status?.new || 0} new, ${alertStats.by_status?.processing || 0} processing` : "Loading..."}
           icon={AlertTriangle}
-          trend={alertStats && alertStats.open > 10 ? "up" : "neutral"}
-          badge={alertStats && alertStats.open > 0 ? <Badge variant="destructive">{alertStats.open} critical</Badge> : null}
+          trend={alertStats && (alertStats.by_status?.new || 0) > 10 ? "up" : "neutral"}
+          badge={alertStats && (alertStats.by_status?.new || 0) > 0 ? <Badge variant="destructive">{alertStats.by_status?.new || 0} critical</Badge> : null}
         />
         <StatCard
           title="Active Incidents"
-          value={incidentStats ? formatNumber(incidentStats.open + incidentStats.investigating) : "—"}
-          subtitle={incidentStats ? `${incidentStats.open} open, ${incidentStats.investigating} investigating` : "Loading..."}
+          value={incidentStats ? formatNumber((incidentStats.by_status?.open || 0) + (incidentStats.by_status?.investigating || 0)) : "—"}
+          subtitle={incidentStats ? `${incidentStats.by_status?.open || 0} open, ${incidentStats.by_status?.investigating || 0} investigating` : "Loading..."}
           icon={AlertCircle}
-          trend={incidentStats && incidentStats.open > 5 ? "up" : "neutral"}
+          trend={incidentStats && (incidentStats.by_status?.open || 0) > 5 ? "up" : "neutral"}
         />
         <StatCard
           title="Registered Sources"
@@ -386,7 +343,7 @@ function RecentActivityPanel({
   const totalAlerts = alertStats?.total || 0;
   const totalIncidents = incidentStats?.total || 0;
   const criticalAlerts = alertStats?.by_severity?.critical || 0;
-  const openIncidents = incidentStats?.open || 0;
+  const openIncidents = incidentStats?.by_status?.open || 0;
 
   return (
     <ScrollArea className="h-[250px] p-4 space-y-3">

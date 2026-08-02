@@ -33,7 +33,7 @@ interface AlertsOverTimeChartProps {
  * AlertsOverTimeChart - Time-series area chart for alerts over time
  * Shows alert volume trends over a time period (24h, 7d, 30d)
  */
-export function AlertsOverTimeChart({
+export default function AlertsOverTimeChart({
   data,
   height = 300,
   isLoading = false,

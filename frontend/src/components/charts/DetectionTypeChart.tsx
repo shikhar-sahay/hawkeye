@@ -58,7 +58,7 @@ interface DetectionTypeChartProps {
  * DetectionTypeChart - Bar chart for alerts by detection type
  * Shows distribution of detection engine types that triggered alerts
  */
-export function DetectionTypeChart({
+export default function DetectionTypeChart({
   data,
   height = 250,
   isLoading = false,

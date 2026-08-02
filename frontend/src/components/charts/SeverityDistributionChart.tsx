@@ -45,7 +45,7 @@ interface SeverityDistributionChartProps {
  * SeverityDistributionChart - Donut chart for alerts by severity
  * Shows distribution of Critical, High, Medium, Low severity alerts
  */
-export function SeverityDistributionChart({
+export default function SeverityDistributionChart({
   data,
   height = 250,
   isLoading = false,

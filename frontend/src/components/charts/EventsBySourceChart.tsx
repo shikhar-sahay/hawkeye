@@ -37,7 +37,7 @@ interface EventsBySourceChartProps {
 /**
  * EventsBySourceChart - Stacked bar chart showing events, alerts, incidents by source
  */
-export function EventsBySourceChart({
+export default function EventsBySourceChart({
   data,
   isLoading = false,
   error = null,

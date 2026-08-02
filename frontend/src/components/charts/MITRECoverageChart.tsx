@@ -35,7 +35,7 @@ interface MITRECoverageChartProps {
 /**
  * MITRECoverageChart - Horizontal bar chart for MITRE ATT&CK coverage
  */
-export function MITRECoverageChart({
+export default function MITRECoverageChart({
   data,
   isLoading = false,
   error = null,
