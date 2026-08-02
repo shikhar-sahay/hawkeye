@@ -283,7 +283,7 @@ export function SourceManager() {
 
   // Filter sources
   const filteredSources = React.useMemo(() => {
-    let result = sourcesResponse || [];
+    let result = sourcesResponse?.sources || [];
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
