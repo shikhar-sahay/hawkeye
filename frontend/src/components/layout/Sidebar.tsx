@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   FileText,
   Server,
-  Key,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -21,7 +20,6 @@ const navigation = [
   { name: "Alerts", href: "/alerts", icon: AlertTriangle },
   { name: "Incidents", href: "/incidents", icon: FileText },
   { name: "Sources", href: "/sources", icon: Server },
-  { name: "API Keys", href: "/api-keys", icon: Key },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
