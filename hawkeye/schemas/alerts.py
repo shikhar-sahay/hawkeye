@@ -73,3 +73,12 @@ class AlertStatsResponse(BaseModel):
     by_status: dict[str, int]
     by_detection_type: dict[str, int]
     by_detector: dict[str, int]
+    avg_confidence: float | None = None
+
+
+class MITRECoverageResponse(BaseModel):
+    """MITRE ATT&CK coverage statistics response."""
+
+    by_tactic: dict[str, int]
+    by_technique: dict[str, int]
+    total_alerts_with_mitre: int

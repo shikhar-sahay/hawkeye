@@ -63,6 +63,8 @@ class ApiKeyResponse(BaseModel):
     created_at: datetime
     # Only included on creation
     plain_key: str | None = None
+    # Prefix for display (e.g., "hk_abcd••••")
+    key_prefix: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -83,3 +85,14 @@ class ApiKeyUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=500)
     is_active: bool | None = None
     expires_at: datetime | None = None
+
+
+class SourceEventCountsResponse(BaseModel):
+    """Event, alert, and incident counts per source."""
+
+    source_id: int
+    source_name: str
+    event_count: int
+    alert_count: int
+    incident_count: int
+    is_active: bool
