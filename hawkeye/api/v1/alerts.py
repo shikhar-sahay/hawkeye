@@ -2,17 +2,20 @@
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.api.deps import get_current_source, get_session
 from hawkeye.models.events import Alert, ApplicationSource, NormalizedEvent
+from datetime import datetime, timedelta
+
 from hawkeye.schemas import (
     AlertFilter,
     AlertListResponse,
     AlertResponse,
     AlertStatsResponse,
+    MITRECoverageResponse,
     AlertStatusUpdate,
 )
 
@@ -201,42 +204,112 @@ async def get_alert_stats(
     detector_result = await session.execute(detector_stmt)
     by_detector = {row[0]: row[1] for row in detector_result.all()}
 
+    # Average confidence
+    avg_conf_stmt = select(func.avg(Alert.confidence)).where(Alert.source_id == source.id)
+    avg_conf_result = await session.execute(avg_conf_stmt)
+    avg_confidence = avg_conf_result.scalar_one_or_none()
+    if avg_confidence is not None:
+        avg_confidence = round(avg_confidence, 2)
+
     return AlertStatsResponse(
         total=total,
         by_severity=by_severity,
         by_status=by_status,
         by_detection_type=by_detection_type,
         by_detector=by_detector,
+        avg_confidence=avg_confidence,
     )
 
 
 @router.get(
-    "/{alert_id}",
-    response_model=AlertResponse,
-    summary="Get a single alert by ID",
+    "/mitre-coverage",
+    response_model=MITRECoverageResponse,
+    summary="Get MITRE ATT&CK coverage statistics",
 )
-async def get_alert(
-    alert_id: int,
+async def get_mitre_coverage(
     source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
-) -> AlertResponse:
-    """Get a single alert by ID."""
-    stmt = select(Alert).where(Alert.id == alert_id, Alert.source_id == source.id)
+) -> MITRECoverageResponse:
+    """Get aggregated MITRE ATT&CK tactic and technique counts from alerts."""
+    # Get alerts with their related events to access MITRE data
+    stmt = (
+        select(Alert, NormalizedEvent)
+        .join(NormalizedEvent, Alert.event_id == NormalizedEvent.id)
+        .where(Alert.source_id == source.id)
+    )
     result = await session.execute(stmt)
-    alert = result.scalars().first()
+    rows = result.all()
 
-    if not alert:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Alert not found",
+    tactic_counts: dict[str, int] = {}
+    technique_counts: dict[str, int] = {}
+    alerts_with_mitre = 0
+
+    for alert, event in rows:
+        has_mitre = False
+        # Tactics from event (comma-separated string)
+        if event.mitre_tactic:
+            has_mitre = True
+            for tactic in event.mitre_tactic.split(","):
+                tactic = tactic.strip()
+                if tactic:
+                    tactic_counts[tactic] = tactic_counts.get(tactic, 0) + 1
+        # Techniques from event
+        if event.mitre_technique:
+            has_mitre = True
+            technique_counts[event.mitre_technique] = technique_counts.get(event.mitre_technique, 0) + 1
+        if has_mitre:
+            alerts_with_mitre += 1
+
+    return MITRECoverageResponse(
+        by_tactic=tactic_counts,
+        by_technique=technique_counts,
+        total_alerts_with_mitre=alerts_with_mitre,
+    )
+
+
+@router.get(
+    "/time-series",
+    response_model=list[dict[str, str | int]],
+    summary="Get alert counts over time",
+)
+async def get_alerts_over_time(
+    hours: int = Query(default=24, ge=1, le=720),
+    source: ApplicationSource = Depends(get_current_source),
+    session: AsyncSession = Depends(get_session),
+) -> list[dict[str, str | int]]:
+    """Get alert counts grouped by time intervals over the specified hours."""
+    print(f"DEBUG: time-series endpoint called with hours={hours}")
+    since = datetime.utcnow() - timedelta(hours=hours)
+
+    # Use database-agnostic date truncation (works with SQLite and PostgreSQL)
+    # SQLite: strftime('%Y-%m-%d %H:00:00', created_at)
+    # PostgreSQL: date_trunc('hour', created_at)
+    from sqlalchemy import text
+    dialect_name = session.bind.dialect.name
+
+    if dialect_name == "postgresql":
+        hour_expr = func.date_trunc('hour', Alert.created_at)
+    else:
+        # SQLite: use strftime for hour truncation
+        hour_expr = func.strftime('%Y-%m-%d %H:00:00', Alert.created_at)
+
+    stmt = (
+        select(
+            hour_expr.label('hour'),
+            func.count(Alert.id).label('count')
         )
+        .where(Alert.source_id == source.id)
+        .where(Alert.created_at >= since)
+        .group_by(hour_expr)
+        .order_by(hour_expr)
+    )
+    result = await session.execute(stmt)
+    rows = result.all()
 
-    # Fetch related event
-    event_stmt = select(NormalizedEvent).where(NormalizedEvent.id == alert.event_id)
-    event_result = await session.execute(event_stmt)
-    event = event_result.scalars().first()
-
-    return _alert_to_response(alert, event)
+    return [
+        {"timestamp": row[0].isoformat() + "Z" if hasattr(row[0], 'isoformat') else str(row[0]) + "Z", "value": row[1]}
+        for row in rows
+    ]
 
 
 @router.patch(
@@ -245,10 +318,10 @@ async def get_alert(
     summary="Update alert status",
 )
 async def update_alert_status(
-    alert_id: int,
-    update: AlertStatusUpdate,
+    alert_id: int = Path(..., ge=1),
     source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
+    update: AlertStatusUpdate = Body(...),
 ) -> AlertResponse:
     """Update an alert's status."""
     stmt = select(Alert).where(Alert.id == alert_id, Alert.source_id == source.id)
@@ -268,6 +341,35 @@ async def update_alert_status(
     await session.refresh(alert)
 
     # Fetch related event for response
+    event_stmt = select(NormalizedEvent).where(NormalizedEvent.id == alert.event_id)
+    event_result = await session.execute(event_stmt)
+    event = event_result.scalars().first()
+
+    return _alert_to_response(alert, event)
+
+
+@router.get(
+    "/{alert_id}",
+    response_model=AlertResponse,
+    summary="Get a single alert by ID",
+)
+async def get_alert(
+    alert_id: int = Path(..., ge=1),
+    source: ApplicationSource = Depends(get_current_source),
+    session: AsyncSession = Depends(get_session),
+) -> AlertResponse:
+    """Get a single alert by ID."""
+    stmt = select(Alert).where(Alert.id == alert_id, Alert.source_id == source.id)
+    result = await session.execute(stmt)
+    alert = result.scalars().first()
+
+    if not alert:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Alert not found",
+        )
+
+    # Fetch related event
     event_stmt = select(NormalizedEvent).where(NormalizedEvent.id == alert.event_id)
     event_result = await session.execute(event_stmt)
     event = event_result.scalars().first()
