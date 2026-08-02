@@ -27,7 +27,6 @@ import {
   Loader2,
   Users,
   MapPin,
-  List,
   AlertCircle,
 } from "lucide-react";
 import { formatDate, formatRelativeTime, getSeverityBadgeVariant, getStatusBadgeVariant, getDetectionTypeLabel, getMitreTacticLabel } from "@/lib/utils";
@@ -387,7 +386,7 @@ export function IncidentDetail({
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
-                    <List className="h-4 w-4" />
+                    <Shield className="h-4 w-4" />
                     Coverage Summary
                   </CardTitle>
                 </CardHeader>
@@ -401,6 +400,7 @@ export function IncidentDetail({
                     <p className="text-xs text-muted-foreground">Unique Techniques</p>
                   </div>
                   <div className="text-center p-3 bg-muted rounded-lg">
+                    <Shield className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
                     <p className="text-2xl font-bold">{displayIncident.alert_count}</p>
                     <p className="text-xs text-muted-foreground">Correlated Alerts</p>
                   </div>

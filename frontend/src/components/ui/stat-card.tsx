@@ -2,18 +2,19 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type { LucideIcon } from "lucide-react";
+import type { ComponentType, SVGProps } from "react";
 
 interface StatCardProps {
   title: string;
   value: string | number;
-  icon: LucideIcon;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
   color?: string;
   trend?: {
     value: string;
     label: string;
     positive?: boolean;
   };
+  badge?: React.ReactNode;
   description?: string;
   className?: string;
 }
@@ -24,6 +25,7 @@ export function StatCard({
   icon: Icon,
   color = "text-primary",
   trend,
+  badge,
   description,
   className,
 }: StatCardProps) {
@@ -35,6 +37,7 @@ export function StatCard({
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
+        {badge && <div className="mt-1">{badge}</div>}
         {trend && (
           <div
             className={cn(

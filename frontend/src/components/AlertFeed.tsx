@@ -196,18 +196,42 @@ export function AlertFeed({
 }: AlertFeedProps) {
   const displayAlerts = maxAlerts > 0 ? alerts.slice(0, maxAlerts) : alerts;
 
-  // Track which alerts are "new" (received in last 5 seconds)
-  const [newAlertIndices, setNewAlertIndices] = React.useState<Set<number>>(new Set());
+  // Track seen alert IDs to detect new ones
+  const seenAlertIdsRef = React.useRef<Set<number>>(new Set());
+
+  // Track which alerts are "new" (received in last 5 seconds) by their unique ID
+  const [newAlertIds, setNewAlertIds] = React.useState<Set<number>>(new Set());
+
+  // Detect new alerts when displayAlerts changes
+  React.useEffect(() => {
+    if (displayAlerts.length === 0) return;
+
+    // Find new alerts (IDs not previously seen)
+    const newIds: number[] = [];
+
+    displayAlerts.forEach(alert => {
+      if (!seenAlertIdsRef.current.has(alert.id)) {
+        newIds.push(alert.id);
+      }
+    });
+
+    // Add new IDs to newAlertIds set
+    if (newIds.length > 0) {
+      setNewAlertIds(prev => new Set([...prev, ...newIds]));
+      // Mark these as seen
+      newIds.forEach(id => seenAlertIdsRef.current.add(id));
+    }
+  }, [displayAlerts]);
 
   // Mark new alerts as not-new after 5 seconds
   React.useEffect(() => {
-    if (displayAlerts.length > 0) {
+    if (newAlertIds.size > 0) {
       const timer = setTimeout(() => {
-        setNewAlertIndices(new Set());
+        setNewAlertIds(new Set());
       }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [displayAlerts.length]);
+  }, [newAlertIds.size]);
 
   if (displayAlerts.length === 0) {
     return (
@@ -254,7 +278,7 @@ export function AlertFeed({
               <AlertItem
                 key={alert.id}
                 alert={alert}
-                isNew={newAlertIndices.has(displayAlerts.indexOf(alert))}
+                isNew={newAlertIds.has(alert.id)}
                 onClick={() => onAlertClick?.(alert)}
               />
             ))}
