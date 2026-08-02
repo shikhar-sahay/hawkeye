@@ -8,13 +8,14 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.api.deps import get_session
 from hawkeye.core.auth import generate_api_key
-from hawkeye.models.events import ApiKey, ApplicationSource
+from hawkeye.models.events import Alert, ApiKey, ApplicationSource, Incident, NormalizedEvent
 from hawkeye.schemas import (
     ApiKeyCreate,
     ApiKeyListResponse,
     ApiKeyResponse,
     ApiKeyUpdate,
     SourceCreate,
+    SourceEventCountsResponse,
     SourceListResponse,
     SourceResponse,
     SourceUpdate,
@@ -72,6 +73,94 @@ async def list_sources(
         limit=limit,
         offset=offset,
     )
+
+
+@router.get(
+    "/event-counts",
+    response_model=list[SourceEventCountsResponse],
+    summary="Get event, alert, and incident counts per source",
+)
+async def get_source_event_counts(
+    session: AsyncSession = Depends(get_session),
+) -> list[SourceEventCountsResponse]:
+    """Get aggregated event, alert, and incident counts for all sources."""
+    # Get all sources
+    sources_stmt = select(ApplicationSource)
+    sources_result = await session.exec(sources_stmt)
+    sources = list(sources_result.all())
+
+    # Get counts for each source
+    result = []
+    for source in sources:
+        # Event count
+        event_stmt = select(func.count(NormalizedEvent.id)).where(NormalizedEvent.source_id == source.id)
+        event_result = await session.exec(event_stmt)
+        event_count = event_result.one()
+
+        # Alert count
+        alert_stmt = select(func.count(Alert.id)).where(Alert.source_id == source.id)
+        alert_result = await session.exec(alert_stmt)
+        alert_count = alert_result.one()
+
+        # Incident count
+        incident_stmt = select(func.count(Incident.id)).where(Incident.source_id == source.id)
+        incident_result = await session.exec(incident_stmt)
+        incident_count = incident_result.one()
+
+        result.append(SourceEventCountsResponse(
+            source_id=source.id,
+            source_name=source.name,
+            event_count=event_count,
+            alert_count=alert_count,
+            incident_count=incident_count,
+            is_active=source.is_active,
+        ))
+
+    return result
+
+
+@router.get(
+    "/event-counts",
+    response_model=list[SourceEventCountsResponse],
+    summary="Get event, alert, and incident counts per source",
+)
+async def get_source_event_counts(
+    session: AsyncSession = Depends(get_session),
+) -> list[SourceEventCountsResponse]:
+    """Get aggregated event, alert, and incident counts for all sources."""
+    # Get all sources
+    sources_stmt = select(ApplicationSource)
+    sources_result = await session.exec(sources_stmt)
+    sources = list(sources_result.all())
+
+    # Get counts for each source
+    result = []
+    for source in sources:
+        # Event count
+        event_stmt = select(func.count(NormalizedEvent.id)).where(NormalizedEvent.source_id == source.id)
+        event_result = await session.exec(event_stmt)
+        event_count = event_result.one()
+
+        # Alert count
+        alert_stmt = select(func.count(Alert.id)).where(Alert.source_id == source.id)
+        alert_result = await session.exec(alert_stmt)
+        alert_count = alert_result.one()
+
+        # Incident count
+        incident_stmt = select(func.count(Incident.id)).where(Incident.source_id == source.id)
+        incident_result = await session.exec(incident_stmt)
+        incident_count = incident_result.one()
+
+        result.append(SourceEventCountsResponse(
+            source_id=source.id,
+            source_name=source.name,
+            event_count=event_count,
+            alert_count=alert_count,
+            incident_count=incident_count,
+            is_active=source.is_active,
+        ))
+
+    return result
 
 
 @router.get(
@@ -155,10 +244,12 @@ async def create_api_key(
 
     # Generate API key
     plain_key, key_hash = generate_api_key()
+    key_prefix = plain_key.split("_")[0] + "_" if "_" in plain_key else plain_key[:8]
 
     api_key = ApiKey(
         source_id=source_id,
         key_hash=key_hash,
+        key_prefix=key_prefix,
         name=key_data.name,
         description=key_data.description,
         is_active=True,
@@ -168,9 +259,10 @@ async def create_api_key(
     await session.commit()
     await session.refresh(api_key)
 
-    # Return with plain key (only time it's shown)
+    # Return with plain key (only time it's shown) and key_prefix for display
     response = ApiKeyResponse.model_validate(api_key)
     response.plain_key = plain_key
+    response.key_prefix = key_prefix
     return response
 
 
