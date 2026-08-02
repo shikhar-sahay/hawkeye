@@ -26,13 +26,13 @@ import {
 import { cn, getSeverityBadgeVariant, formatTimestamp } from "@/lib/utils";
 import { ConnectionStatusCard } from "@/components/ConnectionStatusCard";
 import { apiClient, queryKeys } from "@/api/client";
-import { useWebSocket } from "@/hooks/useWebSocket";
+import { useWebSocketContext, useWebSocketMessage } from "@/context/WebSocketContext";
 import type { NormalizedEvent, EventListParams } from "@/types";
 
 /**
  * EventsPage - Main events management page
  * Fetches initial events via REST API, supports server-side filtering/pagination/search
- * Real-time updates via WebSocket (events subscription)
+ * Real-time updates via shared WebSocket context (events subscription)
  */
 export function EventsPage() {
   const queryClient = useQueryClient();
@@ -42,13 +42,18 @@ export function EventsPage() {
   const [filters, setFilters] = React.useState<EventListParams>({
     limit: 50,
     offset: 0,
+    search: "",
   });
   const [searchQuery, setSearchQuery] = React.useState(() => searchParams.get("search") || "");
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
 
   // WebSocket state for live events
   const [liveEvents, setLiveEvents] = React.useState<NormalizedEvent[]>([]);
-  const [sessionId, setSessionId] = React.useState<string | null>(null);
+
+  // Sync searchQuery with filters for API calls
+  React.useEffect(() => {
+    setFilters(prev => ({ ...prev, search: searchQuery.trim() || undefined, offset: 0 }));
+  }, [searchQuery]);
 
   // Fetch initial events via TanStack Query
   const {
@@ -64,83 +69,40 @@ export function EventsPage() {
     placeholderData: (previousData) => previousData,
   });
 
-  // Combine REST events with live events (deduplicated)
-  const combinedEvents = React.useMemo(() => {
-    const restEvents = eventsResponse?.events || [];
-    const restEventIds = new Set(restEvents.map((e) => e.id));
-
-    // Filter out live events that are already in REST response
-    const liveEventsFiltered = liveEvents.filter((le) => !restEventIds.has(le.id));
-
-    const allEvents = [...liveEventsFiltered, ...restEvents];
-
-    // Apply client-side search filter (backend doesn't have generic search param)
-    if (!searchQuery.trim()) {
-      return allEvents;
-    }
-
-    const query = searchQuery.toLowerCase().trim();
-    return allEvents.filter((event) => {
-      const searchableFields = [
-        event.category,
-        event.event_type,
-        event.user_id,
-        event.ip,
-        event.route,
-        event.method,
-        event.status_code?.toString(),
-        event.severity,
-      ].filter(Boolean);
-
-      return searchableFields.some((field) =>
-        field.toLowerCase().includes(query)
-      );
-    });
-  }, [eventsResponse?.events, liveEvents, searchQuery]);
-
-  // Get API key from localStorage for WebSocket auth
-  const apiKey = React.useMemo(() => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("hawkeye_api_key");
-  }, []);
-
-  // WebSocket hook for real-time event updates
+  // Shared WebSocket context for connection status
   const {
     status: wsConnectionStatus,
-    sessionId: wsSessionId,
+    sessionId,
     lastEventId: wsLastEventId,
     reconnect,
     disconnect,
-  } = useWebSocket({
-    apiKey: apiKey || "",
-    subscriptions: ["alerts", "incidents", "events"],
-    autoReconnect: true,
-    onStatusChange: () => {}, // Status available via wsConnectionStatus
-    onAlert: () => {
-      // Alerts received - could invalidate events query if needed
-      queryClient.invalidateQueries({ queryKey: queryKeys.events.all });
-    },
-    onIncident: () => {
-      // Incidents received
-      queryClient.invalidateQueries({ queryKey: queryKeys.incidents.all });
-    },
-    onEvent: (event) => {
-      // Prepend new event to live events
-      setLiveEvents((prev) => [event, ...prev.slice(0, 99)]); // Keep max 100 live events
-      // Invalidate query to refresh if needed
-      queryClient.invalidateQueries({ queryKey: queryKeys.events.all });
-    },
-    onError: (err) => {
-      console.error("WebSocket error:", err);
-    },
+  } = useWebSocketContext();
+
+  // Subscribe to real-time events via shared WebSocket
+  useWebSocketMessage("event", (message) => {
+    const event = message.data as NormalizedEvent;
+    // Prepend new event to live events
+    setLiveEvents((prev) => [event, ...prev.slice(0, 99)]); // Keep max 100 live events
+    // Invalidate query to refresh if needed
+    queryClient.invalidateQueries({ queryKey: queryKeys.events.all });
   });
 
-  // Sync session ID for reconnection
-  React.useEffect(() => {
-    if (wsSessionId) {
-      setSessionId(wsSessionId);
-    }
-  }, [wsSessionId]);
+  // Subscribe to alerts for query invalidation
+  useWebSocketMessage("alert", () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.events.all });
+  });
+
+  // Subscribe to incidents for query invalidation
+  useWebSocketMessage("incident", () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.incidents.all });
+  });
+
+  // Combine REST API events with WebSocket live events
+  // WebSocket events are prepended since they're newer
+  const combinedEvents = React.useMemo(() => {
+    const apiEvents = eventsResponse?.events || [];
+    return [...liveEvents, ...apiEvents];
+  }, [eventsResponse?.events, liveEvents]);
 
   // Sync search query with URL params
   React.useEffect(() => {
@@ -170,7 +132,7 @@ export function EventsPage() {
   };
 
   const clearFilters = () => {
-    setFilters({ limit: 50, offset: 0 });
+    setFilters({ limit: 50, offset: 0, search: undefined });
     setSearchQuery("");
   };
 

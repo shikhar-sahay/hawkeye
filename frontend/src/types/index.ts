@@ -1,5 +1,5 @@
 /**
- * HawkEye Frontend - Type Definitions
+ * Hawkeye Frontend - Type Definitions
  * Matches the backend API schemas
  */
 
@@ -26,6 +26,13 @@ export interface Source {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface SourceListResponse {
+  sources: Source[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 export interface SourceEventCounts {
@@ -104,6 +111,7 @@ export interface EventListParams {
   status_code?: number;
   start_time?: string;
   end_time?: string;
+  search?: string;
   limit?: number;
   offset?: number;
 }
@@ -146,14 +154,11 @@ export interface AlertStatusUpdate {
 
 export interface AlertStats {
   total: number;
-  open: number;
-  acknowledged: number;
-  resolved: number;
-  suppressed: number;
   by_severity: Record<string, number>;
+  by_status: Record<string, number>;
   by_detection_type: Record<string, number>;
-  recent_24h: number;
-  avg_confidence?: number | null;
+  by_detector: Record<string, number>;
+  avg_confidence: number | null;
 }
 
 // ==================== Incident Types ====================
@@ -200,12 +205,10 @@ export interface IncidentStatusUpdate {
 
 export interface IncidentStats {
   total: number;
-  open: number;
-  investigating: number;
-  resolved: number;
-  closed: number;
   by_severity: Record<string, number>;
-  recent_24h: number;
+  by_status: Record<string, number>;
+  open_count: number;
+  critical_count: number;
 }
 
 // ==================== Ingestion Types ====================

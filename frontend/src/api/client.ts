@@ -1,5 +1,5 @@
 /**
- * HawkEye Frontend - API Client
+ * Hawkeye Frontend - API Client
  * Centralized API client with TanStack Query integration
  */
 
@@ -31,7 +31,8 @@ import type {
 } from "@/types";
 
 const API_BASE = "/api/v1";
-const API_KEY = import.meta.env.VITE_API_KEY || "";
+// Temporary hardcoded API key for testing - Vite not loading .env
+export const API_KEY = "hawk_F5IHr9TsIUujgs_9E_BWsLxmQIA5pYz8aFYcggzHqH0";
 
 class ApiClient {
   private baseUrl: string;
@@ -231,13 +232,15 @@ class ApiClient {
   // ==================== Dashboard ====================
 
   async getDashboardStats(): Promise<DashboardStats> {
-    const [alertStats, incidentStats, sourcesResponse] = await Promise.all([
+    const [alertStats, incidentStats, sourcesResponse, sourceEventCounts] = await Promise.all([
       this.getAlertStats(),
       this.getIncidentStats(),
       this.getSources(),
+      this.getSourceEventCounts().catch(() => []), // Fallback to empty array if endpoint fails
     ]);
 
     const sources = sourcesResponse.sources;
+    const totalEvents = sourceEventCounts.reduce((sum, s) => sum + s.event_count, 0);
 
     return {
       alerts: alertStats,
@@ -247,7 +250,7 @@ class ApiClient {
         active: sources.filter((s) => s.is_active).length,
         inactive: sources.filter((s) => !s.is_active).length,
       },
-      events_24h: 0, // Would need a separate endpoint
+      events_24h: totalEvents, // Total events across all sources (best available without 24h endpoint)
     };
   }
 }
