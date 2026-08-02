@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,9 +23,10 @@ import {
   User,
   LogOut,
   Shield,
-  Wifi,
   Menu,
 } from "lucide-react";
+import { ConnectionStatusInline } from "@/components/ConnectionStatusCard";
+import { useWebSocket } from "@/hooks/useWebSocket";
 
 interface TopNavProps {
   onMenuClick: () => void;
@@ -34,12 +36,44 @@ interface TopNavProps {
 export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const { theme, setTheme } = useTheme();
+  const navigate = useNavigate();
 
   const toggleDarkMode = () => {
     setTheme(theme === "dark" ? "light" : "dark");
   };
 
   const isDark = theme === "dark";
+
+  // Get API key from localStorage for WebSocket auth
+  const apiKey = React.useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("hawkeye_api_key") || "";
+  }, []);
+
+  // WebSocket connection for status indicator
+  const { status: wsStatus } = useWebSocket({
+    apiKey,
+    subscriptions: [],
+    autoReconnect: true,
+    onStatusChange: () => {}, // Status available via wsStatus
+  });
+
+  // Handle search - navigate to Events page with search query
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      // Navigate to Events page with search query
+      navigate(`/events?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery("");
+    }
+  };
+
+  // Handle search button click (for mobile/enter key alternative)
+  const handleSearchSubmit = () => {
+    if (searchQuery.trim()) {
+      navigate(`/events?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery("");
+    }
+  };
 
   return (
     <header
@@ -68,18 +102,25 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
             placeholder="Search alerts, incidents, sources..."
             value={searchQuery}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearch}
             className="pl-10"
             aria-label="Search"
           />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-2 top-1/2 -translate-y-1/2"
+            onClick={handleSearchSubmit}
+            aria-label="Submit search"
+          >
+            <Search className="h-4 w-4 text-muted-foreground" />
+          </Button>
         </div>
 
         {/* Right side actions */}
         <div className="flex items-center gap-2">
           {/* Connection status */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted text-xs font-medium">
-            <Wifi className="h-3.5 w-3.5 text-green-500" aria-hidden="true" />
-            <span>Connected</span>
-          </div>
+          <ConnectionStatusInline status={wsStatus} />
 
           {/* Theme toggle */}
           <Button
