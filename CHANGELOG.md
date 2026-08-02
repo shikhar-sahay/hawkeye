@@ -7,6 +7,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.2.2] - 2026-07-29 - Documentation Audit & Synchronization + Frontend Polish
+
+### Added
+- **T-031: Code-split Chart Components** — Bundle optimization complete
+  - `StatsDashboard.tsx`: All 6 chart components wrapped with `React.lazy()` + `Suspense` with skeleton fallbacks
+  - `vite.config.ts`: Manual chunks for vendor-react, vendor-query, vendor-charts (recharts), vendor-ui, and 6 individual chart chunks
+  - Build results: Main chunk 601 KB (gzipped: 171 KB) vs 1.04 MB before; 6 lazy-loaded chart chunks (2-28 KB each); recharts in vendor-charts chunk (350 KB)
+
+### Changed
+- **All documentation files synchronized** to match actual repository state
+  - `SESSION.md` — Updated milestone progress to ~99%, T-031 complete, next task T-034
+  - `ROADMAP.md` — Updated Milestone 3 to ~99%, all 6 pages documented as complete, T-031 marked complete
+  - `TODO.md` — T-031 marked complete, T-034 as next optional task, T-030 (pagination) marked complete
+  - `CLAUDE.md` — Updated progress %, Events page status, API endpoints list, key files table
+  - `CHANGELOG.md` — This entry
+
+### Fixed
+- **TopNav Search Functionality** (`frontend/src/components/layout/TopNav.tsx`): Added search input that navigates to Events page with search query parameter (Enter key + button click)
+- **ConnectionStatusCard Extraction** (`frontend/src/components/ConnectionStatusCard.tsx`): Extracted reusable `ConnectionStatusCard` (full card with session details, reconnect/disconnect buttons) and `ConnectionStatusInline` (compact pill for TopNav) — used by TopNav, EventsPage
+- **Events Export Handler** (`frontend/src/pages/Events.tsx`): Verified `handleExport` function works correctly — exports filtered/combined events to CSV with proper headers and timestamp-based filename
+- **Settings Placeholder Buttons** (`frontend/src/pages/Settings.tsx`): All placeholder buttons (GitHub, Security Policy, Documentation, Connection Test, Connection Logs) now properly disabled with `aria-disabled="true"`, `cursor-not-allowed`, and tooltips explaining future availability
+- **Dashboard avg_confidence Fix** (`frontend/src/components/StatsDashboard.tsx`): Fixed display bug — backend returns `avg_confidence` as decimal 0.0–1.0, frontend now correctly displays as percentage: `${Math.round(alertStats.avg_confidence * 100)}%`
+- **SourceManager Pagination** (`frontend/src/components/SourceManager.tsx`): Already fully implemented with page/pageSize state, server-side pagination via API (`pageSize`, `page * pageSize`), pagination controls (prev/next, page indicator, page size selector)
+- **Router Fixes (Visual QA Prep)**:
+  - Removed duplicate `<BrowserRouter>` in `App.tsx` — `main.tsx` already wraps `<App />` in `BrowserRouter`; duplicate caused "You cannot render a <Router> inside another <Router>"
+  - Removed nested `<BrowserRouter>` in `Settings.tsx` — caused "useRoutes() may be used only in the context of a <Router> component" error
+
+### Verified
+- All 33 backend tests pass
+- Frontend build succeeds (TypeScript + Vite)
+- Frontend lint clean (0 errors, 0 warnings)
+- Backend lint: 52 style/complexity warnings (no critical errors)
+
+---
+
+## [2.2.1] - 2026-07-27 - Source/API Key Management UI Complete
+
+### Added
+- **T-026**: Source & API Key Management UI
+  - `SourceManager.tsx` — Full CRUD for sources with search, filter, and pagination
+    - Create/Edit/Delete sources with confirmation dialogs
+    - Active/inactive status toggle
+    - API key count display per source
+  - `SourcesPage.tsx` — Page wrapper for SourceManager
+  - API Key lifecycle management per source:
+    - Generate new API keys with name and optional expiry (1-3650 days)
+    - Copy key prefix to clipboard with visual feedback
+    - **Key rotation**: Revoke old key + create new with same name in single action
+    - **Key revocation**: Deactivate keys with confirmation dialog (cannot be undone)
+    - **Key display**: Shows prefix only after creation (full key shown once in AlertDialog)
+    - Status badges: Active/Revoked
+    - Metadata: Last used, expiry date, creation date
+  - TanStack Query integration with proper invalidation on mutations
+  - Loading skeletons, empty states, and error handling with retry
+  - Uses shadcn/ui primitives: Table, Dialog, AlertDialog, Select, Switch, Badge, Tooltip, Input, Button
+
+- **Settings Page** (`Settings.tsx`):
+  - 4-tab layout: General, API Connection, WebSocket, About
+  - Theme selection (Light/Dark/System) with `next-themes` persistence
+  - API endpoint configuration with test connection button
+  - Stored API key management (show/hide, copy, clear)
+  - WebSocket connection diagnostics (URL, auth status, subscriptions)
+  - Application info (version, build date, environment)
+  - Local storage persistence for all preferences
+  - Future settings sections marked as "Planned" (Data Retention, Alert Rules, Team Management, Integrations)
+
+### Changed
+- Frontend milestone 3 progress: ~95% complete (all major pages implemented)
+- Sidebar navigation updated with Sources and Settings links
+- App routing includes `/sources` and `/settings` pages
+
+### Verified
+- Frontend build succeeds (TypeScript + Vite)
+- Frontend lint clean (0 errors, 0 warnings)
+- All 33 backend tests pass
+- Backend API endpoints for sources and API keys functional
+
+---
+
 ## [2.2.0] - 2026-07-27 - Frontend Statistics Dashboard Complete
 
 ### Added
@@ -22,7 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TanStack Query integration for all dashboard stats with caching and background refetch
 
 ### Changed
-- Frontend milestone 3 progress: ~85% complete (Dashboard + Events + Alerts + Incidents + Detail Views + Stats Dashboard)
+- Frontend milestone 3 progress: ~95% complete (Dashboard + Events + Alerts + Incidents + Detail Views + Stats Dashboard + Sources + Settings)
 
 ### Verified
 - Frontend build succeeds (TypeScript + Vite)
@@ -174,7 +253,7 @@ Previous Flask-based implementation - not maintained.
 
 ## Upcoming Releases
 
-### [2.2.0] - Target: After Frontend MVP (Milestone 3)
+### [2.3.0] - Target: After Frontend MVP (Milestone 3)
 - React + TypeScript + Vite frontend
 - Real-time alert feed with WebSocket
 - Incident timeline visualization

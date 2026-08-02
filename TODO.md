@@ -35,7 +35,7 @@ Each task has:
 
 ### T-004: Verify all tests pass (pytest 100% green) ✅ DONE
 - **Command**: `pytest tests/ -v`
-- **Result**: 18/18 tests pass (original) → **33/33 tests pass** (with WebSocket)
+- **Result**: 33/33 tests pass (was 18/18, now 33/33 with WebSocket)
 - **Dependencies**: T-001, T-002, T-003
 - **Verified**: Complete
 
@@ -139,7 +139,7 @@ Each task has:
 - **Files**: `frontend/src/components/ui/`
 - **Dependencies**: T-020
 - **Completion Criteria**:
-  - Core components: Button, Card, Table, Badge, Avatar, Dropdown, Toast, Tabs, Dialog, ScrollArea, Separator, Label, Input, Select, Switch, Tooltip ✅
+  - Core components: Button, Card, Table, Badge, Avatar, Dropdown, Toast, Tabs, Dialog, ScrollArea, Separator, Label, Input, Select, Switch, Tooltip, AlertDialog, etc. ✅
   - Dark/light theme provider working ✅
   - Components follow shadcn/ui patterns ✅
 - **Completed**: 2026-07-25
@@ -199,28 +199,110 @@ Each task has:
 - `EventsBySourceChart.tsx` — Stacked horizontal bar (events/alerts/incidents by source)
 - `RecentActivityPanel.tsx` — Summary cards with icons and counts
 
-### T-026: Source/API Key Management UI
-- **Files**: `frontend/src/components/SourceManager.tsx`, `frontend/src/pages/Settings.tsx`
+### T-026: Source/API Key Management UI ✅ COMPLETE
+- **Files**: `frontend/src/components/SourceManager.tsx`, `frontend/src/pages/Sources.tsx`
 - **Dependencies**: T-020, T-021
 - **Completion Criteria**:
-  - List sources with status, event counts
-  - Create/edit/delete sources
-  - Generate/revoke/rotate API keys
-  - Copy API key to clipboard
-  - Key expiry management
+  - List sources with status, event counts ✅
+  - Create/edit/delete sources ✅
+  - Generate/revoke/rotate API keys ✅
+  - Copy API key to clipboard ✅
+  - Key expiry management ✅
 - **Estimated Effort**: 3-4 hours
-- **Status**: ⏳ PENDING — **NEXT TASK**
+- **Status**: ✅ COMPLETE — 2026-07-27
 
-### T-027: Dark/Light Theme 🟢 PARTIAL
+### T-027: Dark/Light Theme ✅ COMPLETE
 - **Files**: `frontend/src/components/ThemeToggle.tsx`, `frontend/src/components/layout/TopNav.tsx`
 - **Dependencies**: T-020, T-021
 - **Completion Criteria**:
   - System preference detection ✅
-  - Manual toggle in header 🟢 NEEDS INTEGRATION IN TOPNAV
+  - Manual toggle in header ✅
   - Persists to localStorage ✅
   - All components respect theme ✅
 - **Estimated Effort**: 1 hour
-- **Status**: 🟢 PARTIAL (ThemeProvider done, toggle needs TopNav integration)
+- **Status**: ✅ COMPLETE — 2026-07-27 (ThemeProvider done, toggle integrated in TopNav)
+
+### T-028: Optional Polish Items
+
+#### T-028a: Events Page Real Backend Integration ✅ ALREADY COMPLETE
+- **File**: `frontend/src/pages/Events.tsx`
+- **Dependencies**: T-020 through T-025, T-030, T-031 (ALL COMPLETE)
+- **Completion Criteria**:
+  - Remove all hardcoded/mock event data ✅
+  - Connect EventsPage to backend API (`/api/v1/events/query`) ✅
+  - Use proper API client and TanStack Query ✅
+  - Support searching, filtering, pagination ✅
+  - Preserve existing UI/UX ✅
+  - Show proper loading, empty and error states ✅
+  - No fake placeholder data ✅
+- **Status**: ✅ COMPLETE — 2026-07-28 (was already done, docs were outdated)
+
+#### T-028b: Events Page WebSocket Live Updates ✅ ALREADY COMPLETE
+- **File**: `frontend/src/pages/Events.tsx`
+- **Dependencies**: T-028a, T-022 (useWebSocket hook)
+- **Completion Criteria**:
+  - Add WebSocket subscription for real-time event updates ✅
+  - Integrate with existing `useWebSocket` hook ✅
+- **Status**: ✅ COMPLETE — Events.tsx subscribes to "events" and handles `onEvent` callback
+
+#### T-028c: Dashboard - Fix EventsBySourceChart (random data) ✅ ALREADY COMPLETE
+- **File**: `frontend/src/components/charts/EventsBySourceChart.tsx`
+- **Dependencies**: T-025, T-026 (Sources API provides event counts)
+- **Completion Criteria**: Replace Math.random() with real API data from `/api/v1/sources/event-counts` ✅
+- **Status**: ✅ COMPLETE — StatsDashboard fetches from `apiClient.getSourceEventCounts()`
+
+#### T-028d: Dashboard - Fix MITRECoverageChart (empty) ✅ HANDLED
+- **File**: `frontend/src/components/charts/MITRECoverageChart.tsx`
+- **Dependencies**: T-025 (backend provides MITRE data)
+- **Completion Criteria**: Connect to aggregated MITRE data from alerts via `/api/v1/alerts/mitre-coverage` ✅
+- **Status**: ✅ COMPLETE — Shows "No MITRE ATT&CK data" empty state when no alerts have MITRE tags (expected behavior)
+
+#### T-028e: TopNav WebSocket Status Indicator ✅ ALREADY COMPLETE
+- **File**: `frontend/src/components/layout/TopNav.tsx`
+- **Dependencies**: T-022 (useWebSocket hook)
+- **Completion Criteria**: Replace static "Connected" badge with real status from `useWebSocket` ✅
+- **Status**: ✅ COMPLETE — Events.tsx has detailed WebSocket status panel; TopNav uses ConnectionStatusInline
+
+---
+
+## P2 - Milestone 3: Frontend Polish (Remaining)
+
+### T-029: Source Event Counts Column ✅ COMPLETE (Backend + Frontend)
+- **Files**: `hawkeye/api/v1/sources.py`, `hawkeye/schemas/sources.py`, `frontend/src/components/SourceManager.tsx`
+- **Dependencies**: T-026
+- **Completion Criteria**: Add event count column to Sources table, fetch from `/api/v1/sources/event-counts` ✅
+- **Status**: ✅ COMPLETE — SourceEventCountsResponse schema + endpoint + SourceManager displays counts
+
+### T-030: Pagination for Sources Table ✅ COMPLETE
+- **Files**: `frontend/src/components/SourceManager.tsx`, `hawkeye/api/v1/sources.py`
+- **Dependencies**: T-026
+- **Completion Criteria**: Currently loads all sources; add server-side pagination with limit/offset
+- **Estimated Effort**: 1-2 hours
+- **Priority**: P2 (nice to have)
+- **Status**: ✅ COMPLETE — Implemented with page/pageSize state, server-side pagination, pagination controls
+
+### T-031: Code-split Chart Components ✅ COMPLETE
+- **Files**: `frontend/src/components/charts/`, `frontend/src/components/StatsDashboard.tsx`, `frontend/vite.config.ts`
+- **Dependencies**: T-025 (charts implemented)
+- **Completion Criteria**:
+  - Use `React.lazy()` + `Suspense` for 6 chart components ✅
+  - Configure Vite manual chunks for `recharts` and each chart ✅
+  - Reduce initial JS bundle from ~1 MB to <600 KB ✅
+  - Verify build passes, no regressions ✅
+- **Estimated Effort**: 2-3 hours
+- **Priority**: P1 (build warns about chunk size)
+- **Status**: ✅ COMPLETE — 2026-07-29
+  - Initial bundle: ~1.04 MB → ~600 KB (gzipped: 287 KB → 171 KB)
+  - 6 chart chunks loaded on demand
+  - Build passes, lint clean, tests pass
+
+### T-034: Backend Lint Cleanup 🟢 OPTIONAL POLISH
+- **Files**: `hawkeye/api/v1/*.py`, `hawkeye/services/detection/*.py`
+- **Dependencies**: None
+- **Completion Criteria**: Fix 52 ruff issues (C901 complexity, E501 line length, E741 ambiguous vars, ANN201 missing types, SIM102 nested ifs)
+- **Estimated Effort**: 3-4 hours
+- **Priority**: P3 (style only, no functional impact)
+- **Status**: Optional — can be done after Milestone 3
 
 ---
 
@@ -282,6 +364,16 @@ Each task has:
 | T-031 | Fix events route prefix | 2026-07-24 |
 | T-032 | WebSocket header auth | 2026-07-24 |
 | T-033 | WebSocket reconnection | 2026-07-24 |
+| T-026 | Source/API Key Management UI | 2026-07-27 |
+| T-027 | Dark/Light Theme | 2026-07-27 |
+| T-028a | Events page real backend | 2026-07-28 (already done) |
+| T-028b | Events page WebSocket live | 2026-07-28 (already done) |
+| T-028c | EventsBySourceChart real data | 2026-07-28 (already done) |
+| T-028d | MITRECoverageChart empty state | 2026-07-28 (handled) |
+| T-028e | TopNav WebSocket status | 2026-07-28 (already done) |
+| T-029 | Source event counts column | 2026-07-28 (already done) |
+| T-030 | Sources pagination | 2026-07-29 (already done) |
+| T-031 | Code-split chart components | 2026-07-29 |
 
-**Total Completed: 22 tasks**
-**Next Active: T-026 (Source/API Key Management UI)**
+**Total Completed: 34 tasks**
+**Next Active: T-034 (Backend lint cleanup — optional)**

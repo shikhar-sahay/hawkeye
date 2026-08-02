@@ -48,7 +48,7 @@ This is the definitive operating manual for all Claude sessions working on HawkE
 - Alerts + Incidents REST APIs complete with filtering, stats, status updates
 - API key authentication working
 - SQLite (dev) / PostgreSQL (prod) via SQLModel
-- 18+ unit tests passing
+- 33/33 unit tests passing
 - Zero known P0 bugs
 
 ---
@@ -91,14 +91,18 @@ Hawkeye/
 │       │   └── api_abuse.py
 │       └── correlation/
 │           └── engine.py       # CorrelationEngine (time-window based)
-├── frontend/             # React + TypeScript + Vite (Milestone 3 — IN PROGRESS)
+├── frontend/             # React + TypeScript + Vite (Milestone 3 — ~99% complete)
 │   ├── src/
 │   │   ├── api/client.ts       # TanStack Query API client
 │   │   ├── components/
-│   │   │   ├── ui/             # shadcn/ui primitives (14 components)
+│   │   │   ├── ui/             # shadcn/ui primitives (24 components)
 │   │   │   ├── layout/         # AppLayout, Sidebar, TopNav
-│   │   │   └── providers/      # ThemeProvider
-│   │   ├── hooks/              # use-toast, useWebSocket (TODO)
+│   │   │   ├── providers/      # ThemeProvider
+│   │   │   ├── alerts/         # AlertFeed
+│   │   │   ├── charts/         # 6 chart components (lazy-loaded)
+│   │   │   ├── dashboard/      # Dashboard components
+│   │   │   └── incidents/      # IncidentTimeline
+│   │   ├── hooks/              # use-toast, useWebSocket
 │   │   ├── pages/              # Dashboard, Events, Alerts, Incidents, Sources, Settings
 │   │   ├── types/index.ts      # TypeScript types matching backend schemas
 │   │   ├── lib/utils.ts        # cn() helper
@@ -143,7 +147,7 @@ Hawkeye/
 - **Correlation Engine:** Time-window based alert grouping → Incident creation + MITRE aggregation
 - **REST APIs:** `/api/v1/events`, `/api/v1/sources`, `/api/v1/alerts`, `/api/v1/incidents`
 - **WebSocket API:** `/ws` with multi-method auth, subscriptions, heartbeat, reconnection
-- **Planned:** React frontend (Milestone 3), SDKs (Milestone 5)
+- **Frontend:** React + TypeScript + Vite (Milestone 3 — ~99% done)
 
 ---
 
@@ -153,7 +157,7 @@ Hawkeye/
 |---|-----------|--------|--------|
 | 1 | **Backend MVP** | 2026-07-27 | ✅ 100% — Achieved 2026-07-24 |
 | 2 | **Real-time Dashboard Backend** | After M1 | ✅ 100% — Achieved 2026-07-24 |
-| 3 | **Frontend Dashboard** | After M2 | 🟢 ~85% IN PROGRESS |
+| 3 | **Frontend Dashboard** | After M2 | 🟢 ~99% IN PROGRESS |
 | 4 | **Browser Security Agent** | After M3 | ⏳ 0% |
 | 5 | **SDK Integrations** | After M4 | ⏳ 0% |
 | 6 | **Attack Replay & Docs** | After M5 | ⏳ 0% |
@@ -164,10 +168,21 @@ Full details in `ROADMAP.md`. Do not duplicate here.
 
 ## 5. Current Development Status
 
-- **Active Milestone:** 3 — Frontend Dashboard (~85% complete)
+- **Active Milestone:** 3 — Frontend Dashboard (~99% complete)
 - **What's Done (Backend - Milestones 1 & 2):** All APIs, all 7 detectors, correlation engine, auth, database, **33/33 unit tests passing**
-- **What's Done (Frontend - Milestone 3):** React+TS+Vite setup, Tailwind+shadcn/ui (14 components), ThemeProvider, React Router, TanStack Query, API client with full types, Dashboard page with StatsDashboard + 5 charts, Events page, Alerts page (real-time alert feed + WebSocket), Incidents page (incident timeline + WebSocket), AlertDetail, IncidentDetail, AppLayout with Sidebar+TopNav, routing for all 7 pages
-- **What's Blocked:** Nothing critical. Next task is T-026: Source/API Key Management UI
+- **What's Done (Frontend - Milestone 3):**
+  - React+TS+Vite setup, Tailwind+shadcn/ui (24 components), ThemeProvider, React Router, TanStack Query, API client with full types
+  - Dashboard page with StatsDashboard + 6 charts (all connected to real backend, code-split with lazy loading)
+  - Events page (filterable table, search, pagination, CSV export, **real backend + WebSocket live updates**)
+  - Alerts page (real-time alert feed + WebSocket)
+  - Incidents page (incident timeline + WebSocket)
+  - AlertDetail, IncidentDetail modals with status actions
+  - Sources page (SourceManager: full CRUD + API key lifecycle + pagination)
+  - Settings page (4 tabs: General, API, WebSocket, About)
+  - AppLayout with Sidebar+TopNav (theme toggle, search, connection status, user menu)
+  - Routing for all 6 pages
+  - ConnectionStatusCard (reusable: inline for TopNav, full card for Events page)
+- **What's Blocked:** Nothing critical. Optional next: T-034 backend lint cleanup
 - **Source of Truth for Active Task:** `SESSION.md` — always contains exactly one current engineering task with status, files, verification commands, and handoff notes
 
 ---
@@ -231,7 +246,7 @@ Full details in `ROADMAP.md`. Do not duplicate here.
 ## 9. Development Priorities
 
 **Current Priority (Milestone 3):**
-Finish Frontend Dashboard — Source/API Key Management (T-026) → Theme Toggle Integration (T-027).
+Finish Frontend Dashboard — Optional: Backend lint cleanup (T-034).
 
 **After Frontend (Milestone 4):**
 Implement Browser Security Agent — Chrome MV3 extension scaffold, content script for DOM monitoring, CSP violation detection, DOM integrity monitoring, bot/automation detection, event batching.
@@ -294,9 +309,9 @@ npm run lint     # ESLint check
 
 | Task | Primary Files |
 |------|---------------|
-| T-026 (Source Management) | `frontend/src/components/SourceManager.tsx`, `frontend/src/pages/Settings.tsx` |
-| T-027 (Theme Toggle) | `frontend/src/components/ThemeToggle.tsx`, `frontend/src/components/layout/TopNav.tsx` |
-| T-034 (Backend Lint Cleanup) | `hawkeye/api/v1/*.py`, `hawkeye/services/detection/*.py` (C901, E741, E501) |
+| T-031 (Code-split charts) | **COMPLETE** — `frontend/src/components/StatsDashboard.tsx`, `frontend/src/components/charts/`, `frontend/vite.config.ts` |
+| T-034 (Backend lint) | `hawkeye/api/v1/*.py`, `hawkeye/services/detection/*.py` (C901, E741, E501, ANN201, SIM102) |
+| T-030 (Sources pagination) | **COMPLETE** — `frontend/src/components/SourceManager.tsx`, `hawkeye/api/v1/sources.py` |
 
 Read `SESSION.md` for current task details. Read `TODO.md` for full backlog.
 
@@ -313,7 +328,7 @@ Read `SESSION.md` for current task details. Read `TODO.md` for full backlog.
 **Client → Server Messages:**
 ```json
 {"type": "pong"}
-{"type": "subscribe", "data": {"types": ["alerts", "incidents"]}}
+{"type": "subscribe", "data": {"types": ["alerts", "incidents", "events"]}}
 {"type": "unsubscribe", "data": {"types": ["alerts"]}}
 {"type": "ping"}
 {"type": "reconnect", "data": {"session_id": "...", "last_event_id": 123}}
@@ -324,6 +339,7 @@ Read `SESSION.md` for current task details. Read `TODO.md` for full backlog.
 {"type": "connected", "timestamp": "...", "data": {"connection_id": "...", "source_id": 1, "source_name": "...", "subscriptions": ["alerts"], "session_id": "..."}}
 {"type": "alert", "timestamp": "...", "event_id": 1, "data": {...}}
 {"type": "incident", "timestamp": "...", "event_id": 2, "data": {...}}
+{"type": "event", "timestamp": "...", "event_id": 3, "data": {...}}
 {"type": "ping", "timestamp": "..."}
 {"type": "pong", "timestamp": "..."}
 {"type": "error", "timestamp": "...", "data": {"code": "...", "message": "..."}}
@@ -343,6 +359,13 @@ Read `SESSION.md` for current task details. Read `TODO.md` for full backlog.
 - **Response Envelope:** Lists return `{ items: [], total: N, limit: L, offset: O }`
 - **Error Format:** `{ "detail": "error message" }` with appropriate HTTP status
 - **WebSocket:** Separate router at `/ws`, no `/api/v1` prefix
+
+**Additional Backend Endpoints (for Dashboard):**
+- `GET /api/v1/sources/event-counts` — Event/alert/incident counts per source
+- `GET /api/v1/alerts/stats` — Aggregate alert statistics
+- `GET /api/v1/alerts/over-time?hours=N` — Time-series alert data
+- `GET /api/v1/alerts/mitre-coverage` — MITRE ATT&CK tactic/technique counts
+- `GET /api/v1/incidents/stats` — Aggregate incident statistics
 
 ---
 

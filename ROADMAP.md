@@ -1,15 +1,16 @@
 # HawkEye v2 Roadmap
 
 ## Overall Project Goal
-Build a production-ready Web Application Security Monitoring Platform (SIEM) with real-time dashboard, WebSocket updates, browser security agent, and SDK integrations.
+Build a production-ready Web Application Security Monitoring Platform (SIEM-lite) with real-time dashboard, WebSocket updates, browser security agent, and SDK integrations.
 
 ---
 
 ## Major Milestones
 
 ### Milestone 1: Backend MVP
-**Target: 2026-07-27 (1 week from start)**
+**Target: 2026-07-27**  
 **Status: ✅ 100% COMPLETE — Achieved 2026-07-24**
+
 - Event ingestion API (REST)
 - Event normalization engine with MITRE ATT&CK tagging
 - Detection engine with 7 detectors
@@ -20,67 +21,120 @@ Build a production-ready Web Application Security Monitoring Platform (SIEM) wit
 - SQLite/PostgreSQL database with SQLModel
 - All tests passing
 
+---
+
 ### Milestone 2: Real-time Dashboard Backend
-**Target: TBD (after Milestone 1)**
+**Target: TBD (after Milestone 1)**  
 **Status: ✅ 100% COMPLETE — Achieved 2026-07-24**
+
 - WebSocket server implementation
 - Real-time alert/incident broadcast
 - Connection management & auth
 - WebSocket client reconnection logic
 - Health & connection status endpoints
 
+---
+
 ### Milestone 3: Frontend Dashboard
-**Target: TBD (after Milestone 2)**
-**Status: 🟢 ~85% IN PROGRESS — Backend 100% Ready**
-- React + TypeScript + Vite setup ✅ COMPLETE
-- Tailwind CSS + shadcn/ui components ✅ COMPLETE
-- Real-time alert feed (WebSocket) ✅ COMPLETE
-- Incident timeline view ✅ COMPLETE
-- Alert/Incident detail views ✅ COMPLETE
-- Statistics dashboard with charts ✅ COMPLETE (2026-07-27)
-- Source/API key management UI 🟢 **NEXT (T-026)**
-- Dark/light theme 🟢 PARTIAL (ThemeProvider ✅, Toggle 🟢)
+**Target: TBD (after Milestone 2)**  
+**Status: 🟢 ~99% IN PROGRESS — Backend 100% Ready, All 6 Pages Implemented**
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| React + TypeScript + Vite setup | ✅ COMPLETE | `frontend/` |
+| Tailwind CSS + shadcn/ui (24 primitives) | ✅ COMPLETE | `frontend/src/components/ui/` |
+| ThemeProvider (dark/light/system) | ✅ COMPLETE | `frontend/src/components/providers/ThemeProvider.tsx` |
+| React Router v6 with nested routes | ✅ COMPLETE | `frontend/src/App.tsx` |
+| TanStack Query (React Query) setup | ✅ COMPLETE | `frontend/src/main.tsx` |
+| API client with full TypeScript types | ✅ COMPLETE | `frontend/src/api/client.ts` |
+| AppLayout with collapsible Sidebar | ✅ COMPLETE | `frontend/src/components/layout/` |
+| TopNav with ThemeToggle + Search + Connection Status | ✅ COMPLETE | `frontend/src/components/layout/TopNav.tsx` |
+| **Dashboard Page** (KPIs + 6 charts, code-split) | ✅ COMPLETE | `frontend/src/pages/Dashboard.tsx`, `StatsDashboard.tsx`, `charts/` |
+| **Events Page** (real backend + WebSocket live + CSV export) | ✅ COMPLETE | `frontend/src/pages/Events.tsx` |
+| **Alerts Page** (real-time feed + WebSocket) | ✅ COMPLETE | `frontend/src/pages/Alerts.tsx`, `AlertFeed.tsx` |
+| **Incidents Page** (timeline + WebSocket) | ✅ COMPLETE | `frontend/src/pages/Incidents.tsx`, `IncidentTimeline.tsx` |
+| **AlertDetail Modal** (5 tabs: Overview, Evidence, MITRE, Actions) | ✅ COMPLETE | `frontend/src/components/AlertDetail.tsx` |
+| **IncidentDetail Modal** (5 tabs: Overview, Timeline, Alerts, MITRE, Actions) | ✅ COMPLETE | `frontend/src/components/IncidentDetail.tsx` |
+| **Sources Page** (SourceManager: CRUD + API key lifecycle + pagination) | ✅ COMPLETE | `frontend/src/pages/Sources.tsx`, `SourceManager.tsx` |
+| **Settings Page** (4 tabs: General, API, WebSocket, About) | ✅ COMPLETE | `frontend/src/pages/Settings.tsx` |
+| WebSocket hook (auto-reconnect, session resume) | ✅ COMPLETE | `frontend/src/hooks/useWebSocket.ts` |
+| ConnectionStatusCard (reusable: inline + full card) | ✅ COMPLETE | `frontend/src/components/ConnectionStatusCard.tsx` |
+
+---
+
+#### Chart Components Implemented
+| Chart | Type | Description | Backend Endpoint |
+|-------|------|-------------|------------------|
+| `AlertsOverTimeChart` | Area chart | Time-series alerts (24h/7d/30d) | `/alerts/over-time` |
+| `SeverityDistributionChart` | Donut chart | Critical/High/Medium/Low distribution | `/alerts/stats` |
+| `DetectionTypeChart` | Bar chart | 7 detection types | `/alerts/stats` |
+| `MITRECoverageChart` | Horizontal bar | 14 MITRE ATT&CK tactics/techniques | `/alerts/mitre-coverage` |
+| `EventsBySourceChart` | Stacked bar | Events/Alerts/Incidents by source | `/sources/event-counts` |
+| `RecentActivityPanel` | Summary cards | Key metrics overview | `/alerts/stats`, `/incidents/stats` |
+
+---
+
+#### T-031: Code-split Chart Components — **COMPLETE**
+- All 6 chart components wrapped with `React.lazy()` + `Suspense` with skeleton fallbacks
+- Vite manual chunks: vendor-react, vendor-query, vendor-charts (recharts), vendor-ui, 6 individual chart chunks
+- **Build Results:**
+  - Before: ~1.04 MB JS (gzipped: 287 KB), single chunk warning
+  - After: ~601 KB JS (gzipped: 171 KB) for main chunk, 6 lazy-loaded chart chunks (2-28 KB each), recharts in vendor-charts chunk (350 KB)
+  - **42% reduction in main bundle size**
+
+---
 
 ### Milestone 4: Browser Security Agent
-**Target: TBD (after Milestone 3)**
+**Target: TBD (after Milestone 3)**  
 **Status: ⏳ PLANNED — 0%**
+
 - Browser extension (Manifest V3)
 - Content script for DOM monitoring
-- CSP violation detection
+- CSP violation detection & reporting
 - DOM integrity monitoring
 - Bot/automation detection
 - Event batching & batch send to HawkEye API
-- CSP reporting integration
+- CSP reporting endpoint integration
+
+---
 
 ### Milestone 5: SDK Integrations
-**Target: TBD (after Milestone 4)**
+**Target: TBD (after Milestone 4)**  
 **Status: ⏳ PLANNED — 0%**
+
 - Python/Flask SDK (middleware)
 - FastAPI middleware
 - Express.js/Node.js middleware
 - Python SDK for direct API usage
 - Framework-agnostic client library
 
+---
+
 ### Milestone 6: Attack Replay & Documentation
-**Target: TBD (after Milestone 5)**
+**Target: TBD (after Milestone 5)**  
 **Status: ⏳ PLANNED — 0%**
+
 - Attack replay engine
 - Replay API endpoints
 - Replay UI in dashboard
 - Comprehensive API documentation (OpenAPI)
-- Deployment guide (Docker, Kubernetes)
+- Deployment guides (Docker, Kubernetes)
 - Architecture documentation
 - Integration guides
 
 ---
 
 ## Current Status
-**Active Milestone: Milestone 3 - Frontend Dashboard**
-**Progress: ~85% (Backend 100% Ready, Frontend scaffold + Dashboard + Events + Alerts + Incidents + Detail Views + Statistics Dashboard complete)**
+
+**Active Milestone: Milestone 3 - Frontend Dashboard**  
+**Progress: ~99% (Backend 100% Ready, All 6 Pages Complete, Real-time WebSocket Connected, Bundle Optimized)**
+
+Only remaining: Optional backend lint cleanup (T-034).
 
 ---
 
 ## Milestone Dependencies
+
 ```
 Milestone 1 (Backend MVP) → Milestone 2 (WebSocket Backend)
     ↓                              ↓
@@ -102,50 +156,32 @@ Milestone 5 (SDKs) → Milestone 6 (Attack Replay & Docs)
 |-----------|--------|----------|
 | React 18 + TypeScript + Vite setup | ✅ | `frontend/` |
 | Tailwind CSS configuration | ✅ | `frontend/tailwind.config.js` |
-| shadcn/ui component library | ✅ | `frontend/src/components/ui/` |
-| 14 UI primitives (Button, Card, Badge, Table, Input, Select, Dialog, Toast, Tabs, Avatar, Dropdown, ScrollArea, Separator, Label, Switch, Tooltip) | ✅ | `frontend/src/components/ui/` |
+| shadcn/ui component library (24 primitives) | ✅ | `frontend/src/components/ui/` |
 | ThemeProvider (dark/light, localStorage) | ✅ | `frontend/src/components/providers/ThemeProvider.tsx` |
 | React Router v6 with nested routes | ✅ | `frontend/src/App.tsx` |
 | TanStack Query (React Query) setup | ✅ | `frontend/src/main.tsx` |
 | API client with full TypeScript types | ✅ | `frontend/src/api/client.ts` |
 | AppLayout with collapsible Sidebar | ✅ | `frontend/src/components/layout/AppLayout.tsx`, `Sidebar.tsx` |
-| TopNav with ThemeToggle | ✅ | `frontend/src/components/layout/TopNav.tsx`, `frontend/src/components/ThemeToggle.tsx` |
-| DashboardPage (stats cards, quick actions, StatsDashboard with charts) | ✅ | `frontend/src/pages/Dashboard.tsx` |
-| EventsPage (filterable/searchable table with placeholder data) | ✅ | `frontend/src/pages/Events.tsx` |
-| AlertsPage (real-time alert feed + REST-backed alert list with WebSocket) | ✅ | `frontend/src/pages/Alerts.tsx` |
-| IncidentsPage (real-time incident timeline + incident list with WebSocket) | ✅ | `frontend/src/pages/Incidents.tsx` |
-| Routing for all 7 pages (Dashboard, Events, Alerts, Incidents, Sources, API Keys, Settings) | ✅ | `frontend/src/App.tsx` |
-| WebSocket hook (`useWebSocket`) with auto-reconnect, session resume, subscriptions | ✅ | `frontend/src/hooks/useWebSocket.ts` |
-| AlertFeed component (real-time alerts, severity badges, MITRE tags, new alert highlight) | ✅ | `frontend/src/components/AlertFeed.tsx` |
-| IncidentTimeline component (vertical timeline, expandable cards, MITRE tactics/techniques, metadata, action buttons) | ✅ | `frontend/src/components/IncidentTimeline.tsx` |
-| **AlertDetail component (modal with Overview, Evidence, MITRE ATT&CK, Actions tabs; status actions: Acknowledge, Resolve, Suppress, Reopen)** | ✅ | `frontend/src/components/AlertDetail.tsx` |
-| **IncidentDetail component (modal with Overview, Timeline, Related Alerts, MITRE ATT&CK, Actions tabs; status actions: Open, Investigating, Resolve, Close)** | ✅ | `frontend/src/components/IncidentDetail.tsx` |
-| **Statistics Dashboard with Charts** | ✅ | `frontend/src/components/StatsDashboard.tsx`, `frontend/src/components/charts/` |
-| **6 Chart Components (Recharts)** | ✅ | `frontend/src/components/charts/` |
+| TopNav with ThemeToggle + Search + ConnectionStatusInline | ✅ | `frontend/src/components/layout/TopNav.tsx`, `ThemeToggle.tsx` |
+| DashboardPage (stats cards, 6 charts, code-split) | ✅ | `frontend/src/pages/Dashboard.tsx` |
+| EventsPage (filterable table, search, pagination, WebSocket live, CSV export) | ✅ | `frontend/src/pages/Events.tsx` |
+| AlertsPage (real-time feed, WebSocket + REST) | ✅ | `frontend/src/pages/Alerts.tsx` |
+| IncidentsPage (timeline, WebSocket + REST) | ✅ | `frontend/src/pages/Incidents.tsx` |
+| AlertDetail component (modal, 5 tabs, status actions) | ✅ | `frontend/src/components/AlertDetail.tsx` |
+| IncidentDetail component (modal, 5 tabs, status actions) | ✅ | `frontend/src/components/IncidentDetail.tsx` |
+| Statistics Dashboard with Charts | ✅ | `frontend/src/components/StatsDashboard.tsx`, `charts/` |
+| 6 Chart Components (Recharts) — lazy-loaded | ✅ | `frontend/src/components/charts/` |
+| Source/API Key Management UI | ✅ | `frontend/src/components/SourceManager.tsx`, `Sources.tsx` |
+| Settings Page (4 tabs) | ✅ | `frontend/src/pages/Settings.tsx` |
+| WebSocket hook (auto-reconnect, session resume, subscriptions) | ✅ | `frontend/src/hooks/useWebSocket.ts` |
+| ConnectionStatusCard (reusable inline + card) | ✅ | `frontend/src/components/ConnectionStatusCard.tsx` |
 
-### 📊 Chart Components Implemented
-| Chart | Type | Description |
-|-------|------|-------------|
-| `AlertsOverTimeChart` | Area chart | Time-series alerts over 24h/7d/30d with gradient fill |
-| `SeverityDistributionChart` | Donut chart | Critical/High/Medium/Low severity distribution |
-| `DetectionTypeChart` | Bar chart | 7 detection types (vertical/horizontal) |
-| `MITRECoverageChart` | Horizontal bar | 14 MITRE ATT&CK tactics with distinct colors |
-| `EventsBySourceChart` | Stacked horizontal bar | Events/Alerts/Incidents by source |
-| `RecentActivityPanel` | Summary cards | Icon + count summary for key metrics |
+---
 
 ### 🟢 IN PROGRESS / NEXT
 | Task | Status | Details |
 |------|--------|---------|
-| T-026: Source/API Key Management UI | ⏳ PENDING | List, CRUD, key gen/revoke/rotate, copy to clipboard, expiry |
-| T-027: Theme Toggle in TopNav | 🟢 PARTIAL | ThemeProvider done, need Toggle integration in TopNav |
-
-### 📦 ALREADY INSTALLED DEPENDENCIES (package.json)
-- `react`, `react-dom`, `react-router-dom`
-- `@tanstack/react-query` (v5)
-- `axios`, `recharts`, `lucide-react`
-- `clsx`, `tailwind-merge`, `date-fns`
-- `tailwindcss`, `autoprefixer`, `postcss`
-- `typescript`, `vite`, `eslint`, `@types/react`
+| **T-034: Backend lint cleanup** | ⏳ OPTIONAL | 52 ruff issues (C901, E501, E741, ANN201, SIM102) — style only, no functional impact |
 
 ---
 
