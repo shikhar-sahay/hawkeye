@@ -144,6 +144,7 @@ class Incident(SQLModel, table=True):
     __tablename__ = "incidents"
 
     id: int | None = Field(default=None, primary_key=True)
+    source_id: int = Field(foreign_key="application_sources.id", index=True)
     title: str = Field(max_length=200)
     description: str = Field(sa_column=Column(Text))
     severity: str = Field(max_length=20, index=True)
@@ -174,6 +175,7 @@ class Incident(SQLModel, table=True):
 
     # Relationships
     incident_alerts: list["IncidentAlert"] = Relationship(back_populates="incident")
+    source: ApplicationSource | None = Relationship()
 
 
 class IncidentAlert(SQLModel, table=True):
@@ -207,6 +209,7 @@ class ApiKey(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     source_id: int = Field(foreign_key="application_sources.id", index=True)
     key_hash: str = Field(max_length=128, unique=True, index=True)
+    key_prefix: str = Field(default="", max_length=20)  # e.g., "hk_abcd"
     name: str = Field(max_length=100)
     description: str | None = Field(default=None, max_length=500)
     is_active: bool = Field(default=True)

@@ -679,7 +679,7 @@ async def websocket_endpoint(
     ),
 ) -> None:
     """
-    WebSocket endpoint for real-time alerts and incidents.
+    WebSocket endpoint for real-time alerts, incidents, and events.
 
     Authentication (one of):
         - Authorization: Bearer <api_key> header
@@ -688,28 +688,28 @@ async def websocket_endpoint(
 
     Query Parameters:
         subscribe: Comma-separated event types to subscribe to (default: "alerts,incidents")
-                   Valid values: "alerts", "incidents"
+                   Valid values: "alerts", "incidents", "events"
 
     Message Format (Server -> Client):
         {
-            "type": "alert" | "incident" | "ping" | "pong" | "connected" | "error",
+            "type": "alert" | "incident" | "event" | "ping" | "pong" | "connected" | "error",
             "timestamp": "2026-01-01T00:00:00Z",
-            "data": { ... }  // Present for alert/incident types
+            "data": { ... }  // Present for alert/incident/event types
         }
 
     Message Format (Client -> Server):
         {
             "type": "pong" | "subscribe" | "unsubscribe",
-            "data": { ... }  // For subscribe/unsubscribe: {"types": ["alerts", "incidents"]}
+            "data": { ... }  // For subscribe/unsubscribe: {"types": ["alerts", "incidents", "events"]}
         }
     """
     # Parse subscriptions
     sub_types = {s.strip() for s in subscribe.split(",") if s.strip()}
-    valid_types = {"alerts", "incidents"}
+    valid_types = {"alerts", "incidents", "events"}
     subscriptions = sub_types & valid_types
 
     if not subscriptions:
-        subscriptions = {"alerts", "incidents"}
+        subscriptions = {"alerts", "incidents", "events"}
 
     connection_id = await connection_manager.connect(websocket, source, subscriptions)
 
