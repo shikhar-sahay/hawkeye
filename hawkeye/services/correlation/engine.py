@@ -305,15 +305,21 @@ class CorrelationEngine:
 
         # Update severity if needed
         severity_order = {
-            IncidentSeverity.LOW: 1,
-            IncidentSeverity.MEDIUM: 2,
-            IncidentSeverity.HIGH: 3,
-            IncidentSeverity.CRITICAL: 4,
+            "low": 1,
+            "medium": 2,
+            "high": 3,
+            "critical": 4,
         }
-        alert_severity = severity_order.get(Severity(alert.severity), 2)
-        current_severity = severity_order.get(IncidentSeverity(incident.severity), 2)
+        severity_by_value = {
+            1: IncidentSeverity.LOW,
+            2: IncidentSeverity.MEDIUM,
+            3: IncidentSeverity.HIGH,
+            4: IncidentSeverity.CRITICAL,
+        }
+        alert_severity = severity_order.get(alert.severity, 2)
+        current_severity = severity_order.get(incident.severity, 2)
         if alert_severity > current_severity:
-            incident.severity = IncidentSeverity(alert_severity).value
+            incident.severity = severity_by_value[alert_severity].value
 
         # Update alert status
         alert.status = "correlated"

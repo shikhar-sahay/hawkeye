@@ -44,15 +44,29 @@ EVENT_CATEGORIES = {
 
 # MITRE ATT&CK mappings for known event types
 MITRE_MAPPINGS = {
+    # Authentication
     "login_failed": ("TA0006", "T1110"),      # Credential Access / Brute Force
     "login_success": ("TA0006", "T1078"),     # Credential Access / Valid Accounts
     "account_locked": ("TA0006", "T1110"),    # Credential Access / Brute Force
     "password_reset": ("TA0006", "T1078"),    # Credential Access / Valid Accounts
+    "logout": ("TA0006", "T1078"),            # Credential Access / Valid Accounts
+    "mfa_challenge": ("TA0006", "T1110"),     # Credential Access / Brute Force
+    "mfa_enabled": ("TA0006", "T1078"),       # Credential Access / Valid Accounts
+    "mfa_disabled": ("TA0005", "T1556"),      # Defense Evasion / Modify Authentication Process
+
+    # Authorization / Privilege Escalation
     "privilege_escalation": ("TA0004", "T1068"), # Privilege Escalation / Exploitation for Privilege Escalation
     "admin_action": ("TA0004", "T1098"),      # Privilege Escalation / Account Manipulation
+    "role_changed": ("TA0005", "T1098"),      # Defense Evasion / Account Manipulation
+    "permission_denied": ("TA0004", "T1068"), # Privilege Escalation / Exploitation for Privilege Escalation
+
+    # Data Exfiltration
     "data_export": ("TA0010", "T1005"),       # Exfiltration / Data from Local System
     "api_key_created": ("TA0005", "T1602"),   # Defense Evasion / External Remote Services
-    "role_changed": ("TA0005", "T1098"),      # Defense Evasion / Account Manipulation
+    "billing_change": ("TA0010", "T1530"),    # Exfiltration / Data from Cloud Storage
+    "user_deleted": ("TA0040", "T1485"),      # Impact / Data Destruction
+
+    # Browser / Client-side
     "automation_detected": ("TA0007", "T1588"), # Discovery / Obtain Capabilities (bot detection)
     "headless_browser_detected": ("TA0007", "T1588"),
     "devtools_detected": ("TA0007", "T1588"),
@@ -61,6 +75,25 @@ MITRE_MAPPINGS = {
     "localstorage_tampering": ("TA0005", "T1556"),
     "token_removed": ("TA0006", "T1528"),     # Credential Access / Steal Application Access Token
     "integrity_failure": ("TA0005", "T1565"), # Defense Evasion / Data Manipulation
+
+    # Enumeration / Discovery
+    "request": ("TA0007", "T1083"),           # Discovery / File and Directory Discovery (404s)
+    "http_request": ("TA0007", "T1083"),      # Discovery / File and Directory Discovery
+    "api_access": ("TA0007", "T1590"),        # Reconnaissance / Active Scanning
+    "rate_limit_exceeded": ("TA0007", "T1590"), # Reconnaissance / Active Scanning
+
+    # Injection / Exploitation
+    "http_exception": ("TA0001", "T1190"),    # Initial Access / Exploit Public-Facing Application
+    "sql_injection": ("TA0001", "T1190"),     # Initial Access / Exploit Public-Facing Application
+    "xss_attempt": ("TA0001", "T1059"),       # Execution / Command and Scripting Interpreter
+    "command_injection": ("TA0001", "T1059"), # Execution / Command and Scripting Interpreter
+    "path_traversal": ("TA0001", "T1083"),    # Discovery / File and Directory Discovery
+    "template_injection": ("TA0001", "T1059"), # Execution / Command and Scripting Interpreter
+
+    # Session / Credential
+    "session_hijacking": ("TA0006", "T1550"), # Credential Access / Use Alternate Authentication Material
+    "token_theft": ("TA0006", "T1528"),       # Credential Access / Steal Application Access Token
+    "credential_stuffing": ("TA0006", "T1110"), # Credential Access / Brute Force
 }
 
 
@@ -71,12 +104,16 @@ HIGH_SEVERITY_EVENTS = {
     "admin_action", "data_export", "automation_detected",
     "headless_browser_detected", "cookie_tampering",
     "localstorage_tampering", "integrity_failure",
+    "sql_injection", "xss_attempt", "command_injection",
+    "path_traversal", "template_injection", "user_deleted",
+    "permission_denied", "token_theft", "credential_stuffing",
 }
 MEDIUM_SEVERITY_EVENTS = {
     "login_failed", "login", "mfa_challenge", "rate_limit_exceeded",
     "http_exception", "role_changed", "api_key_created",
     "csp_violation", "devtools_detected", "token_removed",
-    "password_reset",
+    "password_reset", "logout", "api_access", "http_request",
+    "mfa_enabled", "mfa_disabled", "billing_change", "session_hijacking",
 }
 
 

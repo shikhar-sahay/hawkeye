@@ -162,6 +162,26 @@ class TestBotDetector:
     async def test_detect_headless_browser(self, detector, context):
         """Test detection of headless browser events."""
         context.event.event_type = "headless_browser_detected"
+
+        # Mock 2 headless events from same IP (minimum required)
+        headless_events = [
+            NormalizedEvent(
+                id=1,
+                source_id=1,
+                timestamp=datetime.utcnow() - timedelta(minutes=5),
+                ip="192.168.1.1",
+                event_type="headless_browser_detected",
+            ),
+            NormalizedEvent(
+                id=2,
+                source_id=1,
+                timestamp=datetime.utcnow() - timedelta(minutes=3),
+                ip="192.168.1.1",
+                event_type="headless_browser_detected",
+            ),
+        ]
+        context.session.exec.return_value.all.return_value = headless_events
+
         alerts = await detector.detect(context)
         assert len(alerts) == 1
         assert alerts[0].detection_type == "bot_detection"

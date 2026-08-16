@@ -199,7 +199,7 @@ class EnumerationDetector(BaseDetector):
             r"(--|#|;|/\*|\*/)",  # SQL comments
             r"(<script|javascript:|on\w+\s*=)",  # XSS
             r"(\$\{|\#\{)",  # Template injection
-            r"(\.\./|\.\.\\\)",  # Path traversal
+            r"(\.\./|\.\.\\)",  # Path traversal
             r"(rm\s+-rf|wget|curl\s+-O)",  # Command injection
         ]
 

@@ -206,8 +206,17 @@ class BotDetector(BaseDetector):
             if self._analyze_user_agent(e.user_agent)["is_bot"]
         )
 
-        if bot_count < 2:  # Require at least some consistency
-            pass  # Still alert but lower confidence
+        # Require at least 5 bot-like requests from same IP to trigger
+        if bot_count < 5:
+            return None
+
+        # Determine severity based on confidence and volume
+        if analysis["confidence"] >= 0.9 and bot_count >= 50:
+            severity = Severity.HIGH
+        elif analysis["confidence"] >= 0.8 and bot_count >= 20:
+            severity = Severity.MEDIUM
+        else:
+            severity = Severity.LOW
 
         evidence: dict = {
             "ip": event.ip,
@@ -222,11 +231,12 @@ class BotDetector(BaseDetector):
             f"Bot Traffic Detected from {event.ip}",
             (
                 f"User agent analysis indicates automated traffic from IP {event.ip}. "
+                f"Detected {bot_count} bot-like requests in window. "
                 f"Confidence: {analysis['confidence']:.0%}. "
-                f"Reasons: {', '.join(analysis['reasons'])}"
+                f"Reasons: {', '.join(analysis['reasons'][:5])}"
             ),
             evidence,
-            severity=Severity.MEDIUM,
+            severity=severity,
             confidence=analysis["confidence"],
         )
 
@@ -242,12 +252,29 @@ class BotDetector(BaseDetector):
         }:
             return None
 
+        # Check if this is a pattern or isolated event
+        stmt = select(NormalizedEvent).where(
+            NormalizedEvent.source_id == event.source_id,
+            NormalizedEvent.ip == event.ip,
+            NormalizedEvent.event_type.in_(["headless_browser_detected", "devtools_detected", "automation_detected"]),
+            NormalizedEvent.timestamp >= context.time_window_start,
+        )
+        result = await context.session.exec(stmt)
+        headless_events = list(result.all())
+
+        if len(headless_events) < 2:
+            return None  # Require at least 2 headless events
+
         evidence: dict = {
             "ip": event.ip,
             "event_type": event.event_type,
             "user_agent": event.user_agent,
             "event_metadata": event.event_metadata,
+            "headless_event_count": len(headless_events),
         }
+
+        severity = Severity.HIGH if len(headless_events) >= 5 else Severity.MEDIUM
+        confidence = min(0.95, 0.7 + len(headless_events) * 0.05)
 
         return self._create_alert(
             event,
@@ -255,11 +282,12 @@ class BotDetector(BaseDetector):
             (
                 f"Browser security agent detected {event.event_type.replace('_', ' ')} "
                 f"from IP {event.ip}. This indicates automated browser usage, "
-                f"commonly used for scraping, testing, or attacks."
+                f"commonly used for scraping, testing, or attacks. "
+                f"Total headless events: {len(headless_events)}"
             ),
             evidence,
-            severity=Severity.HIGH,
-            confidence=0.9,
+            severity=severity,
+            confidence=confidence,
         )
 
     async def _check_automation_patterns(self, context: DetectionContext) -> Alert | None:
@@ -334,7 +362,7 @@ class BotDetector(BaseDetector):
         result = await context.session.exec(stmt)
         recent = list(result.all())
 
-        if len(recent) < settings.api_abuse_rpm_threshold:
+        if len(recent) < 50:  # Need significant volume
             return None
 
         # Calculate requests per minute
@@ -403,6 +431,9 @@ class BotDetector(BaseDetector):
         result = await context.session.exec(stmt)
         recent = list(result.all())
 
+        if len(recent) < 10:  # Need enough samples
+            return None
+
         consistent_missing = 0
         for e in recent:
             h = e.event_metadata.get("headers", {}) if e.event_metadata else {}
@@ -410,9 +441,6 @@ class BotDetector(BaseDetector):
                 consistent_missing += 1
 
         if consistent_missing < len(recent) * 0.8:  # 80% consistency
-            return None
-
-        if len(recent) == 0:
             return None
 
         evidence: dict = {
@@ -431,6 +459,6 @@ class BotDetector(BaseDetector):
                 f"{', '.join(missing)}. Indicates non-browser client or scraper."
             ),
             evidence,
-            severity=Severity.MEDIUM,
-            confidence=0.7,
+            severity=Severity.LOW,
+            confidence=0.6,
         )

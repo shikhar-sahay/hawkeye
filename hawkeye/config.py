@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     enumeration_window_minutes: int = 5
     session_hijack_max_distance_km: int = 500
     session_hijack_window_hours: int = 1
-    api_abuse_rpm_threshold: int = 300
+    api_abuse_rpm_threshold: int = 60
     bot_detection_confidence_threshold: float = 0.7
 
     # Detection (per-detector time windows)
