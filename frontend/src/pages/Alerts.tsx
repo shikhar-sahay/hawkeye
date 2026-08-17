@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertFeed } from "@/components/AlertFeed";
 import { AlertDetail } from "@/components/AlertDetail";
-import { useWebSocket, type AlertPayload } from "@/hooks/useWebSocket";
 import { ConnectionStatusCard } from "@/components/ConnectionStatusCard";
 import { apiClient, queryKeys } from "@/api/client";
 import {
@@ -22,10 +21,12 @@ import {
 } from "lucide-react";
 import { cn, getSeverityBadgeVariant } from "@/lib/utils";
 import type { Alert, AlertListParams } from "@/types";
+import { useWebSocketContext, useWebSocketMessage } from "@/context/WebSocketContext";
+import type { AlertPayload } from "@/context/WebSocketContext";
 
 /**
  * AlertsPage - Main alerts management page
- * Fetches initial alerts via REST API, receives real-time updates via WebSocket
+ * Fetches initial alerts via REST API, receives real-time updates via shared WebSocketContext
  */
 export function AlertsPage() {
   const queryClient = useQueryClient();
@@ -38,10 +39,31 @@ export function AlertsPage() {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
 
-  // WebSocket state
+  // WebSocket state for live alerts
   const [liveAlerts, setLiveAlerts] = React.useState<AlertPayload[]>([]);
-  const [sessionId, setSessionId] = React.useState<string | null>(null);
-  const [selectedAlert, setSelectedAlert] = React.useState<Alert | null>(null);
+
+  // Shared WebSocket context for connection status and subscriptions
+  const {
+    status: wsConnectionStatus,
+    sessionId,
+    lastEventId: wsLastEventId,
+    reconnect,
+    disconnect,
+  } = useWebSocketContext();
+
+  // Subscribe to real-time alerts via shared WebSocket
+  useWebSocketMessage("alert", (message) => {
+    const alert = message.data as AlertPayload;
+    // Prepend new alert to live alerts
+    setLiveAlerts((prev) => [alert, ...prev.slice(0, 99)]); // Keep max 100 live alerts
+    // Invalidate query to refresh if needed
+    queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all });
+  });
+
+  // Subscribe to incidents for query invalidation
+  useWebSocketMessage("incident", () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.incidents.all });
+  });
 
   // Fetch initial alerts via TanStack Query
   const {
@@ -104,45 +126,6 @@ export function AlertsPage() {
         alert.mitre_techniques.some((technique: string) => technique.toLowerCase().includes(query))
     );
   }, [combinedAlerts, searchQuery]);
-
-  // Get API key from localStorage (or auth context)
-  const apiKey = React.useMemo(() => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("hawkeye_api_key");
-  }, []);
-
-  // WebSocket hook
-  const {
-    status: wsConnectionStatus,
-    sessionId: wsSessionId,
-    lastEventId: wsLastEventId,
-    reconnect,
-    disconnect,
-  } = useWebSocket({
-    apiKey: apiKey || "",
-    subscriptions: ["alerts"],
-    autoReconnect: true,
-    onStatusChange: () => {}, // Connection status available via wsConnectionStatus
-    onAlert: (alert) => {
-      // Prepend new alert to live alerts
-      setLiveAlerts((prev) => [alert, ...prev.slice(0, 99)]); // Keep max 100 live alerts
-      // Invalidate query to refresh if needed
-      queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all });
-    },
-    onIncident: () => {
-      // Could add incident notifications here
-    },
-    onError: (error) => {
-      console.error("WebSocket error:", error);
-    },
-  });
-
-  // Sync session ID for reconnection
-  React.useEffect(() => {
-    if (wsSessionId) {
-      setSessionId(wsSessionId);
-    }
-  }, [wsSessionId]);
 
   // Handle filter changes
   const handleFilterChange = (key: keyof AlertListParams, value: string | number | undefined) => {

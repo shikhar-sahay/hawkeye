@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.1] - 2026-08-17 - DASH-POLISH-01: WebSocket Consolidation (ISSUE-1)
+
+### Fixed
+- **ISSUE-1: WebSocket Indicator Flickering** — Consolidated from TWO independent WebSocket implementations to a SINGLE shared connection
+  - **Root Cause**: `useWebSocket.ts` hook created separate connections in AlertsPage, IncidentsPage, EventsPage while `WebSocketContext.tsx` provider created another for TopNav — causing race conditions, flickering, and reconnection storms
+  - **Resolution**: Migrated all pages to shared `WebSocketContext` (Context + Provider pattern)
+    - `WebSocketProvider` in `AppLayout` wraps entire app with single connection
+    - Default subscriptions: `["alerts", "incidents", "events"]`
+    - `useWebSocketContext()` hook provides connection status, session management, reconnect/disconnect
+    - `useWebSocketMessage()` hook subscribes to specific message types (alert, incident, event)
+    - TanStack Query invalidation on real-time message receipt
+
+### Removed
+- **`frontend/src/hooks/useWebSocket.ts`** — Old independent hook implementation (no longer needed)
+  - Types moved to `WebSocketContext.tsx` for centralized definition
+  - AlertFeed.tsx and IncidentTimeline.tsx updated to import types from WebSocketContext
+
+### Changed
+- **`frontend/src/context/WebSocketContext.tsx`** — Enhanced as single source of truth
+  - Added all WebSocket type definitions (WSMessage, WSClientMessage, AlertPayload, IncidentPayload, EventPayload, ConnectedData, WSErrorData)
+  - Exports `useWebSocketContext()`, `useConnectionStatus()`, `useConnectionStatusWithInit()`, `useWebSocketMessage()` hooks
+- **`frontend/src/pages/Alerts.tsx`** — Migrated to `useWebSocketContext` + `useWebSocketMessage("alert")`
+- **`frontend/src/pages/Incidents.tsx`** — Migrated to `useWebSocketContext` + `useWebSocketMessage("incident")`
+- **`frontend/src/pages/Events.tsx`** — Verified already using shared context correctly
+- **`frontend/src/components/AlertFeed.tsx`** — Import types from WebSocketContext
+- **`frontend/src/components/IncidentTimeline.tsx`** — Import types from WebSocketContext
+
+### Verified
+- Frontend build: ✅ PASS (`npm run build`)
+- Frontend lint: ✅ PASS (`npm run lint` — only pre-existing warnings)
+- Backend tests: ✅ 33/33 PASS (`pytest tests/ -v`)
+- TypeScript compilation: ✅ PASS (`tsc --noEmit`)
+- Single WebSocket connection confirmed: No more flickering indicator in TopNav
+
+---
+
 ## [2.4.0] - 2026-08-17 - Dashboard End-to-End Verification & Fixes (T-039)
 
 ### Fixed

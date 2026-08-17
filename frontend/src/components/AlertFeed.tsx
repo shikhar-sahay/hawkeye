@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertTriangle, Clock, Shield, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { AlertPayload } from "@/hooks/useWebSocket";
+import type { AlertPayload } from "@/context/WebSocketContext";
 import { formatRelativeTime } from "@/lib/utils";
 
 interface AlertFeedProps {

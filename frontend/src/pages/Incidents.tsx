@@ -16,7 +16,6 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { IncidentTimeline } from "@/components/IncidentTimeline";
 import { IncidentDetail } from "@/components/IncidentDetail";
-import { useWebSocket, type IncidentPayload } from "@/hooks/useWebSocket";
 import { ConnectionStatusCard } from "@/components/ConnectionStatusCard";
 import { apiClient, queryKeys } from "@/api/client";
 import {
@@ -28,10 +27,12 @@ import {
 } from "lucide-react";
 import { cn, getSeverityBadgeVariant, getStatusBadgeVariant } from "@/lib/utils";
 import type { Incident, IncidentListParams } from "@/types";
+import { useWebSocketContext, useWebSocketMessage } from "@/context/WebSocketContext";
+import type { IncidentPayload } from "@/context/WebSocketContext";
 
 /**
  * IncidentsPage - Main incidents management page
- * Fetches initial incidents via REST API, receives real-time updates via WebSocket
+ * Fetches initial incidents via REST API, receives real-time updates via shared WebSocketContext
  */
 export function IncidentsPage() {
   const queryClient = useQueryClient();
@@ -44,10 +45,32 @@ export function IncidentsPage() {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
 
-  // WebSocket state
+  // WebSocket state for live incidents
   const [liveIncidents, setLiveIncidents] = React.useState<IncidentPayload[]>([]);
-  const [sessionId, setSessionId] = React.useState<string | null>(null);
   const [selectedIncident, setSelectedIncident] = React.useState<Incident | null>(null);
+
+  // Shared WebSocket context for connection status and subscriptions
+  const {
+    status: wsConnectionStatus,
+    sessionId,
+    lastEventId: wsLastEventId,
+    reconnect,
+    disconnect,
+  } = useWebSocketContext();
+
+  // Subscribe to real-time incidents via shared WebSocket
+  useWebSocketMessage("incident", (message) => {
+    const incident = message.data as IncidentPayload;
+    // Prepend new incident to live incidents
+    setLiveIncidents((prev) => [incident, ...prev.slice(0, 99)]); // Keep max 100 live incidents
+    // Invalidate query to refresh if needed
+    queryClient.invalidateQueries({ queryKey: queryKeys.incidents.all });
+  });
+
+  // Subscribe to alerts for query invalidation
+  useWebSocketMessage("alert", () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all });
+  });
 
   // Fetch initial incidents via TanStack Query
   const {
@@ -110,42 +133,6 @@ export function IncidentsPage() {
         incident.affected_users.some((user: string) => user.toLowerCase().includes(query))
     );
   }, [combinedIncidents, searchQuery]);
-
-  // Get API key from localStorage
-  const apiKey = React.useMemo(() => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("hawkeye_api_key");
-  }, []);
-
-  // WebSocket hook for real-time incident updates
-  const {
-    status: wsConnectionStatus,
-    sessionId: wsSessionId,
-    lastEventId: wsLastEventId,
-    reconnect,
-    disconnect,
-  } = useWebSocket({
-    apiKey: apiKey || "",
-    subscriptions: ["incidents"],
-    autoReconnect: true,
-    onStatusChange: () => {}, // Status available via wsConnectionStatus
-    onIncident: (incident) => {
-      // Prepend new incident to live incidents
-      setLiveIncidents((prev) => [incident, ...prev.slice(0, 99)]); // Keep max 100 live incidents
-      // Invalidate query to refresh if needed
-      queryClient.invalidateQueries({ queryKey: queryKeys.incidents.all });
-    },
-    onError: (error) => {
-      console.error("WebSocket error:", error);
-    },
-  });
-
-  // Sync session ID for reconnection
-  React.useEffect(() => {
-    if (wsSessionId) {
-      setSessionId(wsSessionId);
-    }
-  }, [wsSessionId]);
 
   // Handle filter changes
   const handleFilterChange = (key: keyof IncidentListParams, value: string | number | undefined) => {

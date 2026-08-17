@@ -18,7 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { cn, formatRelativeTime, getSeverityBadgeVariant, getStatusBadgeVariant, getMitreTacticLabel } from "@/lib/utils";
-import type { IncidentPayload } from "@/hooks/useWebSocket";
+import type { IncidentPayload } from "@/context/WebSocketContext";
 import type { Incident } from "@/types";
 
 interface IncidentTimelineProps {

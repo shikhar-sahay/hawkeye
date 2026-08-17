@@ -2,7 +2,7 @@
 
 ## Session Metadata
 - **Date**: 2026-08-17
-- **Session ID**: 2026-08-17-02
+- **Session ID**: 2026-08-17-03
 - **Claude Model**: nvidia/nemotron-3-ultra-550b-a55b:free
 - **Branch**: master
 - **Commit**: 3559424
@@ -16,7 +16,8 @@
 | **1: Backend MVP** | ✅ COMPLETE | 100% | 2026-07-27 | 2026-07-24 |
 | **2: WebSocket Backend** | ✅ COMPLETE | 100% | After M1 | 2026-07-24 |
 | **3: Frontend Dashboard** | ✅ COMPLETE | 100% | After M2 | 2026-08-02 |
-| **4: Browser Security Agent** | 🟢 IN PROGRESS | ~10% | After M3 | — |
+| **3.5: Dashboard Polish + Functionality** | 🟢 IN PROGRESS | ~0% | After M3 | — |
+| **4: Browser Security Agent** | ⏳ PLANNED | 0% | After M3.5 | — |
 | **5: SDK Integrations** | ⏳ PLANNED | 0% | After M4 | — |
 | **6: Attack Replay & Docs** | ⏳ PLANNED | 0% | After M5 | — |
 
@@ -24,69 +25,96 @@
 
 ## Current Active Engineering Task
 
-### Task ID: T-039 - Dashboard End-to-End Verification & Fixes
-### Status: **COMPLETED**
+### Task ID: DASH-POLISH-01 - Dashboard Polish + Functionality Phase
+### Status: **IN PROGRESS - ISSUE-1 Complete (WebSocket Consolidation)**
 
-**Summary:** Diagnosed and fixed why Alerts and Incidents pages showed "Failed to load alerts/incidents — Unknown error" and WebSocket showed "Disconnected". Root cause was missing API key in WebSocket connection.
+**Summary:** Comprehensive polish of the existing Hawkeye dashboard to make it a genuinely usable, production-ready security monitoring interface backed by REAL backend data. This phase addresses 7 key issues identified in the dashboard.
 
-**Root Causes Identified:**
+**Issues to Address:**
 
-1. **Alerts/Incidents REST endpoints** - Already working correctly. The "Failed to load" errors were caused by the WebSocket connection failing, which triggered React Query to show error state.
+1. **ISSUE-1: Connection Status / WebSocket Indicator Flickering** (P0) ✅ **COMPLETE**
+   - Root cause: TWO WebSocket implementations creating multiple connections
+   - `useWebSocket.ts` hook used by AlertsPage, IncidentsPage, EventsPage
+   - `WebSocketContext.tsx` provider used by TopNav
+   - Multiple connections cause flickering, race conditions, reconnection storms
+   - **Resolution:** Migrated AlertsPage, IncidentsPage, EventsPage to shared WebSocketContext; removed useWebSocket.ts hook; types moved to WebSocketContext.tsx
 
-2. **WebSocket Disconnection** - The frontend WebSocket implementations (`useWebSocket.ts` and `WebSocketContext.tsx`) were NOT sending the API key for authentication. The backend requires API key via one of:
-   - `Authorization: Bearer <key>` header
-   - `X-API-Key: <key>` header
-   - `?api_key=<key>` query parameter
+2. **ISSUE-2: Refresh Buttons Non-Functional** (P1)
+   - Alerts, Incidents, Sources, Events pages have Refresh buttons
+   - Need to verify they trigger real API refetches with proper loading states
 
-   Since WebSocket in browsers can't easily send custom headers, the query parameter approach is used.
+3. **ISSUE-3: Dashboard Time-Range Controls (24h/7d/30d) Non-Interactive** (P1)
+   - StatsDashboard has hardcoded Badge components that don't respond to clicks
+   - Need clickable controls that update timeRange and refetch chart data
 
-**Fixes Applied:**
+4. **ISSUE-4: Global Search Limited** (P2)
+   - TopNav search only navigates to Events page
+   - No autocomplete, no unified search across alerts/incidents/events/sources
 
-1. **`frontend/src/hooks/useWebSocket.ts`** - Added `apiKey` to query parameters in `getWsUrl()`:
-   ```typescript
-   const apiKeyParam = apiKey ? `&api_key=${encodeURIComponent(apiKey)}` : "";
-   return `${protocol}//${host}/ws?subscribe=${encodeURIComponent(subscribeParam)}${apiKeyParam}`;
-   ```
+5. **ISSUE-5: Notification Bell Non-Functional** (P2)
+   - Bell icon has no onClick handler
+   - Should show recent high-severity alerts/incidents from WebSocket data
 
-2. **`frontend/src/context/WebSocketContext.tsx`** - Added `apiKey` to query parameters in `getWsUrl()`:
-   ```typescript
-   const apiKeyParam = apiKey ? `&api_key=${encodeURIComponent(apiKey)}` : "";
-   return `/ws?subscribe=${encodeURIComponent(subscribeParam)}${apiKeyParam}`;
-   ```
+6. **ISSUE-6: Profile/User Menu Items Dead** (P2)
+   - Profile, Security Settings, Sign Out have no handlers
+   - Sign Out should clear localStorage API key
 
-**Verification Performed:**
-- Direct API test with demo key: `GET /api/v1/alerts` ✅ Returns data
-- Direct API test with demo key: `GET /api/v1/incidents` ✅ Returns data
-- Direct WebSocket test with demo key: `ws://localhost:8000/ws?subscribe=alerts,incidents&api_key=...` ✅ Connects, authenticates, receives "connected" message
-- Backend tests: 33/33 pass ✅
-- Frontend build: Successful ✅
+7. **ISSUE-7: General Visual/UX Polish** (P3)
+   - Inconsistent spacing, loading states, empty states, layout jumps
+   - Preserve existing Hawkeye design language
 
-**Files Modified:**
-- `frontend/src/hooks/useWebSocket.ts`
-- `frontend/src/context/WebSocketContext.tsx`
+**Implementation Order Completed:**
+1. ✅ **ISSUE-1** (WebSocket consolidation) — Foundation for all real-time features
+
+**Files Modified (ISSUE-1):**
+- `frontend/src/context/WebSocketContext.tsx` — Added type definitions, serves as single source of truth
+- `frontend/src/pages/Alerts.tsx` — Migrated to useWebSocketContext + useWebSocketMessage
+- `frontend/src/pages/Incidents.tsx` — Migrated to useWebSocketContext + useWebSocketMessage
+- `frontend/src/pages/Events.tsx` — Already using WebSocketContext (verified)
+- `frontend/src/components/AlertFeed.tsx` — Updated import to use WebSocketContext types
+- `frontend/src/components/IncidentTimeline.tsx` — Updated import to use WebSocketContext types
+- `frontend/src/hooks/useWebSocket.ts` — **REMOVED** (no longer needed)
+
+**Verification Results:**
+- Frontend build: ✅ PASS (npm run build)
+- Frontend lint: ✅ PASS (npm run lint - only pre-existing warnings)
+- Backend tests: ✅ 33/33 PASS (pytest tests/ -v)
+- TypeScript compilation: ✅ PASS
+
+**Next Action:** Begin ISSUE-3 (Dashboard time-range controls) or ISSUE-2 (Refresh buttons verification)
+
+**Handoff Notes:**
+- Single WebSocket architecture is now in place: WebSocketProvider in AppLayout wraps entire app with subscriptions ["alerts", "incidents", "events"]
+- All three real-time pages (Alerts, Incidents, Events) use shared WebSocketContext via useWebSocketContext and useWebSocketMessage hooks
+- Connection status in TopNav uses useConnectionStatusWithInit which reads from shared context
+- TanStack Query invalidation works correctly on real-time message receipt
+- Old useWebSocket.ts hook completely removed; types now defined in WebSocketContext.tsx
 
 ---
 
-## Previous Fix: Sources Page Duplicate Heading (2026-08-17)
+## Previous Completed Tasks (Reference)
 
-**Root Cause:** `SourceManager.tsx` had its own "Sources" page header in addition to the one from `Sources.tsx` page.
+### T-039: Dashboard End-to-End Verification & Fixes (2026-08-17)
+- Fixed WebSocket authentication (missing API key in query param)
+- Fixed Sources page duplicate heading
+- All 33 backend tests pass
+- Frontend build & lint clean
 
-**Fix Applied:**
-- Removed the redundant `<h1>Sources</h1>` header from `frontend/src/components/SourceManager.tsx`
-- Preserved the Refresh and Add Source controls
-- `Sources.tsx` page provides the page title
-
-**Files Modified:**
-- `frontend/src/components/SourceManager.tsx`
+### T-031: Code-split Chart Components (2026-08-02)
+- React.lazy() + Suspense for 6 chart components
+- Vite manual chunks: 42% bundle reduction
+- Main chunk: ~600 KB (gzipped: 171 KB)
 
 ---
 
 ## Files to Review First Next Session
 
-1. `frontend/src/hooks/useWebSocket.ts` - WebSocket hook with API key fix
-2. `frontend/src/context/WebSocketContext.tsx` - WebSocket context with API key fix
-3. `frontend/src/components/SourceManager.tsx` - Sources page component (heading fix)
-4. `hawkeye/api/websocket.py` - WebSocket authentication implementation
+1. `frontend/src/context/WebSocketContext.tsx` - Primary WebSocket implementation to enhance
+2. `frontend/src/hooks/useWebSocket.ts` - To be deprecated/removed
+3. `frontend/src/components/layout/TopNav.tsx` - Search, notifications, profile menu
+4. `frontend/src/components/StatsDashboard.tsx` - Time-range controls
+5. `frontend/src/pages/Alerts.tsx`, `Incidents.tsx`, `Events.tsx` - Switch to WebSocketContext
+6. `hawkeye/api/websocket.py` - Backend WebSocket (already working correctly)
 
 ---
 
@@ -103,8 +131,6 @@ cd frontend
 npm install                         # Install deps
 npm run dev                         # Dev server (port 5173)
 npm run build                       # TypeScript + Vite build
-# Bundle: ~609 KB JS (gzipped: 174 KB), 40 KB CSS
-# Charts: 6 separate chunks (loaded on demand)
 npm run lint                        # ESLint check
 
 # Browser Agent

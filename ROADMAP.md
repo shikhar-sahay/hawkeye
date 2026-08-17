@@ -57,7 +57,7 @@ Build a production-ready Web Application Security Monitoring Platform (SIEM-lite
 | **IncidentDetail Modal** (5 tabs: Overview, Timeline, Alerts, MITRE, Actions) | ✅ COMPLETE | `frontend/src/components/IncidentDetail.tsx` |
 | **Sources Page** (SourceManager: CRUD + API key lifecycle + pagination) | ✅ COMPLETE | `frontend/src/pages/Sources.tsx`, `SourceManager.tsx` |
 | **Settings Page** (4 tabs: General, API, WebSocket, About) | ✅ COMPLETE | `frontend/src/pages/Settings.tsx` |
-| WebSocket hook (auto-reconnect, session resume) | ✅ COMPLETE | `frontend/src/hooks/useWebSocket.ts` |
+| WebSocket Context (shared connection, auto-reconnect, session resume) | ✅ COMPLETE | `frontend/src/context/WebSocketContext.tsx` |
 | ConnectionStatusCard (reusable: inline + full card) | ✅ COMPLETE | `frontend/src/components/ConnectionStatusCard.tsx` |
 
 ---
@@ -181,6 +181,7 @@ Milestone 5 (SDKs) → Milestone 6 (Attack Replay & Docs)
 ### 🟢 IN PROGRESS / NEXT
 | Task | Status | Details |
 |------|--------|---------|
+| **DASH-POLISH-01: Dashboard Polish (ISSUE-1)** | ✅ COMPLETE | WebSocket consolidation — single shared connection via WebSocketContext |
 | **T-034: Backend lint cleanup** | ⏳ OPTIONAL | 57 ruff issues (C901, E501, E741, ANN201, SIM102, I001, ERA001, F401, F811) — style only, no functional impact |
 | **T-040: Chrome MV3 Extension Scaffold** | 🟢 IN PROGRESS | Create browser-agent/ directory with manifest.json, background service worker, content scripts, shared types, build config |
 

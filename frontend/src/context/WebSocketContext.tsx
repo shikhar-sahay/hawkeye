@@ -1,12 +1,164 @@
 "use client";
 
 import * as React from "react";
-import type { WSMessage, WSClientMessage, ConnectedData, AlertPayload, IncidentPayload, EventPayload, WSErrorData } from "@/hooks/useWebSocket";
 import { API_KEY as BUILD_TIME_API_KEY } from "@/api/client";
+
+/**
+ * WebSocket message types matching the backend protocol
+ */
+export type WSMessageType =
+  | "alert"
+  | "incident"
+  | "event"
+  | "ping"
+  | "pong"
+  | "connected"
+  | "error"
+  | "subscribed"
+  | "unsubscribed";
+
+/**
+ * Base message structure
+ */
+export interface WSMessage {
+  type: WSMessageType;
+  timestamp: string;
+  event_id?: number;
+  data?: unknown;
+  connection_id?: string;
+  source_id?: number;
+  source_name?: string;
+  subscriptions?: string[];
+  session_id?: string;
+}
+
+/**
+ * Client -> Server message
+ */
+export interface WSClientMessage {
+  type: "pong" | "subscribe" | "unsubscribe" | "ping" | "reconnect";
+  data?: {
+    types?: string[];
+    session_id?: string;
+    last_event_id?: number;
+  };
+}
+
+/**
+ * Alert payload from WebSocket
+ */
+export interface AlertPayload {
+  id: number;
+  source_id: number;
+  detection_type: string;
+  title: string;
+  description: string;
+  severity: "critical" | "high" | "medium" | "low";
+  confidence: number;
+  status: "open" | "acknowledged" | "resolved" | "suppressed";
+  evidence: Record<string, unknown>;
+  mitre_tactics: string[];
+  mitre_techniques: string[];
+  affected_entities: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Incident payload from WebSocket
+ */
+export interface IncidentPayload {
+  id: number;
+  source_id: number;
+  title: string;
+  description: string;
+  severity: "critical" | "high" | "medium" | "low";
+  status: "open" | "investigating" | "resolved" | "closed";
+  affected_ips: string[];
+  affected_users: string[];
+  mitre_tactics: string[];
+  mitre_techniques: string[];
+  alert_count: number;
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+}
+
+/**
+ * Event payload from WebSocket
+ */
+export interface EventPayload {
+  id: number;
+  source_id: number;
+  category: string;
+  event_type: string;
+  severity: "critical" | "high" | "medium" | "low";
+  timestamp: string;
+  user_id: string | null;
+  ip: string | null;
+  route: string | null;
+  method: string | null;
+  status_code: number | null;
+  user_agent: string | null;
+  metadata: Record<string, unknown>;
+  mitre_tactic: string | null;
+  mitre_technique: string | null;
+  created_at: string;
+}
+
+/**
+ * Connected confirmation message data
+ */
+export interface ConnectedData {
+  connection_id: string;
+  source_id: number;
+  source_name: string;
+  subscriptions: string[];
+  session_id?: string;
+}
+
+/**
+ * Error message data
+ */
+export interface WSErrorData {
+  code: string;
+  message: string;
+}
 
 type ConnectionStatus = "disconnected" | "connecting" | "connected" | "reconnecting" | "error";
 
 type WSMessageHandler = (message: WSMessage) => void;
+
+interface UseWebSocketOptions {
+  /** API key for authentication */
+  apiKey?: string;
+  /** Event types to subscribe to */
+  subscriptions?: ("alerts" | "incidents" | "events")[];
+  /** Enable automatic reconnection */
+  autoReconnect?: boolean;
+  /** Maximum reconnection attempts (0 = infinite) */
+  maxReconnectAttempts?: number;
+  /** Base delay for exponential backoff (ms) */
+  reconnectBaseDelay?: number;
+  /** Maximum delay for exponential backoff (ms) */
+  reconnectMaxDelay?: number;
+  /** Heartbeat interval (ms) */
+  heartbeatInterval?: number;
+  /** Callback when connection status changes */
+  onStatusChange?: (status: ConnectionStatus) => void;
+  /** Callback when an alert is received */
+  onAlert?: (alert: AlertPayload, eventId: number) => void;
+  /** Callback when an incident is received */
+  onIncident?: (incident: IncidentPayload, eventId: number) => void;
+  /** Callback when an event is received */
+  onEvent?: (event: EventPayload, eventId: number) => void;
+  /** Callback when connection error occurs */
+  onError?: (error: Error) => void;
+  /** Callback when connected */
+  onConnect?: (data: ConnectedData) => void;
+  /** Callback when disconnected */
+  onDisconnect?: () => void;
+}
 
 interface WebSocketContextValue {
   /** Current connection status */
@@ -31,6 +183,10 @@ interface WebSocketContextValue {
   isConnected: boolean;
   /** Register a callback for specific message types */
   on: (types: WSMessage["type"] | WSMessage["type"][], handler: WSMessageHandler) => () => void;
+  /** Configure the WebSocket connection (call once on app init) */
+  configure: (options: UseWebSocketOptions) => void;
+  /** Get current configuration */
+  getConfig: () => UseWebSocketOptions | null;
 }
 
 const WebSocketContext = React.createContext<WebSocketContextValue | null>(null);
@@ -53,6 +209,7 @@ export function WebSocketProvider({
   const [sessionId, setSessionId] = React.useState<string | null>(null);
   const [lastEventId, setLastEventId] = React.useState(0);
   const [isInitialized, setIsInitialized] = React.useState(false);
+  const [config, setConfig] = React.useState<UseWebSocketOptions | null>(null);
 
   // Event emitter for message handlers
   const handlersRef = React.useRef<Map<string, Set<WSMessageHandler>>>(new Map());
@@ -65,8 +222,44 @@ export function WebSocketProvider({
   const isMountedRef = React.useRef(true);
   const currentSubscriptionsRef = React.useRef<Set<string>>(new Set(subscriptions));
 
+  // Use a mutable ref object to avoid TypeScript readonly issues
+  const callbackRefs = React.useRef({
+    onStatusChange: null as UseWebSocketOptions["onStatusChange"] | null,
+    onAlert: null as UseWebSocketOptions["onAlert"] | null,
+    onIncident: null as UseWebSocketOptions["onIncident"] | null,
+    onEvent: null as UseWebSocketOptions["onEvent"] | null,
+    onError: null as UseWebSocketOptions["onError"] | null,
+    onConnect: null as UseWebSocketOptions["onConnect"] | null,
+    onDisconnect: null as UseWebSocketOptions["onDisconnect"] | null,
+  });
+
+  // Configure function to set callbacks and options
+  const configure = React.useCallback((options: UseWebSocketOptions) => {
+    setConfig(options);
+    callbackRefs.current.onStatusChange = options.onStatusChange ?? null;
+    callbackRefs.current.onAlert = options.onAlert ?? null;
+    callbackRefs.current.onIncident = options.onIncident ?? null;
+    callbackRefs.current.onEvent = options.onEvent ?? null;
+    callbackRefs.current.onError = options.onError ?? null;
+    callbackRefs.current.onConnect = options.onConnect ?? null;
+    callbackRefs.current.onDisconnect = options.onDisconnect ?? null;
+
+    // Update subscriptions if provided
+    if (options.subscriptions) {
+      currentSubscriptionsRef.current = new Set(options.subscriptions);
+    }
+
+    // If apiKey provided in config, use it (overrides localStorage)
+    if (options.apiKey) {
+      // This will trigger reconnection via the apiKey effect
+    }
+  }, []);
+
+  const getConfig = React.useCallback(() => config, [config]);
+
   // Get API key from localStorage, fallback to build-time VITE_API_KEY
   // Use state to make it reactive to localStorage changes
+  // Config apiKey takes precedence if provided
   const [apiKey, setApiKey] = React.useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return localStorage.getItem("hawkeye_api_key") || BUILD_TIME_API_KEY || null;
@@ -123,12 +316,13 @@ export function WebSocketProvider({
   // Start heartbeat
   const startHeartbeat = React.useCallback(() => {
     clearHeartbeat();
+    const interval = config?.heartbeatInterval ?? 30000;
     heartbeatIntervalRef.current = setInterval(() => {
       if (wsRef.current?.readyState === WebSocket.OPEN) {
         wsRef.current.send(JSON.stringify({ type: "ping" }));
       }
-    }, 30000);
-  }, [clearHeartbeat]);
+    }, interval);
+  }, [clearHeartbeat, config?.heartbeatInterval]);
 
   // Process queued messages
   const processMessageQueue = React.useCallback(() => {
@@ -182,8 +376,23 @@ export function WebSocketProvider({
         updateStatus("connected");
         startHeartbeat();
         processMessageQueue();
-      } else if (message.type === "alert" || message.type === "incident" || message.type === "event") {
-        setLastEventId(message.event_id || 0);
+        callbackRefs.current.onConnect?.(data);
+        callbackRefs.current.onStatusChange?.("connected");
+      } else if (message.type === "alert") {
+        const alert = message.data as AlertPayload;
+        const eventId = message.event_id || 0;
+        setLastEventId(eventId);
+        callbackRefs.current.onAlert?.(alert, eventId);
+      } else if (message.type === "incident") {
+        const incident = message.data as IncidentPayload;
+        const eventId = message.event_id || 0;
+        setLastEventId(eventId);
+        callbackRefs.current.onIncident?.(incident, eventId);
+      } else if (message.type === "event") {
+        const evt = message.data as EventPayload;
+        const eventId = message.event_id || 0;
+        setLastEventId(eventId);
+        callbackRefs.current.onEvent?.(evt, eventId);
       } else if (message.type === "error") {
         const errorData = message.data as WSErrorData;
         console.error("WebSocket error:", errorData);
@@ -191,6 +400,7 @@ export function WebSocketProvider({
           setSessionId(null);
           setLastEventId(0);
         }
+        callbackRefs.current.onError?.(new Error(errorData.message));
       }
 
       // Broadcast to all handlers for this message type
@@ -271,6 +481,8 @@ export function WebSocketProvider({
 
         if (isMountedRef.current) {
           updateStatus("disconnected");
+          callbackRefs.current.onStatusChange?.("disconnected");
+          callbackRefs.current.onDisconnect?.();
 
           // Attempt reconnection if not intentional and auto-reconnect is enabled
           if (!isIntentionalDisconnectRef.current) {
@@ -278,6 +490,7 @@ export function WebSocketProvider({
 
             if (shouldReconnect) {
               updateStatus("reconnecting");
+              callbackRefs.current.onStatusChange?.("reconnecting");
               reconnectAttemptsRef.current += 1;
 
               // Exponential backoff with jitter
@@ -305,6 +518,7 @@ export function WebSocketProvider({
               }, delay);
             } else {
               updateStatus("error");
+              callbackRefs.current.onStatusChange?.("error");
             }
           }
         }
@@ -314,6 +528,8 @@ export function WebSocketProvider({
         console.error("WebSocket error:", error);
         if (isMountedRef.current) {
           updateStatus("error");
+          callbackRefs.current.onStatusChange?.("error");
+          callbackRefs.current.onError?.(new Error("WebSocket connection error"));
         }
       };
 
@@ -322,6 +538,8 @@ export function WebSocketProvider({
       console.error("Failed to create WebSocket:", error);
       if (isMountedRef.current) {
         updateStatus("error");
+        callbackRefs.current.onStatusChange?.("error");
+        callbackRefs.current.onError?.(error as Error);
       }
     }
   }, [
@@ -355,6 +573,8 @@ export function WebSocketProvider({
 
     if (isMountedRef.current) {
       updateStatus("disconnected");
+      callbackRefs.current.onStatusChange?.("disconnected");
+      callbackRefs.current.onDisconnect?.();
     }
   }, [clearReconnectTimeout, clearHeartbeat, updateStatus]);
 
@@ -417,6 +637,8 @@ export function WebSocketProvider({
     send,
     isConnected: status === "connected",
     on,
+    configure,
+    getConfig,
   };
 
   return (

@@ -268,6 +268,50 @@ Each task has:
 ## P2 - Milestone 3: Frontend Polish (Remaining)
 
 ### T-029: Source Event Counts Column ✅ COMPLETE (Backend + Frontend)
+
+---
+
+## P1 - Milestone 3.5: Dashboard Polish + Functionality (DASH-POLISH-01)
+
+### DASH-POLISH-01: Dashboard Polish + Functionality Phase 🟢 IN PROGRESS
+
+**Summary:** Comprehensive polish of the existing Hawkeye dashboard to make it a genuinely usable, production-ready security monitoring interface backed by REAL backend data.
+
+#### ISSUE-1: WebSocket Consolidation (P0) ✅ COMPLETE (2026-08-17)
+- **Files Modified:**
+  - `frontend/src/context/WebSocketContext.tsx` — Added type definitions, single source of truth
+  - `frontend/src/pages/Alerts.tsx` — Migrated to useWebSocketContext + useWebSocketMessage
+  - `frontend/src/pages/Incidents.tsx` — Migrated to useWebSocketContext + useWebSocketMessage
+  - `frontend/src/pages/Events.tsx` — Verified already using WebSocketContext
+  - `frontend/src/components/AlertFeed.tsx` — Updated import to use WebSocketContext types
+  - `frontend/src/components/IncidentTimeline.tsx` — Updated import to use WebSocketContext types
+  - `frontend/src/hooks/useWebSocket.ts` — **REMOVED**
+- **Verification:** Frontend build ✅, Lint ✅, Backend tests 33/33 ✅
+- **Result:** Single WebSocket connection for entire app; no more flickering indicator
+
+#### ISSUE-2: Refresh Buttons Verification (P1) ⏳ PENDING
+- **Files:** `frontend/src/pages/Alerts.tsx`, `Incidents.tsx`, `Events.tsx`, `Sources.tsx`
+- **Criteria:** Refresh buttons trigger real API refetches with proper loading states
+
+#### ISSUE-3: Dashboard Time-Range Controls (P1) ⏳ PENDING
+- **File:** `frontend/src/components/StatsDashboard.tsx`
+- **Criteria:** Clickable 24h/7d/30d controls that update timeRange and refetch chart data
+
+#### ISSUE-4: Global Search Enhancement (P2) ⏳ PENDING
+- **File:** `frontend/src/components/layout/TopNav.tsx`
+- **Criteria:** Autocomplete, unified search across alerts/incidents/events/sources
+
+#### ISSUE-5: Notification Bell (P2) ⏳ PENDING
+- **File:** `frontend/src/components/layout/TopNav.tsx`
+- **Criteria:** Show recent high-severity alerts/incidents from WebSocket data
+
+#### ISSUE-6: Profile/User Menu (P2) ⏳ PENDING
+- **Files:** `frontend/src/components/layout/TopNav.tsx`, `frontend/src/pages/Settings.tsx`
+- **Criteria:** Profile, Security Settings, Sign Out handlers; Sign Out clears localStorage API key
+
+#### ISSUE-7: General Visual/UX Polish (P3) ⏳ PENDING
+- **Files:** Various
+- **Criteria:** Consistent spacing, loading states, empty states, layout stability
 - **Files**: `hawkeye/api/v1/sources.py`, `hawkeye/schemas/sources.py`, `frontend/src/components/SourceManager.tsx`
 - **Dependencies**: T-026
 - **Completion Criteria**: Add event count column to Sources table, fetch from `/api/v1/sources/event-counts` ✅
