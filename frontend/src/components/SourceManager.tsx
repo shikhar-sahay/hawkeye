@@ -104,6 +104,7 @@ export function SourceManager() {
   const {
     data: sourcesResponse,
     isLoading,
+    isFetching,
     isError,
     error,
     refetch,
@@ -315,8 +316,8 @@ export function SourceManager() {
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
-            <Loader2 className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <Loader2 className={cn("h-4 w-4 mr-2", isFetching && "animate-spin")} />
             Refresh
           </Button>
           <Button onClick={() => setIsCreateDialogOpen(true)}>

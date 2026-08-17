@@ -182,8 +182,10 @@ Milestone 5 (SDKs) → Milestone 6 (Attack Replay & Docs)
 | Task | Status | Details |
 |------|--------|---------|
 | **DASH-POLISH-01: Dashboard Polish (ISSUE-1)** | ✅ COMPLETE | WebSocket consolidation — single shared connection via WebSocketContext |
+| **DASH-POLISH-01: Dashboard Polish (ISSUE-2)** | ✅ COMPLETE | Refresh buttons fixed — TanStack Query v5 `isFetching` for refetch state on Alerts, Incidents, Events, Sources pages |
 | **T-034: Backend lint cleanup** | ⏳ OPTIONAL | 57 ruff issues (C901, E501, E741, ANN201, SIM102, I001, ERA001, F401, F811) — style only, no functional impact |
-| **T-040: Chrome MV3 Extension Scaffold** | 🟢 IN PROGRESS | Create browser-agent/ directory with manifest.json, background service worker, content scripts, shared types, build config |
+| **DASH-POLISH-01: Dashboard Polish (ISSUE-3)** | 🟢 NEXT | Dashboard time-range controls (24h/7d/30d) for charts |
+| **T-040: Chrome MV3 Extension Scaffold** | ⏳ PLANNED | Create browser-agent/ directory with manifest.json, background service worker, content scripts, shared types, build config |
 
 ---
 

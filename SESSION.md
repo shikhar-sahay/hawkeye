@@ -26,7 +26,7 @@
 ## Current Active Engineering Task
 
 ### Task ID: DASH-POLISH-01 - Dashboard Polish + Functionality Phase
-### Status: **IN PROGRESS - ISSUE-1 Complete (WebSocket Consolidation)**
+### Status: **IN PROGRESS - ISSUE-1 Complete (WebSocket Consolidation), ISSUE-2 Complete (Refresh Buttons)**
 
 **Summary:** Comprehensive polish of the existing Hawkeye dashboard to make it a genuinely usable, production-ready security monitoring interface backed by REAL backend data. This phase addresses 7 key issues identified in the dashboard.
 
@@ -39,9 +39,11 @@
    - Multiple connections cause flickering, race conditions, reconnection storms
    - **Resolution:** Migrated AlertsPage, IncidentsPage, EventsPage to shared WebSocketContext; removed useWebSocket.ts hook; types moved to WebSocketContext.tsx
 
-2. **ISSUE-2: Refresh Buttons Non-Functional** (P1)
-   - Alerts, Incidents, Sources, Events pages have Refresh buttons
-   - Need to verify they trigger real API refetches with proper loading states
+2. **ISSUE-2: Refresh Buttons Non-Functional** (P1) ✅ **COMPLETE**
+   - Root cause: TanStack Query v5 `isLoading` only true for initial load; `isFetching` needed for refetch
+   - Alerts, Incidents, Sources (and Events) Refresh buttons used `isLoading` for spinner/disabled state
+   - During refetch, button showed no spinner, wasn't disabled, allowing duplicate clicks
+   - **Resolution:** Changed all Refresh buttons to use `isFetching` for spinner and disabled state
 
 3. **ISSUE-3: Dashboard Time-Range Controls (24h/7d/30d) Non-Interactive** (P1)
    - StatsDashboard has hardcoded Badge components that don't respond to clicks
@@ -65,6 +67,7 @@
 
 **Implementation Order Completed:**
 1. ✅ **ISSUE-1** (WebSocket consolidation) — Foundation for all real-time features
+2. ✅ **ISSUE-2** (Refresh buttons) — Fixed TanStack Query v5 loading state bug
 
 **Files Modified (ISSUE-1):**
 - `frontend/src/context/WebSocketContext.tsx` — Added type definitions, serves as single source of truth
@@ -75,13 +78,20 @@
 - `frontend/src/components/IncidentTimeline.tsx` — Updated import to use WebSocketContext types
 - `frontend/src/hooks/useWebSocket.ts` — **REMOVED** (no longer needed)
 
-**Verification Results:**
+**Files Modified (ISSUE-2):**
+- `frontend/src/pages/Alerts.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching`
+- `frontend/src/pages/Incidents.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching`
+- `frontend/src/components/SourceManager.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching`
+- `frontend/src/pages/Events.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching` (consistency)
+
+**Verification Results (ISSUE-2):**
 - Frontend build: ✅ PASS (npm run build)
 - Frontend lint: ✅ PASS (npm run lint - only pre-existing warnings)
 - Backend tests: ✅ 33/33 PASS (pytest tests/ -v)
 - TypeScript compilation: ✅ PASS
+- Single WebSocket architecture preserved (no new connections)
 
-**Next Action:** Begin ISSUE-3 (Dashboard time-range controls) or ISSUE-2 (Refresh buttons verification)
+**Next Action:** Begin ISSUE-3 (Dashboard time-range controls)
 
 **Handoff Notes:**
 - Single WebSocket architecture is now in place: WebSocketProvider in AppLayout wraps entire app with subscriptions ["alerts", "incidents", "events"]
@@ -89,6 +99,7 @@
 - Connection status in TopNav uses useConnectionStatusWithInit which reads from shared context
 - TanStack Query invalidation works correctly on real-time message receipt
 - Old useWebSocket.ts hook completely removed; types now defined in WebSocketContext.tsx
+- Refresh buttons now properly show loading spinner and disable during refetch via `isFetching`
 
 ---
 

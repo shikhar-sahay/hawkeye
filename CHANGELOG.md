@@ -43,6 +43,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.2] - 2026-08-17 - DASH-POLISH-01: Refresh Buttons Fix (ISSUE-2)
+
+### Fixed
+- **ISSUE-2: Refresh Buttons Non-Functional** — Fixed TanStack Query v5 loading state bug across 4 pages
+  - **Root Cause**: `isLoading` only true for initial load in TanStack Query v5; `isFetching` needed for refetch operations
+  - **Resolution**: Changed all Refresh buttons to use `isFetching` for spinner and disabled state
+  - Pages updated: Alerts, Incidents, Events, Sources (SourceManager)
+
+### Changed
+- **`frontend/src/pages/Alerts.tsx`** — Added `isFetching` to useQuery, Refresh button uses `isFetching` for spinner/disabled
+- **`frontend/src/pages/Incidents.tsx`** — Added `isFetching` to useQuery, Refresh button uses `isFetching` for spinner/disabled
+- **`frontend/src/components/SourceManager.tsx`** — Added `isFetching` to useQuery, Refresh button uses `isFetching` for spinner/disabled (uses `Loader2` icon)
+- **`frontend/src/pages/Events.tsx`** — Added `isFetching` to useQuery, Refresh button uses `isFetching` for spinner/disabled (consistency)
+
+### Verified
+- Frontend build: ✅ PASS (`npm run build`)
+- Frontend lint: ✅ PASS (`npm run lint` — only pre-existing warnings)
+- Backend tests: ✅ 33/33 PASS (`pytest tests/ -v`)
+- TypeScript compilation: ✅ PASS (`tsc --noEmit`)
+- Refresh buttons now properly show loading spinner and disable during refetch via `isFetching`
+
+---
+
 ## [2.4.0] - 2026-08-17 - Dashboard End-to-End Verification & Fixes (T-039)
 
 ### Fixed

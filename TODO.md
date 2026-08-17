@@ -289,9 +289,16 @@ Each task has:
 - **Verification:** Frontend build ✅, Lint ✅, Backend tests 33/33 ✅
 - **Result:** Single WebSocket connection for entire app; no more flickering indicator
 
-#### ISSUE-2: Refresh Buttons Verification (P1) ⏳ PENDING
-- **Files:** `frontend/src/pages/Alerts.tsx`, `Incidents.tsx`, `Events.tsx`, `Sources.tsx`
-- **Criteria:** Refresh buttons trigger real API refetches with proper loading states
+#### ISSUE-2: Refresh Buttons Fix (P1) ✅ COMPLETE (2026-08-17)
+- **Files Modified:**
+  - `frontend/src/pages/Alerts.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching` for spinner/disabled
+  - `frontend/src/pages/Incidents.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching` for spinner/disabled
+  - `frontend/src/components/SourceManager.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching` for spinner/disabled (Loader2 icon)
+  - `frontend/src/pages/Events.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching` for spinner/disabled (consistency)
+- **Root Cause:** TanStack Query v5 `isLoading` only true for initial load; `isFetching` needed for refetch
+- **Resolution:** Changed all 4 Refresh buttons to use `isFetching` for spinner and disabled state
+- **Verification:** Frontend build ✅, Lint ✅, Backend tests 33/33 ✅, TypeScript ✅
+- **Result:** Refresh buttons now properly show loading spinner and disable during refetch
 
 #### ISSUE-3: Dashboard Time-Range Controls (P1) ⏳ PENDING
 - **File:** `frontend/src/components/StatsDashboard.tsx`
@@ -499,5 +506,5 @@ Each task has:
 | T-030 | Sources pagination | 2026-07-29 (already done) |
 | T-031 | Code-split chart components | 2026-08-02 (fixed implementation) |
 
-**Total Completed: 34 tasks**
-**Next Active: T-040 (Chrome MV3 Extension Scaffold)**
+**Total Completed: 35 tasks**
+**Next Active: T-040 (Chrome MV3 Extension Scaffold) / ISSUE-3 (Dashboard Time-Range Controls)**

@@ -59,6 +59,7 @@ export function EventsPage() {
   const {
     data: eventsResponse,
     isLoading,
+    isFetching,
     isError,
     error,
     refetch,
@@ -217,8 +218,8 @@ export function EventsPage() {
               <Download className="h-4 w-4" />
               Export
             </Button>
-            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
-              <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
+            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+              <RefreshCw className={cn("h-4 w-4 mr-2", isFetching && "animate-spin")} />
               Refresh
             </Button>
             <Button onClick={() => setIsFilterOpen(!isFilterOpen)} variant="outline" size="sm">
