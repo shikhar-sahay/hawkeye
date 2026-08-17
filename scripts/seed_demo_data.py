@@ -29,6 +29,9 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 # ??? Source Definitions ??????????????????????????????????????????????
 
+# Frontend hardcoded demo key (from frontend/.env and frontend/src/api/client.ts)
+DEMO_API_KEY = "hawk_F5IHr9TsIUujgs_9E_BWsLxmQIA5pYz8aFYcggzHqH0"
+
 SOURCES = [
     {
         "name": "Windows Endpoint",
@@ -44,6 +47,7 @@ SOURCES = [
         "name": "Web Application",
         "description": "Main customer-facing web application",
         "api_key_name": "webapp-prod",
+        "fixed_api_key": DEMO_API_KEY,  # Matches frontend hardcoded key for demo
     },
     {
         "name": "API Gateway",
@@ -358,27 +362,54 @@ def build_event(
 # ??? Seeding Logic ???????????????????????????????????????????????????
 
 async def seed_sources(session: AsyncSession) -> list[ApplicationSource]:
-    """Create sources with API keys."""
+    """Create sources with API keys. Updates Web Application demo source to use fixed key."""
     print("[BOX] Creating sources...")
     sources = []
 
+    from hawkeye.models.events import ApiKey
+    from sqlmodel import select, delete
+
     for src in SOURCES:
         # Check if source already exists
-        from sqlmodel import select
         stmt = select(ApplicationSource).where(ApplicationSource.name == src["name"])
         result = await session.exec(stmt)
         existing = result.first()
 
-        if existing:
-            print(f"  [SKIP]  Source '{src['name']}' already exists, skipping")
-            sources.append(existing)
-            continue
-
-        # Generate API key
-        raw_key = f"hk_{src['api_key_name']}_{random.randint(100000, 999999)}"
+        # Determine the API key to use
+        if "fixed_api_key" in src:
+            raw_key = src["fixed_api_key"]
+        else:
+            raw_key = f"hk_{src['api_key_name']}_{random.randint(100000, 999999)}"
         key_hash = hash_api_key(raw_key)
         key_prefix = raw_key[:8]
 
+        if existing:
+            # For Web Application demo source, always update to fixed key
+            if "fixed_api_key" in src:
+                print(f"  [UPDATE] Source '{src['name']}' exists — updating to fixed demo API key")
+                # Update source's api_key_hash
+                existing.api_key_hash = key_hash
+                # Delete ANY ApiKey records with this key_hash (unique constraint)
+                await session.exec(delete(ApiKey).where(ApiKey.key_hash == key_hash))
+                # Also delete old ApiKey records for this source (cleanup)
+                await session.exec(delete(ApiKey).where(ApiKey.source_id == existing.id))
+                # Create new ApiKey record with fixed key
+                api_key = ApiKey(
+                    source_id=existing.id,
+                    key_hash=key_hash,
+                    key_prefix=key_prefix,
+                    name=src["api_key_name"],
+                    description=f"Demo key for {src['name']}",
+                    is_active=True,
+                )
+                session.add(api_key)
+                print(f"  [OK] Updated source: {src['name']} (API Key: {raw_key})")
+            else:
+                print(f"  [SKIP]  Source '{src['name']}' already exists, skipping")
+            sources.append(existing)
+            continue
+
+        # Create new source
         source = ApplicationSource(
             name=src["name"],
             description=src["description"],
@@ -389,7 +420,6 @@ async def seed_sources(session: AsyncSession) -> list[ApplicationSource]:
         await session.flush()
 
         # Add API key record
-        from hawkeye.models.events import ApiKey
         api_key = ApiKey(
             source_id=source.id,
             key_hash=key_hash,

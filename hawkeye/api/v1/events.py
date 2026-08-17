@@ -13,6 +13,31 @@ from hawkeye.schemas import EventListResponse, NormalizedEventResponse
 router = APIRouter(tags=["events"])
 
 
+def _event_to_response(event: NormalizedEvent) -> NormalizedEventResponse:
+    """Convert NormalizedEvent model to response schema with proper field mapping."""
+    return NormalizedEventResponse(
+        id=event.id,
+        source_id=event.source_id,
+        timestamp=event.timestamp,
+        category=event.category,
+        event_type=event.event_type,
+        severity=event.severity,
+        user_id=event.user_id,
+        session_id=event.session_id,
+        ip=event.ip,
+        user_agent=event.user_agent,
+        route=event.route,
+        method=event.method,
+        status_code=event.status_code,
+        # Map event_metadata (model) -> metadata (schema)
+        metadata=event.event_metadata if event.event_metadata else {},
+        mitre_tactic=event.mitre_tactic,
+        mitre_technique=event.mitre_technique,
+        # Use timestamp as created_at since model has no separate created_at field
+        created_at=event.timestamp,
+    )
+
+
 @router.get(
     "/query",
     response_model=EventListResponse,
@@ -118,7 +143,7 @@ async def query_events(
     events = list(result.scalars().all())
 
     return EventListResponse(
-        events=[NormalizedEventResponse.model_validate(e) for e in events],
+        events=[_event_to_response(e) for e in events],
         total=total,
         limit=limit,
         offset=offset,
@@ -149,7 +174,7 @@ async def get_event(
             detail="Event not found",
         )
 
-    return NormalizedEventResponse.model_validate(event)
+    return _event_to_response(event)
 
 
 @router.get(

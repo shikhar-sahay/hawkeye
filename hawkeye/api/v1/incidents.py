@@ -7,7 +7,7 @@ from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.api.deps import get_current_source, get_session
-from hawkeye.models.events import Alert, ApplicationSource, Incident, IncidentAlert
+from hawkeye.models.events import Alert, ApplicationSource, Incident, IncidentAlert, NormalizedEvent
 from hawkeye.schemas import (
     IncidentListResponse,
     IncidentResponse,
@@ -21,11 +21,13 @@ router = APIRouter(prefix="/incidents", tags=["incidents"])
 def _incident_to_response(
     incident: Incident,
     alerts: list[Alert] | None = None,
+    events_map: dict[int, NormalizedEvent] | None = None,
 ) -> IncidentResponse:
     """Convert Incident model to response schema."""
     alert_summaries = []
     if alerts:
         for alert in alerts:
+            event = events_map.get(alert.event_id) if events_map else None
             alert_summaries.append(
                 {
                     "id": alert.id,
@@ -34,8 +36,8 @@ def _incident_to_response(
                     "severity": alert.severity,
                     "title": alert.title,
                     "created_at": alert.created_at,
-                    "ip": alert.ip,
-                    "user_id": alert.user_id,
+                    "ip": event.ip if event else None,
+                    "user_id": event.user_id if event else None,
                 }
             )
 
@@ -139,10 +141,24 @@ async def list_incidents(
             link_map = {l.alert_id: l.sequence for l in links if l.incident_id == inc_id}
             inc_alerts.sort(key=lambda a: link_map.get(a.id, 0))
 
+    # Build events map for all alerts
+    all_alert_ids = []
+    for inc_alerts in incident_alerts.values():
+        all_alert_ids.extend([a.id for a in inc_alerts])
+
+    events_map = {}
+    if all_alert_ids:
+        event_stmt = select(NormalizedEvent).where(NormalizedEvent.id.in_(
+            select(Alert.event_id).where(Alert.id.in_(all_alert_ids))
+        ))
+        event_result = await session.execute(event_stmt)
+        events = list(event_result.scalars().all())
+        events_map = {e.id: e for e in events}
+
     incident_responses = []
     for inc in incidents:
         inc_alerts = incident_alerts.get(inc.id, [])
-        incident_responses.append(_incident_to_response(inc, inc_alerts))
+        incident_responses.append(_incident_to_response(inc, inc_alerts, events_map))
 
     return IncidentListResponse(
         incidents=incident_responses,
@@ -244,7 +260,18 @@ async def get_incident(
     # Sort alerts by sequence
     sorted_alerts = [alerts[l.alert_id] for l in links if l.alert_id in alerts]
 
-    return _incident_to_response(incident, sorted_alerts)
+    # Build events map for these alerts
+    alert_ids = [a.id for a in sorted_alerts]
+    events_map = {}
+    if alert_ids:
+        event_stmt = select(NormalizedEvent).where(NormalizedEvent.id.in_(
+            select(Alert.event_id).where(Alert.id.in_(alert_ids))
+        ))
+        event_result = await session.execute(event_stmt)
+        events = list(event_result.scalars().all())
+        events_map = {e.id: e for e in events}
+
+    return _incident_to_response(incident, sorted_alerts, events_map)
 
 
 @router.get(
@@ -334,4 +361,15 @@ async def update_incident_status(
 
     sorted_alerts = [alerts[l.alert_id] for l in links if l.alert_id in alerts]
 
-    return _incident_to_response(incident, sorted_alerts)
+    # Build events map for these alerts
+    alert_ids = [a.id for a in sorted_alerts]
+    events_map = {}
+    if alert_ids:
+        event_stmt = select(NormalizedEvent).where(NormalizedEvent.id.in_(
+            select(Alert.event_id).where(Alert.id.in_(alert_ids))
+        ))
+        event_result = await session.execute(event_stmt)
+        events = list(event_result.scalars().all())
+        events_map = {e.id: e for e in events}
+
+    return _incident_to_response(incident, sorted_alerts, events_map)

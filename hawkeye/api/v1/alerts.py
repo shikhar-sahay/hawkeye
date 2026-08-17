@@ -139,7 +139,7 @@ async def list_alerts(
             select(Alert.event_id).where(Alert.id.in_(alert_ids))
         ))
         event_result = await session.execute(event_stmt)
-        events = list(event_result.all())
+        events = list(event_result.scalars().all())
         events_map = {e.id: e for e in events}
 
     return AlertListResponse(
