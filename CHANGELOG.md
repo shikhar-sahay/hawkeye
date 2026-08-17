@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.0] - 2026-08-17 - Dashboard End-to-End Verification & Fixes (T-039)
+
+### Fixed
+- **T-039: Dashboard End-to-End Verification** — Fixed Alerts/Incidents "Failed to load" errors and WebSocket disconnection
+  - **Root Cause**: Frontend WebSocket implementations were NOT sending the API key for authentication
+  - Backend requires API key via: `Authorization: Bearer <key>` header, `X-API-Key: <key>` header, or `?api_key=<key>` query param
+  - WebSocket in browsers can't easily send custom headers → used query parameter approach
+  
+- **`frontend/src/hooks/useWebSocket.ts`** - Added API key as query parameter in WebSocket URL
+  ```typescript
+  const apiKeyParam = apiKey ? `&api_key=${encodeURIComponent(apiKey)}` : "";
+  return `${protocol}//${host}/ws?subscribe=${encodeURIComponent(subscribeParam)}${apiKeyParam}`;
+  ```
+
+- **`frontend/src/context/WebSocketContext.tsx`** - Added API key as query parameter in WebSocket URL
+  ```typescript
+  const apiKeyParam = apiKey ? `&api_key=${encodeURIComponent(apiKey)}` : "";
+  return `/ws?subscribe=${encodeURIComponent(subscribeParam)}${apiKeyParam}`;
+  ```
+
+- **Sources Page Duplicate Heading Fix** — Removed redundant "Sources" page header from `SourceManager.tsx`
+  - `Sources.tsx` page provides the page title
+  - Preserved Refresh and Add Source controls in SourceManager
+
+### Verified
+- Direct API test with demo key: `GET /api/v1/alerts` ✅ Returns seeded data
+- Direct API test with demo key: `GET /api/v1/incidents` ✅ Returns seeded data
+- Direct WebSocket test: `ws://localhost:8000/ws?subscribe=alerts,incidents&api_key=...` ✅ Connects, authenticates, receives "connected" message with session_id
+- Backend tests: 33/33 pass ✅
+- Frontend build: Successful ✅
+- Frontend lint: Clean ✅
+
+### Files Modified
+- `frontend/src/hooks/useWebSocket.ts`
+- `frontend/src/context/WebSocketContext.tsx`
+- `frontend/src/components/SourceManager.tsx`
+
+---
+
 ## [2.3.0] - 2026-08-02 - Milestone 3 Complete: Frontend Dashboard
 
 ### Added

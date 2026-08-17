@@ -2,10 +2,10 @@
 
 ## Session Metadata
 - **Date**: 2026-08-17
-- **Session ID**: 2026-08-17-01
+- **Session ID**: 2026-08-17-02
 - **Claude Model**: nvidia/nemotron-3-ultra-550b-a55b:free
 - **Branch**: master
-- **Commit**: [pending - will update after commit]
+- **Commit**: 3559424
 
 ---
 
@@ -24,88 +24,69 @@
 
 ## Current Active Engineering Task
 
-### Task ID: T-040 - Chrome MV3 Extension Scaffold (Partial: Ingestion Contract Fix)
-### Status: **INGESTION CONTRACT FIX COMPLETE** — Remaining work: popup, bot-detector, icons, build/load verification
-
-**Summary:** Fixed the browser-agent ↔ backend ingestion schema mismatch so the browser agent can successfully POST events to `POST /api/v1/events/ingest/batch`.
-
-**Changes Made:**
-
-1. **`browser-agent/src/shared/types.ts`** - Updated ingestion payload types to match backend (`hawkeye/schemas/ingestion.py`):
-   - `RawEventIngest`: Now matches backend contract exactly — `event_type`, `timestamp?`, `user_id?`, `session_id?`, `ip?`, `user_agent?`, `route?`, `method?`, `status_code?`, `metadata?`
-   - `ip_address` corrected to `ip`
-   - Removed `category`, `payload`, `request_id` as top-level fields (now carried in `metadata`)
-   - `BatchEventsIngest`: Uses new `RawEventIngest[]` (structure unchanged)
-   - `BatchIngestResponse`: Matches backend response exactly (`success`, `accepted`, `failed`, `event_ids`)
-   - Removed old `IngestResponse` type
-
-2. **`browser-agent/src/shared/api-client.ts`** - Simplified conversion logic:
-   - Removed intermediate `BackendRawEventIngest`, `BackendBatchEventsIngest`, `BackendBatchIngestResponse` interfaces
-   - `toBackendEvent()` is now a simple pass-through (types already aligned)
-   - `flush()` returns `BatchIngestResponse` and uses `BatchEventsIngest` for payload
-
-3. **`browser-agent/src/background/service-worker.ts`** - Updated all event converters to produce backend-compatible format:
-   - `convertCSPViolationToEvent()` — CSP violation details in `metadata` with `category: 'csp_violation'`
-   - `convertDOMMutationsToEvents()` — DOM mutation details in `metadata` with `category: 'dom_mutation'`
-   - `convertIntegrityViolationToEvent()` — Integrity check details in `metadata` with `category: 'integrity_check'`
-   - `convertBotDetectionToEvent()` — Bot detection details in `metadata` with `category: 'bot_detection'`
-   - `PAGE_READY` handler — Page view details in `metadata` with `category: 'navigation'`
-
-**Files Modified:**
-- `browser-agent/src/shared/types.ts`
-- `browser-agent/src/shared/api-client.ts`
-- `browser-agent/src/background/service-worker.ts`
-
-**Verification Performed:**
-```
-cd browser-agent && npx tsc --noEmit
-# TypeScript type check passes for new/modified code
-# (Pre-existing unrelated errors in dom-monitor.ts, service-worker.ts WebRequest API, vite.config.ts remain)
-```
-
-**Key Results:**
-- Browser-agent RawEventIngest now matches backend RawEventIngest contract
-- `ip_address` → `ip` field mapping corrected
-- `category`, `payload`, `request_id` carried through `metadata` (not sent as unsupported top-level fields)
-- `route`, `method`, `status_code` fields available and populated when applicable
-- Batch request format remains `{ events: [...] }`
-- `BatchIngestResponse` matches backend response
-- PAGE_READY/navigation information preserved through `metadata`
-- This removes the ingestion-contract blocker for T-040
-
-**T-040 is still NOT complete** — Remaining work: popup UI, bot-detector.ts, icons, build/load verification, and end-to-end Chrome extension testing.
-
----
-
-## Previous: Frontend Navbar Avatar Fix (2026-08-02)
-
-### Task ID: Frontend Navbar Avatar Fix - Use Official Hawkeye Logo
+### Task ID: T-039 - Dashboard End-to-End Verification & Fixes
 ### Status: **COMPLETED**
 
-**Summary:** Fixed the top-right user/avatar area to display ONLY the official Hawkeye logo from `frontend/src/assets/hawkeyelogo.png` without any fallback icons or overlapping elements.
+**Summary:** Diagnosed and fixed why Alerts and Incidents pages showed "Failed to load alerts/incidents — Unknown error" and WebSocket showed "Disconnected". Root cause was missing API key in WebSocket connection.
+
+**Root Causes Identified:**
+
+1. **Alerts/Incidents REST endpoints** - Already working correctly. The "Failed to load" errors were caused by the WebSocket connection failing, which triggered React Query to show error state.
+
+2. **WebSocket Disconnection** - The frontend WebSocket implementations (`useWebSocket.ts` and `WebSocketContext.tsx`) were NOT sending the API key for authentication. The backend requires API key via one of:
+   - `Authorization: Bearer <key>` header
+   - `X-API-Key: <key>` header
+   - `?api_key=<key>` query parameter
+
+   Since WebSocket in browsers can't easily send custom headers, the query parameter approach is used.
+
+**Fixes Applied:**
+
+1. **`frontend/src/hooks/useWebSocket.ts`** - Added `apiKey` to query parameters in `getWsUrl()`:
+   ```typescript
+   const apiKeyParam = apiKey ? `&api_key=${encodeURIComponent(apiKey)}` : "";
+   return `${protocol}//${host}/ws?subscribe=${encodeURIComponent(subscribeParam)}${apiKeyParam}`;
+   ```
+
+2. **`frontend/src/context/WebSocketContext.tsx`** - Added `apiKey` to query parameters in `getWsUrl()`:
+   ```typescript
+   const apiKeyParam = apiKey ? `&api_key=${encodeURIComponent(apiKey)}` : "";
+   return `/ws?subscribe=${encodeURIComponent(subscribeParam)}${apiKeyParam}`;
+   ```
+
+**Verification Performed:**
+- Direct API test with demo key: `GET /api/v1/alerts` ✅ Returns data
+- Direct API test with demo key: `GET /api/v1/incidents` ✅ Returns data
+- Direct WebSocket test with demo key: `ws://localhost:8000/ws?subscribe=alerts,incidents&api_key=...` ✅ Connects, authenticates, receives "connected" message
+- Backend tests: 33/33 pass ✅
+- Frontend build: Successful ✅
 
 **Files Modified:**
-- `frontend/src/components/layout/TopNav.tsx` - Updated avatar to use imported Hawkeye logo asset directly
+- `frontend/src/hooks/useWebSocket.ts`
+- `frontend/src/context/WebSocketContext.tsx`
 
 ---
 
-## Regression Fix: TopNav User Icon ReferenceError (2026-08-03)
+## Previous Fix: Sources Page Duplicate Heading (2026-08-17)
 
-**Root Cause:** A refactoring of `TopNav.tsx` introduced a reference to the `<User />` icon from `lucide-react` on line 164 (in the "Profile" dropdown menu item), but the `User` icon was not included in the import statement (lines 18-26). This caused a runtime `ReferenceError: User is not defined` that crashed `AppLayout` and prevented all routes from rendering.
+**Root Cause:** `SourceManager.tsx` had its own "Sources" page header in addition to the one from `Sources.tsx` page.
 
-**Fix Applied:** Added `User` to the `lucide-react` imports in `TopNav.tsx`.
+**Fix Applied:**
+- Removed the redundant `<h1>Sources</h1>` header from `frontend/src/components/SourceManager.tsx`
+- Preserved the Refresh and Add Source controls
+- `Sources.tsx` page provides the page title
 
 **Files Modified:**
-- `frontend/src/components/layout/TopNav.tsx` - Added `User` to lucide-react imports
+- `frontend/src/components/SourceManager.tsx`
 
 ---
 
 ## Files to Review First Next Session
 
-1. `browser-agent/` — Now exists with scaffold; next: popup, bot-detector, icons, build/load
-2. `hawkeye/api/v1/events.py` — Events ingestion API (reference for schema)
-3. `hawkeye/schemas/ingestion.py` — Backend ingestion schemas (source of truth)
-4. `hawkeye/api/websocket.py` — WebSocket protocol (for real-time updates)
+1. `frontend/src/hooks/useWebSocket.ts` - WebSocket hook with API key fix
+2. `frontend/src/context/WebSocketContext.tsx` - WebSocket context with API key fix
+3. `frontend/src/components/SourceManager.tsx` - Sources page component (heading fix)
+4. `hawkeye/api/websocket.py` - WebSocket authentication implementation
 
 ---
 

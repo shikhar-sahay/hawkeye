@@ -99,8 +99,10 @@ export function WebSocketProvider({
   // Build WebSocket URL - use relative path so Vite dev proxy works in development
   const getWsUrl = React.useCallback(() => {
     const subscribeParam = Array.from(currentSubscriptionsRef.current).join(",");
-    return `/ws?subscribe=${encodeURIComponent(subscribeParam)}`;
-  }, []);
+    // Include API key as query parameter for authentication
+    const apiKeyParam = apiKey ? `&api_key=${encodeURIComponent(apiKey)}` : "";
+    return `/ws?subscribe=${encodeURIComponent(subscribeParam)}${apiKeyParam}`;
+  }, [apiKey]);
 
   // Clear reconnect timeout
   const clearReconnectTimeout = React.useCallback(() => {

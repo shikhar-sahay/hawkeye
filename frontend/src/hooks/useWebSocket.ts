@@ -260,8 +260,10 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.host;
     const subscribeParam = subscriptions.join(",");
-    return `${protocol}//${host}/ws?subscribe=${encodeURIComponent(subscribeParam)}`;
-  }, [url, subscriptions]);
+    // Include API key as query parameter for authentication
+    const apiKeyParam = apiKey ? `&api_key=${encodeURIComponent(apiKey)}` : "";
+    return `${protocol}//${host}/ws?subscribe=${encodeURIComponent(subscribeParam)}${apiKeyParam}`;
+  }, [url, subscriptions, apiKey]);
 
   // Update status with callback
   const updateStatus = React.useCallback(
