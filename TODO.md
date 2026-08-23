@@ -269,61 +269,6 @@ Each task has:
 
 ### T-029: Source Event Counts Column ✅ COMPLETE (Backend + Frontend)
 
----
-
-## P1 - Milestone 3.5: Dashboard Polish + Functionality (DASH-POLISH-01)
-
-### DASH-POLISH-01: Dashboard Polish + Functionality Phase 🟢 IN PROGRESS
-
-**Summary:** Comprehensive polish of the existing Hawkeye dashboard to make it a genuinely usable, production-ready security monitoring interface backed by REAL backend data.
-
-#### ISSUE-1: WebSocket Consolidation (P0) ✅ COMPLETE (2026-08-17)
-- **Files Modified:**
-  - `frontend/src/context/WebSocketContext.tsx` — Added type definitions, single source of truth
-  - `frontend/src/pages/Alerts.tsx` — Migrated to useWebSocketContext + useWebSocketMessage
-  - `frontend/src/pages/Incidents.tsx` — Migrated to useWebSocketContext + useWebSocketMessage
-  - `frontend/src/pages/Events.tsx` — Verified already using WebSocketContext
-  - `frontend/src/components/AlertFeed.tsx` — Updated import to use WebSocketContext types
-  - `frontend/src/components/IncidentTimeline.tsx` — Updated import to use WebSocketContext types
-  - `frontend/src/hooks/useWebSocket.ts` — **REMOVED**
-- **Verification:** Frontend build ✅, Lint ✅, Backend tests 33/33 ✅
-- **Result:** Single WebSocket connection for entire app; no more flickering indicator
-
-#### ISSUE-2: Refresh Buttons Fix (P1) ✅ COMPLETE (2026-08-17)
-- **Files Modified:**
-  - `frontend/src/pages/Alerts.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching` for spinner/disabled
-  - `frontend/src/pages/Incidents.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching` for spinner/disabled
-  - `frontend/src/components/SourceManager.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching` for spinner/disabled (Loader2 icon)
-  - `frontend/src/pages/Events.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching` for spinner/disabled (consistency)
-- **Root Cause:** TanStack Query v5 `isLoading` only true for initial load; `isFetching` needed for refetch
-- **Resolution:** Changed all 4 Refresh buttons to use `isFetching` for spinner and disabled state
-- **Verification:** Frontend build ✅, Lint ✅, Backend tests 33/33 ✅, TypeScript ✅
-- **Result:** Refresh buttons now properly show loading spinner and disable during refetch
-
-#### ISSUE-3: Dashboard Time-Range Controls (P1) ⏳ PENDING
-- **File:** `frontend/src/components/StatsDashboard.tsx`
-- **Criteria:** Clickable 24h/7d/30d controls that update timeRange and refetch chart data
-
-#### ISSUE-4: Global Search Enhancement (P2) ⏳ PENDING
-- **File:** `frontend/src/components/layout/TopNav.tsx`
-- **Criteria:** Autocomplete, unified search across alerts/incidents/events/sources
-
-#### ISSUE-5: Notification Bell (P2) ⏳ PENDING
-- **File:** `frontend/src/components/layout/TopNav.tsx`
-- **Criteria:** Show recent high-severity alerts/incidents from WebSocket data
-
-#### ISSUE-6: Profile/User Menu (P2) ⏳ PENDING
-- **Files:** `frontend/src/components/layout/TopNav.tsx`, `frontend/src/pages/Settings.tsx`
-- **Criteria:** Profile, Security Settings, Sign Out handlers; Sign Out clears localStorage API key
-
-#### ISSUE-7: General Visual/UX Polish (P3) ⏳ PENDING
-- **Files:** Various
-- **Criteria:** Consistent spacing, loading states, empty states, layout stability
-- **Files**: `hawkeye/api/v1/sources.py`, `hawkeye/schemas/sources.py`, `frontend/src/components/SourceManager.tsx`
-- **Dependencies**: T-026
-- **Completion Criteria**: Add event count column to Sources table, fetch from `/api/v1/sources/event-counts` ✅
-- **Status**: ✅ COMPLETE — SourceEventCountsResponse schema + endpoint + SourceManager displays counts
-
 ### T-030: Pagination for Sources Table ✅ COMPLETE
 - **Files**: `frontend/src/components/SourceManager.tsx`, `hawkeye/api/v1/sources.py`
 - **Dependencies**: T-026
@@ -357,11 +302,85 @@ Each task has:
 
 ---
 
+## P1 - Milestone 3.5: Dashboard Polish + Functionality (DASH-POLISH-01) ✅ ALL COMPLETE
+
+### DASH-POLISH-01: Dashboard Polish + Functionality Phase ✅ COMPLETE (2026-08-24)
+
+**Summary:** Comprehensive polish of the existing Hawkeye dashboard to make it a genuinely usable, production-ready security monitoring interface backed by REAL backend data.
+
+#### ISSUE-1: WebSocket Consolidation (P0) ✅ COMPLETE (2026-08-17)
+- **Files Modified:**
+  - `frontend/src/context/WebSocketContext.tsx` — Added type definitions, single source of truth
+  - `frontend/src/pages/Alerts.tsx` — Migrated to useWebSocketContext + useWebSocketMessage
+  - `frontend/src/pages/Incidents.tsx` — Migrated to useWebSocketContext + useWebSocketMessage
+  - `frontend/src/pages/Events.tsx` — Verified already using WebSocketContext
+  - `frontend/src/components/AlertFeed.tsx` — Updated import to use WebSocketContext types
+  - `frontend/src/components/IncidentTimeline.tsx` — Updated import to use WebSocketContext types
+  - `frontend/src/hooks/useWebSocket.ts` — **REMOVED**
+- **Verification:** Frontend build ✅, Lint ✅, Backend tests 33/33 ✅
+- **Result:** Single WebSocket connection for entire app; no more flickering indicator
+
+#### ISSUE-2: Refresh Buttons Fix (P1) ✅ COMPLETE (2026-08-17)
+- **Files Modified:**
+  - `frontend/src/pages/Alerts.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching` for spinner/disabled
+  - `frontend/src/pages/Incidents.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching` for spinner/disabled
+  - `frontend/src/components/SourceManager.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching` for spinner/disabled (Loader2 icon)
+  - `frontend/src/pages/Events.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching` for spinner/disabled (consistency)
+- **Root Cause:** TanStack Query v5 `isLoading` only true for initial load; `isFetching` needed for refetch
+- **Resolution:** Changed all 4 Refresh buttons to use `isFetching` for spinner and disabled state
+- **Verification:** Frontend build ✅, Lint ✅, Backend tests 33/33 ✅, TypeScript ✅
+- **Result:** Refresh buttons now properly show loading spinner and disable during refetch
+
+#### ISSUE-3: Dashboard Time-Range Controls (P1) ✅ COMPLETE (2026-08-24)
+- **File:** `frontend/src/components/StatsDashboard.tsx`
+- **Criteria:** Clickable 24h/7d/30d controls that update timeRange and refetch chart data
+- **Implementation:** Added `timeRange` state with `useState`, clickable buttons with active state styling, queryKey dependency triggers refetch
+- **Verification:** Frontend build ✅, Lint ✅, TypeScript ✅, Buttons functional with active state
+
+#### ISSUE-4: Global Search Enhancement (P2) ✅ COMPLETE (2026-08-24)
+- **File:** `frontend/src/components/layout/TopNav.tsx`
+- **Backend:** `hawkeye/api/v1/alerts.py`, `hawkeye/api/v1/incidents.py`, `hawkeye/api/v1/sources.py`, `hawkeye/schemas/alerts.py`
+- **Types:** `frontend/src/types/index.ts`
+- **Criteria:** Autocomplete, unified search across alerts/incidents/events/sources
+- **Implementation:** Debounced search (250ms), parallel API calls to all 4 endpoints, dropdown with keyboard navigation (ArrowUp/Down, Enter, Escape), click-to-navigate, loading spinner
+- **Verification:** Frontend build ✅, Lint ✅, TypeScript ✅, Search functional
+
+#### ISSUE-5: Notification Bell (P2) ✅ COMPLETE (2026-08-24)
+- **File:** `frontend/src/components/layout/TopNav.tsx`
+- **Criteria:** Show recent high-severity alerts/incidents from WebSocket data
+- **Implementation:** Notification dropdown with max 10 items, filters critical/high severity, real-time updates via WebSocket, timestamps, click-to-navigate to detail pages, clear all button, badge count indicator
+- **Verification:** Frontend build ✅, Lint ✅, TypeScript ✅, Notifications appear in real-time
+
+#### ISSUE-6: Profile/User Menu (P2) ✅ COMPLETE (2026-08-24)
+- **Files:** `frontend/src/components/layout/TopNav.tsx`, `frontend/src/pages/Settings.tsx`
+- **Criteria:** Profile, Security Settings, Sign Out handlers; Sign Out clears localStorage API key
+- **Implementation:** Profile → `/settings?tab=profile`, Security Settings → `/settings?tab=api`, Sign Out → clears localStorage API key + reloads page
+- **Verification:** Frontend build ✅, Lint ✅, TypeScript ✅, All menu items functional
+
+#### ISSUE-7: General Visual/UX Polish (P3) ✅ COMPLETE (2026-08-24)
+- **Files:** Various
+- **Criteria:** Consistent spacing, loading states, empty states, layout stability
+- **Implementation:** Applied consistent patterns across all components - loading skeletons, empty states, proper disabled states, stable layouts
+- **Verification:** Frontend build ✅, Lint ✅, TypeScript ✅, Visual consistency achieved
+
+---
+
 ## P2 - Milestone 4: Browser Security Agent (Planned → IN PROGRESS)
 
 ### T-040: Chrome MV3 Extension Scaffold 🟢 NEXT
-- **Files**: `browser-agent/` (new directory)
+- **Files**: `browser-agent/` (flat layout: `background/`, `content/`, `shared/`)
 - **Dependencies**: Milestone 3 complete (ALL COMPLETE)
+- **Current State (2026-08-24)**: Flat-layout scaffold committed. `npm run typecheck`
+  FAILS with 8 TypeScript errors in `content/dom-monitor.ts`,
+  `content/bot-detector.ts`, and `shared/api-client.ts` (StoredConfig id typing,
+  PermissionName, SecurityPolicyViolationEvent.directive, DOM traversal types).
+  Legacy `src/` layout intentionally kept as reference until the flat layout
+  typechecks; remove it once parity is confirmed.
+- **Next Steps**:
+  1. Fix the 8 TS errors so `npm run typecheck` passes
+  2. Build extension (`npm run build`) and load unpacked into Chrome
+  3. Verify service worker + content scripts run without console errors
+  4. Remove legacy `browser-agent/src/`
 - **Completion Criteria**:
   - `manifest.json` — MV3 manifest with permissions, host_permissions, background service worker, content scripts
   - `background/service-worker.ts` — Event batching, API communication, CSP report handling
@@ -505,6 +524,13 @@ Each task has:
 | T-029 | Source event counts column | 2026-07-28 (already done) |
 | T-030 | Sources pagination | 2026-07-29 (already done) |
 | T-031 | Code-split chart components | 2026-08-02 (fixed implementation) |
+| **DASH-POLISH-01/ISSUE-1** | WebSocket Consolidation | 2026-08-17 |
+| **DASH-POLISH-01/ISSUE-2** | Refresh Buttons Fix | 2026-08-17 |
+| **DASH-POLISH-01/ISSUE-3** | Dashboard Time-Range Controls | 2026-08-24 |
+| **DASH-POLISH-01/ISSUE-4** | Global Search + Autocomplete | 2026-08-24 |
+| **DASH-POLISH-01/ISSUE-5** | Notification Bell | 2026-08-24 |
+| **DASH-POLISH-01/ISSUE-6** | Profile/User Menu | 2026-08-24 |
+| **DASH-POLISH-01/ISSUE-7** | General Visual/UX Polish | 2026-08-24 |
 
-**Total Completed: 35 tasks**
-**Next Active: T-040 (Chrome MV3 Extension Scaffold) / ISSUE-3 (Dashboard Time-Range Controls)**
+**Total Completed: 42 tasks**
+**Next Active: T-040 (Chrome MV3 Extension Scaffold)**

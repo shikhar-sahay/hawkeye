@@ -1,11 +1,10 @@
 # HawkEye v2 - Session Documentation
 
 ## Session Metadata
-- **Date**: 2026-08-17
-- **Session ID**: 2026-08-17-03
-- **Claude Model**: nvidia/nemotron-3-ultra-550b-a55b:free
+- **Date**: 2026-08-24
+- **Session ID**: 2026-08-24-02 (repository orientation & reconciliation)
 - **Branch**: master
-- **Commit**: 3559424
+- **Commit**: see git log — this session ended with the documentation commit series after `799de74`
 
 ---
 
@@ -14,10 +13,10 @@
 | Milestone | Status | Progress | Target | Achieved |
 |-----------|--------|----------|--------|----------|
 | **1: Backend MVP** | ✅ COMPLETE | 100% | 2026-07-27 | 2026-07-24 |
-| **2: WebSocket Backend** | ✅ COMPLETE | 100% | After M1 | 2026-07-24 |
+| **2: WebSocket Backend** | ✅ COMPLETE | 100% | After M1 | 2026-08-02 |
 | **3: Frontend Dashboard** | ✅ COMPLETE | 100% | After M2 | 2026-08-02 |
-| **3.5: Dashboard Polish + Functionality** | 🟢 IN PROGRESS | ~0% | After M3 | — |
-| **4: Browser Security Agent** | ⏳ PLANNED | 0% | After M3.5 | — |
+| **3.5: Dashboard Polish + Functionality** | ✅ COMPLETE | 100% | After M3 | 2026-08-24 |
+| **4: Browser Security Agent** | 🟢 IN PROGRESS | ~20% | After M3.5 | — |
 | **5: SDK Integrations** | ⏳ PLANNED | 0% | After M4 | — |
 | **6: Attack Replay & Docs** | ⏳ PLANNED | 0% | After M5 | — |
 
@@ -25,107 +24,97 @@
 
 ## Current Active Engineering Task
 
-### Task ID: DASH-POLISH-01 - Dashboard Polish + Functionality Phase
-### Status: **IN PROGRESS - ISSUE-1 Complete (WebSocket Consolidation), ISSUE-2 Complete (Refresh Buttons)**
+### Task ID: BASELINE-STABILIZE — Repository Orientation & Reconciliation
+### Status: **COMPLETE**
 
-**Summary:** Comprehensive polish of the existing Hawkeye dashboard to make it a genuinely usable, production-ready security monitoring interface backed by REAL backend data. This phase addresses 7 key issues identified in the dashboard.
+**Summary:** Full repository audit to establish a reliable development baseline before
+continuing Milestone 4. No new product features were added.
 
-**Issues to Address:**
+**What this session did:**
 
-1. **ISSUE-1: Connection Status / WebSocket Indicator Flickering** (P0) ✅ **COMPLETE**
-   - Root cause: TWO WebSocket implementations creating multiple connections
-   - `useWebSocket.ts` hook used by AlertsPage, IncidentsPage, EventsPage
-   - `WebSocketContext.tsx` provider used by TopNav
-   - Multiple connections cause flickering, race conditions, reconnection storms
-   - **Resolution:** Migrated AlertsPage, IncidentsPage, EventsPage to shared WebSocketContext; removed useWebSocket.ts hook; types moved to WebSocketContext.tsx
+1. **Git state reconciled**
+   - Confirmed master was ahead of origin by 2 commits (`85d7631` WS consolidation,
+     `799de74` refresh-button fixes) — now pushed.
+   - Worktree `.claude/worktrees/dash-polish-issue3` contained older versions of
+     StatsDashboard/WebSocketContext changes that were fully superseded by the main
+     tree; worktree and its branch removed after diff verification.
+   - Branch `backup-before-removing-claude` was a byte-identical snapshot of
+     `42a4c06`; deleted after tree comparison confirmed zero unique content.
 
-2. **ISSUE-2: Refresh Buttons Non-Functional** (P1) ✅ **COMPLETE**
-   - Root cause: TanStack Query v5 `isLoading` only true for initial load; `isFetching` needed for refetch
-   - Alerts, Incidents, Sources (and Events) Refresh buttons used `isLoading` for spinner/disabled state
-   - During refetch, button showed no spinner, wasn't disabled, allowing duplicate clicks
-   - **Resolution:** Changed all Refresh buttons to use `isFetching` for spinner and disabled state
+2. **Uncommitted DASH-POLISH-01 Issues 3–7 work committed in logical groups**
+   (WebSocket lifecycle fix, time-range controls, backend search params, TopNav
+   search/notifications/user-menu, browser-agent restructure, .gitignore, docs).
 
-3. **ISSUE-3: Dashboard Time-Range Controls (24h/7d/30d) Non-Interactive** (P1)
-   - StatsDashboard has hardcoded Badge components that don't respond to clicks
-   - Need clickable controls that update timeRange and refetch chart data
+3. **Documentation reconciled with verified reality**
+   - README.md rewritten (was two concatenated documents with contradictory status
+     and wrong endpoint paths).
+   - CLAUDE.md replaced with pointer to AGENTS.md (was a full duplicate handbook).
+   - AGENTS.md updated: current milestones, single shared WebSocket architecture,
+     `/api/v1/alerts/time-series` endpoint name (docs previously said `/over-time`
+     which does not exist), browser-agent flat layout + known typecheck failures.
 
-4. **ISSUE-4: Global Search Limited** (P2)
-   - TopNav search only navigates to Events page
-   - No autocomplete, no unified search across alerts/incidents/events/sources
+4. **Runtime verification performed** (see Verification Results below)
 
-5. **ISSUE-5: Notification Bell Non-Functional** (P2)
-   - Bell icon has no onClick handler
-   - Should show recent high-severity alerts/incidents from WebSocket data
+### Next Action (recommended next task)
+Continue T-040 (Browser Security Agent scaffold): fix the 8 TypeScript errors in the
+flat-layout browser-agent (`content/dom-monitor.ts`, `content/bot-detector.ts`,
+`shared/api-client.ts`) so `npm run typecheck` passes, then remove the legacy
+`browser-agent/src/` directory once parity is confirmed.
 
-6. **ISSUE-6: Profile/User Menu Items Dead** (P2)
-   - Profile, Security Settings, Sign Out have no handlers
-   - Sign Out should clear localStorage API key
+---
 
-7. **ISSUE-7: General Visual/UX Polish** (P3)
-   - Inconsistent spacing, loading states, empty states, layout jumps
-   - Preserve existing Hawkeye design language
+## Verification Results (this session)
 
-**Implementation Order Completed:**
-1. ✅ **ISSUE-1** (WebSocket consolidation) — Foundation for all real-time features
-2. ✅ **ISSUE-2** (Refresh buttons) — Fixed TanStack Query v5 loading state bug
+- Backend tests: ✅ 33/33 PASS (`pytest tests/ -v`)
+- Frontend build: ✅ PASS (`npm run build` = tsc --noEmit + vite build)
+- Frontend lint: ✅ PASS (`npm run lint` — 4 pre-existing fast-refresh warnings)
+- Runtime backend (`uvicorn hawkeye.main:app`): ✅ /health OK; all dashboard
+  endpoints return data against seeded demo DB (alerts/stats, incidents/stats,
+  events/query, sources, sources/event-counts, alerts/time-series, mitre-coverage)
+- SPA routes `/`, `/events`, `/alerts`, `/incidents`, `/sources`, `/settings`: ✅ all HTTP 200 via Vite dev server
+- Vite proxy: ✅ `/api/v1/alerts/stats` proxied 200
+- WebSocket: ✅ `connected` handshake received on both direct `ws://localhost:8000/ws`
+  and proxied `ws://localhost:5173/ws`
 
-**Files Modified (ISSUE-1):**
-- `frontend/src/context/WebSocketContext.tsx` — Added type definitions, serves as single source of truth
-- `frontend/src/pages/Alerts.tsx` — Migrated to useWebSocketContext + useWebSocketMessage
-- `frontend/src/pages/Incidents.tsx` — Migrated to useWebSocketContext + useWebSocketMessage
-- `frontend/src/pages/Events.tsx` — Already using WebSocketContext (verified)
-- `frontend/src/components/AlertFeed.tsx` — Updated import to use WebSocketContext types
-- `frontend/src/components/IncidentTimeline.tsx` — Updated import to use WebSocketContext types
-- `frontend/src/hooks/useWebSocket.ts` — **REMOVED** (no longer needed)
+## Known Issues (verified, not yet fixed)
 
-**Files Modified (ISSUE-2):**
-- `frontend/src/pages/Alerts.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching`
-- `frontend/src/pages/Incidents.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching`
-- `frontend/src/components/SourceManager.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching`
-- `frontend/src/pages/Events.tsx` — Added `isFetching` to useQuery, Refresh button uses `isFetching` (consistency)
+1. **browser-agent flat layout fails typecheck** — 8 TS errors
+   (`npm run typecheck` in browser-agent/). Scaffold is WIP; legacy `src/` layout
+   intentionally kept as reference until the flat layout compiles.
+2. **Hardcoded demo API key** in `frontend/src/api/client.ts:35` — acceptable for
+   local dev but must not ship to production.
+3. **Backend ruff warnings (~57)** — style-only, tracked as T-034.
+4. **Root package.json** is a stale GitHub-init artifact (no scripts); harmless.
+5. **alembic/** is an empty scaffold (no alembic.ini) — planned for Milestone 6.
+6. **Demo data timestamps are old** — charts may show empty windows for "today";
+   re-run `scripts/seed_demo_data.py` if fresh data is needed.
 
-**Verification Results (ISSUE-2):**
-- Frontend build: ✅ PASS (npm run build)
-- Frontend lint: ✅ PASS (npm run lint - only pre-existing warnings)
-- Backend tests: ✅ 33/33 PASS (pytest tests/ -v)
-- TypeScript compilation: ✅ PASS
-- Single WebSocket architecture preserved (no new connections)
+## Files to Review First Next Session
 
-**Next Action:** Begin ISSUE-3 (Dashboard time-range controls)
-
-**Handoff Notes:**
-- Single WebSocket architecture is now in place: WebSocketProvider in AppLayout wraps entire app with subscriptions ["alerts", "incidents", "events"]
-- All three real-time pages (Alerts, Incidents, Events) use shared WebSocketContext via useWebSocketContext and useWebSocketMessage hooks
-- Connection status in TopNav uses useConnectionStatusWithInit which reads from shared context
-- TanStack Query invalidation works correctly on real-time message receipt
-- Old useWebSocket.ts hook completely removed; types now defined in WebSocketContext.tsx
-- Refresh buttons now properly show loading spinner and disable during refetch via `isFetching`
+1. `browser-agent/content/dom-monitor.ts` - fix TS errors (T-040 continuation)
+2. `browser-agent/shared/api-client.ts` - fix StoredConfig id typing
+3. `AGENTS.md` - developer handbook (updated this session)
+4. `frontend/src/context/WebSocketContext.tsx` - primary WS implementation
 
 ---
 
 ## Previous Completed Tasks (Reference)
 
+### BASELINE-STABILIZE (2026-08-24) — this session
+Repository audit, logical commit reorganization of Issues 3–7 work, documentation
+reconciliation, runtime verification. See CHANGELOG [2.5.0].
+
+### DASH-POLISH-01 (Issues 1–7) (2026-08-17 → 2026-08-24)
+- ISSUE-1: WebSocket consolidated to single shared connection; flickering fixed
+- ISSUE-2: Refresh buttons use isFetching
+- ISSUE-3: Interactive 24h/7d/30d time-range controls
+- ISSUE-4: Global search autocomplete (+ backend search params)
+- ISSUE-5: Real-time notification bell
+- ISSUE-6: Functional profile/user menu with sign-out
+- ISSUE-7: UX consistency polish
+
 ### T-039: Dashboard End-to-End Verification & Fixes (2026-08-17)
-- Fixed WebSocket authentication (missing API key in query param)
-- Fixed Sources page duplicate heading
-- All 33 backend tests pass
-- Frontend build & lint clean
-
 ### T-031: Code-split Chart Components (2026-08-02)
-- React.lazy() + Suspense for 6 chart components
-- Vite manual chunks: 42% bundle reduction
-- Main chunk: ~600 KB (gzipped: 171 KB)
-
----
-
-## Files to Review First Next Session
-
-1. `frontend/src/context/WebSocketContext.tsx` - Primary WebSocket implementation to enhance
-2. `frontend/src/hooks/useWebSocket.ts` - To be deprecated/removed
-3. `frontend/src/components/layout/TopNav.tsx` - Search, notifications, profile menu
-4. `frontend/src/components/StatsDashboard.tsx` - Time-range controls
-5. `frontend/src/pages/Alerts.tsx`, `Incidents.tsx`, `Events.tsx` - Switch to WebSocketContext
-6. `hawkeye/api/websocket.py` - Backend WebSocket (already working correctly)
 
 ---
 
@@ -140,14 +129,12 @@ uvicorn hawkeye.main:app --reload   # Dev server (port 8000)
 # Frontend
 cd frontend
 npm install                         # Install deps
-npm run dev                         # Dev server (port 5173)
+npm run dev                         # Dev server (port 5173, proxies /api + /ws to :8000)
 npm run build                       # TypeScript + Vite build
 npm run lint                        # ESLint check
 
-# Browser Agent
+# Browser Agent (currently FAILS typecheck — known issue #1)
 cd browser-agent
 npm install
-npm run build                       # Build extension
-npm run dev                         # Watch mode for development
 npx tsc --noEmit                    # Type check
 ```
