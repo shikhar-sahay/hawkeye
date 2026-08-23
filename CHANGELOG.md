@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.5.0] - 2026-08-24 - DASH-POLISH-01: Issues 3–7 (Dashboard Polish Completion)
+
+### Added
+- **ISSUE-3: Dashboard Time-Range Controls** — 24h/7d/30d badges on the Alerts Over Time chart are now clickable buttons; selecting a range updates state and refetches chart data (`frontend/src/components/StatsDashboard.tsx`)
+- **ISSUE-4: Global Search Autocomplete** — TopNav search performs debounced (250 ms) parallel queries across events, alerts, incidents, and sources with dropdown results and keyboard navigation (ArrowUp/Down, Enter, Escape); backend `search` query param added to alerts, incidents, and sources list endpoints
+- **ISSUE-5: Notification Bell** — Bell icon now shows recent high-severity (critical/high) alerts/incidents received over the shared WebSocket, with badge count, timestamps, click-to-navigate, and clear-all
+- **ISSUE-6: Functional User Menu** — Profile navigates to Settings, Security Settings opens the API tab, Sign Out clears the stored API key and reloads
+
+### Fixed
+- **WebSocket flickering root cause** — `WebSocketContext` lifecycle: split `disconnect()` vs `cleanupDisconnect()` so StrictMode unmount/remount no longer tears down and reconnects the connection; removed unnecessary effect dependencies; session/last-event-id tracked in refs to avoid stale closures
+- **Vite WebSocket proxy** — Added `changeOrigin: true` to the `/ws` proxy config
+
+### Changed
+- **ISSUE-7: UX polish** — Consistent loading/empty/error states across pages
+- **browser-agent/** — Restructured from `src/` layout to flat layout (`background/`, `content/`, `shared/`); updated manifest, tsconfig, and Vite config accordingly
+
+### Documentation
+- Rewrote `README.md` (was two concatenated documents with contradictory status)
+- Replaced duplicate handbook in `CLAUDE.md` with pointer to `AGENTS.md`
+- Updated `AGENTS.md` to current architecture (single shared WebSocket, M3/M3.5 complete, browser-agent flat layout, `/alerts/time-series` endpoint name)
+
+### Verified
+- Backend tests: ✅ 33/33 PASS (`pytest tests/ -v`)
+- Frontend build: ✅ PASS (`npm run build`)
+- Frontend lint: ✅ PASS (4 pre-existing fast-refresh warnings)
+- Runtime: all SPA routes return 200; `/api` + `/ws` proxies verified against running backend
+
+---
+
 ## [2.4.1] - 2026-08-17 - DASH-POLISH-01: WebSocket Consolidation (ISSUE-1)
 
 ### Fixed
