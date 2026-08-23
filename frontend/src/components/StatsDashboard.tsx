@@ -31,8 +31,8 @@ const MITRECoverageChart = React.lazy(() => import("@/components/charts/MITRECov
 const EventsBySourceChart = React.lazy(() => import("@/components/charts/EventsBySourceChart").then((m) => ({ default: m.default })));
 
 interface StatsDashboardProps {
-  /** Time range for time-series data */
-  timeRange?: "24h" | "7d" | "30d";
+  /** Initial time range for time-series data */
+  initialTimeRange?: "24h" | "7d" | "30d";
   /** Refresh interval in ms */
   refreshInterval?: number;
 }
@@ -41,7 +41,8 @@ interface StatsDashboardProps {
  * StatsDashboard - Main statistics dashboard component
  * Displays KPI cards and charts for SOC overview
  */
-export function StatsDashboard({ timeRange = "24h", refreshInterval = 60000 }: StatsDashboardProps) {
+export function StatsDashboard({ initialTimeRange = "24h", refreshInterval = 60000 }: StatsDashboardProps) {
+  const [timeRange, setTimeRange] = React.useState<"24h" | "7d" | "30d">(initialTimeRange);
   // Fetch dashboard stats
   const { data: dashboardStats, isLoading: statsLoading, error: statsError } = useQuery({
     queryKey: queryKeys.dashboard.stats,
@@ -187,10 +188,31 @@ export function StatsDashboard({ timeRange = "24h", refreshInterval = 60000 }: S
               <Activity className="h-4 w-4" />
               Alerts Over Time
             </CardTitle>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">24h</Badge>
-              <Badge variant="outline" className="text-xs">7d</Badge>
-              <Badge variant="outline" className="text-xs">30d</Badge>
+            <div className="flex items-center gap-1" role="group" aria-label="Time range selection">
+              <button
+                type="button"
+                onClick={() => setTimeRange("24h")}
+                className={`badge cursor-pointer transition-colors px-2 py-1 text-xs ${timeRange === "24h" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"}`}
+                aria-pressed={timeRange === "24h"}
+              >
+                24h
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimeRange("7d")}
+                className={`badge cursor-pointer transition-colors px-2 py-1 text-xs ${timeRange === "7d" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"}`}
+                aria-pressed={timeRange === "7d"}
+              >
+                7d
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimeRange("30d")}
+                className={`badge cursor-pointer transition-colors px-2 py-1 text-xs ${timeRange === "30d" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"}`}
+                aria-pressed={timeRange === "30d"}
+              >
+                30d
+              </button>
             </div>
           </CardHeader>
           <CardContent>
