@@ -3,27 +3,28 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2022", "DOM"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "strict": true,
     "noEmit": true,
+    "isolatedModules": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "isolatedModules": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
+    "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@shared/*": ["src/shared/*"],
-      "@background/*": ["src/background/*"],
-      "@content/*": ["src/content/*"]
+      "@/*": ["*"]
     },
     "types": ["chrome", "node"]
   },
-  "include": ["src/**/*", "vite.config.ts"],
-  "exclude": ["node_modules", "dist", "web-ext-artifacts"]
+  "include": [
+    "background/**/*",
+    "content/**/*",
+    "shared/**/*",
+    "vite.config.ts",
+    "manifest.json"
+  ],
+  "exclude": ["node_modules", "dist"]
 }
