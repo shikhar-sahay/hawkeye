@@ -187,6 +187,8 @@ interface WebSocketContextValue {
   configure: (options: UseWebSocketOptions) => void;
   /** Get current configuration */
   getConfig: () => UseWebSocketOptions | null;
+  /** Explicitly connect with current config (for manual reconnect) */
+  connect: () => void;
 }
 
 const WebSocketContext = React.createContext<WebSocketContextValue | null>(null);
@@ -211,6 +213,9 @@ export function WebSocketProvider({
   const [isInitialized, setIsInitialized] = React.useState(false);
   const [config, setConfig] = React.useState<UseWebSocketOptions | null>(null);
 
+  // Track the last apiKey used for connection to avoid unnecessary reconnects
+  const connectedApiKeyRef = React.useRef<string | null>(null);
+
   // Event emitter for message handlers
   const handlersRef = React.useRef<Map<string, Set<WSMessageHandler>>>(new Map());
   const wsRef = React.useRef<WebSocket | null>(null);
@@ -221,6 +226,8 @@ export function WebSocketProvider({
   const isIntentionalDisconnectRef = React.useRef(false);
   const isMountedRef = React.useRef(true);
   const currentSubscriptionsRef = React.useRef<Set<string>>(new Set(subscriptions));
+  const sessionIdRef = React.useRef<string | null>(null);
+  const lastEventIdRef = React.useRef<number>(0);
 
   // Use a mutable ref object to avoid TypeScript readonly issues
   const callbackRefs = React.useRef({
@@ -232,6 +239,9 @@ export function WebSocketProvider({
     onConnect: null as UseWebSocketOptions["onConnect"] | null,
     onDisconnect: null as UseWebSocketOptions["onDisconnect"] | null,
   });
+
+  // Heartbeat interval constant (avoids config dependency recreation)
+  const HEARTBEAT_INTERVAL = 30000;
 
   // Configure function to set callbacks and options
   const configure = React.useCallback((options: UseWebSocketOptions) => {
@@ -249,9 +259,9 @@ export function WebSocketProvider({
       currentSubscriptionsRef.current = new Set(options.subscriptions);
     }
 
-    // If apiKey provided in config, use it (overrides localStorage)
+    // If apiKey provided in config, update apiKey state to trigger reconnection
     if (options.apiKey) {
-      // This will trigger reconnection via the apiKey effect
+      setApiKey(options.apiKey);
     }
   }, []);
 
@@ -265,7 +275,7 @@ export function WebSocketProvider({
     return localStorage.getItem("hawkeye_api_key") || BUILD_TIME_API_KEY || null;
   });
 
-  // Listen for localStorage changes to update apiKey
+  // Listen for localStorage changes to update apiKey (cross-tab)
   React.useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === "hawkeye_api_key") {
@@ -273,29 +283,11 @@ export function WebSocketProvider({
       }
     };
 
-    // Also listen for same-tab changes (storage event doesn't fire in same tab)
-    const handleLocalStorageChange = () => {
-      const newKey = localStorage.getItem("hawkeye_api_key") || BUILD_TIME_API_KEY || null;
-      setApiKey(newKey);
-    };
-
     window.addEventListener("storage", handleStorageChange);
-    // Poll for same-tab changes as a fallback
-    const interval = setInterval(handleLocalStorageChange, 1000);
-
     return () => {
       window.removeEventListener("storage", handleStorageChange);
-      clearInterval(interval);
     };
   }, []);
-
-  // Build WebSocket URL - use relative path so Vite dev proxy works in development
-  const getWsUrl = React.useCallback(() => {
-    const subscribeParam = Array.from(currentSubscriptionsRef.current).join(",");
-    // Include API key as query parameter for authentication
-    const apiKeyParam = apiKey ? `&api_key=${encodeURIComponent(apiKey)}` : "";
-    return `/ws?subscribe=${encodeURIComponent(subscribeParam)}${apiKeyParam}`;
-  }, [apiKey]);
 
   // Clear reconnect timeout
   const clearReconnectTimeout = React.useCallback(() => {
@@ -313,16 +305,15 @@ export function WebSocketProvider({
     }
   }, []);
 
-  // Start heartbeat
+  // Start heartbeat - uses constant interval to avoid config dependency
   const startHeartbeat = React.useCallback(() => {
     clearHeartbeat();
-    const interval = config?.heartbeatInterval ?? 30000;
     heartbeatIntervalRef.current = setInterval(() => {
       if (wsRef.current?.readyState === WebSocket.OPEN) {
         wsRef.current.send(JSON.stringify({ type: "ping" }));
       }
-    }, interval);
-  }, [clearHeartbeat, config?.heartbeatInterval]);
+    }, HEARTBEAT_INTERVAL);
+  }, [clearHeartbeat]);
 
   // Process queued messages
   const processMessageQueue = React.useCallback(() => {
@@ -371,8 +362,11 @@ export function WebSocketProvider({
       // Update session/lastEventId for reconnection
       if (message.type === "connected") {
         const data = message.data as ConnectedData;
-        setSessionId(data.session_id || null);
+        const sessionId = data.session_id || null;
+        setSessionId(sessionId);
+        sessionIdRef.current = sessionId;
         setLastEventId(0);
+        lastEventIdRef.current = 0;
         updateStatus("connected");
         startHeartbeat();
         processMessageQueue();
@@ -382,23 +376,28 @@ export function WebSocketProvider({
         const alert = message.data as AlertPayload;
         const eventId = message.event_id || 0;
         setLastEventId(eventId);
+        lastEventIdRef.current = eventId;
         callbackRefs.current.onAlert?.(alert, eventId);
       } else if (message.type === "incident") {
         const incident = message.data as IncidentPayload;
         const eventId = message.event_id || 0;
         setLastEventId(eventId);
+        lastEventIdRef.current = eventId;
         callbackRefs.current.onIncident?.(incident, eventId);
       } else if (message.type === "event") {
         const evt = message.data as EventPayload;
         const eventId = message.event_id || 0;
         setLastEventId(eventId);
+        lastEventIdRef.current = eventId;
         callbackRefs.current.onEvent?.(evt, eventId);
       } else if (message.type === "error") {
         const errorData = message.data as WSErrorData;
         console.error("WebSocket error:", errorData);
         if (errorData.code === "SESSION_EXPIRED" || errorData.code === "INVALID_RECONNECT") {
           setSessionId(null);
+          sessionIdRef.current = null;
           setLastEventId(0);
+          lastEventIdRef.current = 0;
         }
         callbackRefs.current.onError?.(new Error(errorData.message));
       }
@@ -450,13 +449,14 @@ export function WebSocketProvider({
     };
   }, []);
 
-  // Connect to WebSocket
+  // Connect to WebSocket - uses connectedApiKeyRef to avoid apiKey dependency
   const connect = React.useCallback(() => {
     if (!isMountedRef.current) return;
     if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) {
       return;
     }
-    if (!apiKey) {
+    const currentApiKey = connectedApiKeyRef.current;
+    if (!currentApiKey) {
       console.debug("No API key, skipping WebSocket connection");
       return;
     }
@@ -465,7 +465,9 @@ export function WebSocketProvider({
     updateStatus("connecting");
 
     try {
-      const wsUrl = getWsUrl();
+      const subscribeParam = Array.from(currentSubscriptionsRef.current).join(",");
+      const apiKeyParam = currentApiKey ? `&api_key=${encodeURIComponent(currentApiKey)}` : "";
+      const wsUrl = `/ws?subscribe=${encodeURIComponent(subscribeParam)}${apiKeyParam}`;
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
@@ -503,12 +505,14 @@ export function WebSocketProvider({
 
               reconnectTimeoutRef.current = setTimeout(() => {
                 if (isMountedRef.current && !isIntentionalDisconnectRef.current) {
-                  if (sessionId && lastEventId > 0) {
+                  const currentSessionId = sessionIdRef.current;
+                  const currentLastEventId = lastEventIdRef.current;
+                  if (currentSessionId && currentLastEventId > 0) {
                     connect();
                     setTimeout(() => {
                       send({
                         type: "reconnect",
-                        data: { session_id: sessionId, last_event_id: lastEventId },
+                        data: { session_id: currentSessionId, last_event_id: currentLastEventId },
                       });
                     }, 100);
                   } else {
@@ -543,21 +547,19 @@ export function WebSocketProvider({
       }
     }
   }, [
-    apiKey,
-    getWsUrl,
     handleMessage,
     updateStatus,
-    startHeartbeat,
     clearHeartbeat,
     clearReconnectTimeout,
-    sessionId,
-    lastEventId,
     send,
   ]);
 
-  // Disconnect
+  // Disconnect - intentional disconnect (user action or apiKey change)
   const disconnect = React.useCallback(() => {
     isIntentionalDisconnectRef.current = true;
+    // Only clear connectedApiKeyRef for intentional disconnects (user clicked disconnect or apiKey changing)
+    // Do NOT clear on cleanup/unmount - we want to preserve the key for potential reconnection
+    connectedApiKeyRef.current = null;
     clearReconnectTimeout();
     clearHeartbeat();
 
@@ -578,16 +580,44 @@ export function WebSocketProvider({
     }
   }, [clearReconnectTimeout, clearHeartbeat, updateStatus]);
 
+  // Cleanup disconnect - for unmount/cleanup only, preserves connectedApiKeyRef for potential remount
+  const cleanupDisconnect = React.useCallback(() => {
+    // Mark as intentional disconnect to prevent reconnect logic in onclose handler
+    isIntentionalDisconnectRef.current = true;
+    // Don't clear connectedApiKeyRef - preserve for potential remount (StrictMode)
+    clearReconnectTimeout();
+    clearHeartbeat();
+
+    const ws = wsRef.current;
+    if (ws) {
+      ws.onopen = null;
+      ws.onmessage = null;
+      ws.onclose = null;
+      ws.onerror = null;
+      ws.close(1000, "Cleanup disconnect");
+      wsRef.current = null;
+    }
+
+    if (isMountedRef.current) {
+      updateStatus("disconnected");
+      callbackRefs.current.onStatusChange?.("disconnected");
+      callbackRefs.current.onDisconnect?.();
+    }
+  }, [clearReconnectTimeout, clearHeartbeat, updateStatus]);
+
   // Reconnect manually
   const reconnect = React.useCallback(() => {
     reconnectAttemptsRef.current = 0;
+    // Preserve the current API key for reconnection (from ref or state)
+    const currentApiKey = connectedApiKeyRef.current || apiKey;
     disconnect();
     setTimeout(() => {
-      if (isMountedRef.current) {
+      if (isMountedRef.current && currentApiKey) {
+        connectedApiKeyRef.current = currentApiKey;
         connect();
       }
     }, 100);
-  }, [disconnect, connect]);
+  }, [disconnect, connect, apiKey]);
 
   // Subscribe to event types
   const subscribe = React.useCallback((types: ("alerts" | "incidents" | "events")[]) => {
@@ -603,27 +633,32 @@ export function WebSocketProvider({
     send({ type: "unsubscribe", data: { types: Array.from(currentSubscriptionsRef.current) } });
   }, [send]);
 
-  // Initialize connection on mount and when apiKey changes
+  // Single effect: initialize connection on mount, handle apiKey changes, and cleanup on unmount
+  // Reconnection is handled exclusively by the onclose handler in connect()
+  // Only depends on apiKey - connect/disconnect/cleanupDisconnect are stable callbacks (useCallback with empty deps)
   React.useEffect(() => {
     isMountedRef.current = true;
     setIsInitialized(!!apiKey);
 
-    if (apiKey) {
+    // Connect if we have an apiKey and it's different from the one we're already connected with
+    if (apiKey && apiKey !== connectedApiKeyRef.current) {
+      // apiKey changed - disconnect old connection first if exists
+      if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) {
+        disconnect(); // Intentional disconnect for apiKey change
+      }
+      connectedApiKeyRef.current = apiKey;
       connect();
     }
+    // Reconnection for same apiKey is handled by the onclose handler in connect()
 
     return () => {
+      // Cleanup disconnect on unmount - preserves connectedApiKeyRef for StrictMode remount
+      // Set isMountedRef.current = false FIRST to prevent any async onclose from triggering reconnect
       isMountedRef.current = false;
-      disconnect();
+      cleanupDisconnect();
     };
-  }, [apiKey, connect, disconnect]);
-
-  // Reconnect when apiKey changes from null to value
-  React.useEffect(() => {
-    if (apiKey && status === "disconnected" && !isIntentionalDisconnectRef.current) {
-      connect();
-    }
-  }, [apiKey, status, connect]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiKey]);
 
   const value: WebSocketContextValue = {
     status,
@@ -634,6 +669,7 @@ export function WebSocketProvider({
     unsubscribe,
     reconnect,
     disconnect,
+    connect,
     send,
     isConnected: status === "connected",
     on,
