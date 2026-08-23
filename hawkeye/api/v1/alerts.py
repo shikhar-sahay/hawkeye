@@ -1,6 +1,6 @@
 """Alert API endpoints."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 from sqlmodel import func, select
@@ -8,15 +8,13 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.api.deps import get_current_source, get_session
 from hawkeye.models.events import Alert, ApplicationSource, NormalizedEvent
-from datetime import datetime, timedelta
-
 from hawkeye.schemas import (
     AlertFilter,
     AlertListResponse,
     AlertResponse,
     AlertStatsResponse,
-    MITRECoverageResponse,
     AlertStatusUpdate,
+    MITRECoverageResponse,
 )
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
@@ -88,6 +86,14 @@ async def list_alerts(
         stmt = stmt.where(NormalizedEvent.session_id == filter_params.session_id)
     if filter_params.route:
         stmt = stmt.where(NormalizedEvent.route == filter_params.route)
+    if filter_params.search:
+        search_term = f"%{filter_params.search}%"
+        stmt = stmt.where(
+            Alert.title.ilike(search_term) |
+            Alert.description.ilike(search_term) |
+            Alert.detector_name.ilike(search_term) |
+            Alert.detection_type.ilike(search_term)
+        )
     if filter_params.start_time:
         stmt = stmt.where(Alert.created_at >= filter_params.start_time)
     if filter_params.end_time:
@@ -113,6 +119,14 @@ async def list_alerts(
         count_stmt = count_stmt.where(NormalizedEvent.session_id == filter_params.session_id)
     if filter_params.route:
         count_stmt = count_stmt.where(NormalizedEvent.route == filter_params.route)
+    if filter_params.search:
+        search_term = f"%{filter_params.search}%"
+        count_stmt = count_stmt.where(
+            Alert.title.ilike(search_term) |
+            Alert.description.ilike(search_term) |
+            Alert.detector_name.ilike(search_term) |
+            Alert.detection_type.ilike(search_term)
+        )
     if filter_params.start_time:
         count_stmt = count_stmt.where(Alert.created_at >= filter_params.start_time)
     if filter_params.end_time:
@@ -284,7 +298,6 @@ async def get_alerts_over_time(
     # Use database-agnostic date truncation (works with SQLite and PostgreSQL)
     # SQLite: strftime('%Y-%m-%d %H:00:00', created_at)
     # PostgreSQL: date_trunc('hour', created_at)
-    from sqlalchemy import text
     dialect_name = session.bind.dialect.name
 
     if dialect_name == "postgresql":

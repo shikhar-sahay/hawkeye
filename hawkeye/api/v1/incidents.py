@@ -74,6 +74,7 @@ async def list_incidents(
     source_id: int | None = Query(None),
     affected_ip: str | None = Query(None),
     affected_user: str | None = Query(None),
+    search: str | None = Query(None),
     start_time: datetime | None = Query(None),
     end_time: datetime | None = Query(None),
     limit: int = Query(50, ge=1, le=500),
@@ -92,6 +93,14 @@ async def list_incidents(
         stmt = stmt.where(Incident.status == status)
     if source_id:
         stmt = stmt.where(Incident.source_id == source_id)
+    if search:
+        search_term = f"%{search}%"
+        stmt = stmt.where(
+            Incident.title.ilike(search_term) |
+            Incident.description.ilike(search_term) |
+            Incident.affected_ips.ilike(search_term) |
+            Incident.affected_users.ilike(search_term)
+        )
     if affected_ip:
         # Filter by affected_ips JSON array - need to use JSON functions
         # For simplicity, we'll filter in Python or use a join

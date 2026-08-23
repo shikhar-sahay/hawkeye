@@ -55,11 +55,25 @@ async def create_source(
 async def list_sources(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
+    search: str | None = Query(None),
     session: AsyncSession = Depends(get_session),
 ) -> SourceListResponse:
     """List all registered application sources."""
-    stmt = select(ApplicationSource).offset(offset).limit(limit)
+    stmt = select(ApplicationSource)
     count_stmt = select(func.count(ApplicationSource.id))
+
+    if search:
+        search_term = f"%{search}%"
+        stmt = stmt.where(
+            ApplicationSource.name.ilike(search_term) |
+            ApplicationSource.description.ilike(search_term)
+        )
+        count_stmt = count_stmt.where(
+            ApplicationSource.name.ilike(search_term) |
+            ApplicationSource.description.ilike(search_term)
+        )
+
+    stmt = stmt.offset(offset).limit(limit)
 
     result = await session.exec(stmt)
     sources = list(result.all())

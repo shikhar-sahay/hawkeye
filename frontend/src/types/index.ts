@@ -142,6 +142,7 @@ export interface AlertListParams {
   severity?: string;
   status?: string;
   detection_type?: string;
+  search?: string;
   start_time?: string;
   end_time?: string;
   limit?: number;
@@ -193,6 +194,7 @@ export interface IncidentListParams {
   status?: string;
   affected_ip?: string;
   affected_user?: string;
+  search?: string;
   start_time?: string;
   end_time?: string;
   limit?: number;

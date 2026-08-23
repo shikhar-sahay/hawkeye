@@ -59,6 +59,7 @@ class AlertFilter(BaseModel):
     user_id: str | None = None
     session_id: str | None = None
     route: str | None = None
+    search: str | None = None
     start_time: datetime | None = None
     end_time: datetime | None = None
     limit: int = Field(default=100, ge=1, le=1000)
