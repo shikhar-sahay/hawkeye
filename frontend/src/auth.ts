@@ -2,9 +2,8 @@
  * Hawkeye Frontend - Authentication helpers
  *
  * Hawkeye uses API-key authentication (X-API-Key header). The dashboard is a
- * browser app, so the key lives in localStorage after the user signs in on the
- * Login page. A build-time key (VITE_API_KEY) may be baked in for local dev
- * convenience, but normal user operation never depends on it.
+ * browser app, so the key lives in localStorage after the user signs in on
+ * the Login page. No secret is ever baked into the frontend bundle.
  */
 
 export const API_KEY_STORAGE = "hawkeye_api_key";
@@ -12,12 +11,9 @@ export const API_KEY_STORAGE = "hawkeye_api_key";
 /** Event dispatched by the API client when the backend rejects the stored key */
 export const UNAUTHORIZED_EVENT = "hawkeye:unauthorized";
 
-/** Optional build-time key for local development only (set VITE_API_KEY) */
-const BUILD_TIME_API_KEY: string | undefined = import.meta.env.VITE_API_KEY;
-
 export function getStoredApiKey(): string | null {
   if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(API_KEY_STORAGE) || BUILD_TIME_API_KEY || null;
+  return window.localStorage.getItem(API_KEY_STORAGE);
 }
 
 /**
