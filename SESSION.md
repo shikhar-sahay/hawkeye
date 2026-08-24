@@ -114,8 +114,17 @@ python scripts/seed_demo_data.py
 
 ## Notes for next agent
 - The demo key `hawk_F5I...` lives ONLY in `scripts/seed_demo_data.py`
-  (DB seeding) — it is no longer referenced by any frontend code.
+  (DB seeding) — it is no longer referenced by any frontend code. It is the
+  intended dev login for the dashboard (source: "Web Application").
 - Frontend typechecks MUST use `-p tsconfig.app.json`; bare `tsc --noEmit`
   compiles nothing (root tsconfig keeps references for editor tooling).
 - Deep-link contract: `/events?event=N`, `/alerts?alert=N`,
   `/incidents?incident=N`, `/sources?source=N`.
+- Status vocabularies are backend-defined contracts (see AGENTS.md):
+  alerts `new|processing|correlated|dismissed` via PATCH `/alerts/{id}`;
+  incidents `open|investigating|contained|resolved|closed` via PATCH
+  `/incidents/{id}/status`. The UI previously used invented values that
+  returned 422 — fixed in commit 957a9ad.
+- Untracked `openapi.json` at repo root is a generated artifact from the
+  running backend; useful for contract checks, not committed.
+

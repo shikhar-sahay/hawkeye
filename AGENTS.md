@@ -388,6 +388,11 @@ Read `SESSION.md` for current task details. Read `TODO.md` for full backlog.
 - `GET /api/v1/alerts/mitre-coverage` — MITRE ATT&CK tactic/technique counts
 - `GET /api/v1/incidents/stats` — Aggregate incident statistics
 
+**Status vocabularies (backend is source of truth — do NOT invent UI-only values):**
+- Alert status: `new | processing | correlated | dismissed` (PATCH `/api/v1/alerts/{id}`, NO `/status` suffix)
+- Incident status: `open | investigating | contained | resolved | closed` (PATCH `/api/v1/incidents/{id}/status`)
+- Alert severity: `critical | high | medium | low`
+
 **TypeScript checking (IMPORTANT):** run typechecks from `frontend/` with
 `tsc --noEmit -p tsconfig.app.json` or just `npm run build` (which runs it).
 A bare `tsc --noEmit` compiles nothing because of project config history —
