@@ -139,8 +139,7 @@ export function StatsDashboard({ initialTimeRange = "24h", refreshInterval = 600
           subtitle={alertStats ? `${alertStats.by_status?.new || 0} new, ${alertStats.by_status?.processing || 0} processing` : undefined}
           icon={AlertTriangle}
           badge={alertStats && (alertStats.by_severity?.critical || 0) > 0 ? <Badge variant="destructive">{alertStats.by_severity?.critical || 0} critical</Badge> : null}
-        />
-        <StatCard
+        />        <StatCard
           title="Active Incidents"
           value={incidentStats ? formatNumber((incidentStats.by_status?.open || 0) + (incidentStats.by_status?.investigating || 0)) : "—"}
           subtitle={incidentStats ? `${incidentStats.by_status?.open || 0} open, ${incidentStats.by_status?.investigating || 0} investigating` : undefined}
@@ -169,9 +168,9 @@ export function StatsDashboard({ initialTimeRange = "24h", refreshInterval = 600
           icon={Target}
         />
         <StatCard
-          title="Events Today"
-          value={dashboardStats?.events_24h ? formatNumber(dashboardStats.events_24h) : "—"}
-          subtitle="Last 24 hours"
+          title="Resolved Alerts"
+          value={alertStats ? formatNumber(alertStats.by_status?.resolved || 0) : "—"}
+          subtitle={`${formatNumber(alertStats?.by_status?.suppressed || 0)} suppressed`}
           icon={TrendingUp}
         />
       </div>
@@ -398,8 +397,8 @@ function RecentActivityPanel({
               <Activity className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="font-medium">Total Alerts (24h)</p>
-              <p className="text-sm text-muted-foreground">All severity levels combined</p>
+              <p className="font-medium">Total Alerts</p>
+              <p className="text-sm text-muted-foreground">All statuses combined</p>
             </div>
           </div>
           <span className="font-mono text-lg font-bold">{totalAlerts}</span>

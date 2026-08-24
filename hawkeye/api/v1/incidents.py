@@ -102,11 +102,11 @@ async def list_incidents(
             Incident.affected_users.ilike(search_term)
         )
     if affected_ip:
-        # Filter by affected_ips JSON array - need to use JSON functions
-        # For simplicity, we'll filter in Python or use a join
-        pass
+        # affected_ips is a JSON array column; a substring match against the
+        # serialized array is sufficient for exact-IP filtering
+        stmt = stmt.where(Incident.affected_ips.ilike(f"%{affected_ip}%"))
     if affected_user:
-        pass
+        stmt = stmt.where(Incident.affected_users.ilike(f"%{affected_user}%"))
     if start_time:
         stmt = stmt.where(Incident.created_at >= start_time)
     if end_time:

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -44,12 +44,26 @@ export function IncidentsPage() {
     limit: 50,
     offset: 0,
   });
+  const [searchInput, setSearchInput] = React.useState("");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
 
   // WebSocket state for live incidents
   const [liveIncidents, setLiveIncidents] = React.useState<IncidentPayload[]>([]);
   const [selectedIncident, setSelectedIncident] = React.useState<Incident | null>(null);
+
+  // Debounce search input into the query used for server-side filtering
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Reset pagination whenever server-side filters change
+  React.useEffect(() => {
+    setFilters((prev) => ({ ...prev, search: searchQuery || undefined, offset: 0 }));
+  }, [searchQuery]);
 
   // Deep link: /incidents?incident=ID opens the detail dialog
   const deepLinkIncidentId = searchParams.get("incident");
@@ -136,46 +150,26 @@ export function IncidentsPage() {
     return [...liveIncidentsConverted, ...restIncidents];
   }, [incidentsResponse?.incidents, liveIncidents]);
 
-  // Apply client-side filtering for search
-  const filteredIncidents = React.useMemo(() => {
-    if (!searchQuery.trim()) return combinedIncidents;
-
-    const query = searchQuery.toLowerCase();
-    return combinedIncidents.filter(
-      (incident) =>
-        incident.title.toLowerCase().includes(query) ||
-        incident.description.toLowerCase().includes(query) ||
-        incident.status.toLowerCase().includes(query) ||
-        incident.severity.toLowerCase().includes(query) ||
-        String(incident.id).includes(query) ||
-        incident.mitre_tactics.some((tactic: string) => tactic.toLowerCase().includes(query)) ||
-        incident.mitre_techniques.some((technique: string) => technique.toLowerCase().includes(query)) ||
-        incident.affected_ips.some((ip: string) => ip.toLowerCase().includes(query)) ||
-        incident.affected_users.some((user: string) => user.toLowerCase().includes(query))
-    );
-  }, [combinedIncidents, searchQuery]);
-
   // Handle filter changes
   const handleFilterChange = (key: keyof IncidentListParams, value: string | number | undefined) => {
     setFilters((prev) => ({ ...prev, [key]: value, offset: 0 }));
   };
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  };
-
   const clearFilters = () => {
     setFilters({ limit: 50, offset: 0 });
+    setSearchInput("");
     setSearchQuery("");
   };
 
   const hasActiveFilters =
-    filters.severity || filters.status || filters.affected_ip || filters.affected_user || filters.start_time || filters.end_time;
+    filters.severity || filters.status || filters.affected_ip || filters.search;
 
-  // Load more incidents (pagination)
-  const loadMore = () => {
-    setFilters((prev) => ({ ...prev, offset: (prev.offset ?? 0) + (prev.limit ?? 50) }));
-  };
+  // Server-side pagination
+  const pageSize = filters.limit ?? 50;
+  const offset = filters.offset ?? 0;
+  const total = incidentsResponse?.total ?? 0;
+  const canPrev = offset > 0;
+  const canNext = offset + pageSize < total;
 
   return (
     <>
@@ -208,8 +202,8 @@ export function IncidentsPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search incidents by title, description, MITRE tags, IPs, users..."
-                value={searchQuery}
-                onChange={handleSearch}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -247,18 +241,12 @@ export function IncidentsPage() {
                 </SelectContent>
               </Select>
 
-              <Select
-                value={filters.affected_ip || "all"}
-                onValueChange={(value) => handleFilterChange("affected_ip", value === "all" ? undefined : value)}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Affected IP" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All IPs</SelectItem>
-                  {/* In a real app, this would be populated from actual data */}
-                </SelectContent>
-              </Select>
+              <Input
+                placeholder="Affected IP"
+                value={filters.affected_ip || ""}
+                onChange={(e) => handleFilterChange("affected_ip", e.target.value.trim() || undefined)}
+                className="w-[160px]"
+              />
 
               {hasActiveFilters && (
                 <Button variant="ghost" size="sm" onClick={clearFilters}>
@@ -275,7 +263,7 @@ export function IncidentsPage() {
         {/* Real-time Incident Timeline (left column - wider on desktop) */}
         <div className="lg:col-span-2">
           <IncidentTimeline
-            incidents={filteredIncidents}
+            incidents={combinedIncidents}
             connectionStatus={wsConnectionStatus}
             onIncidentClick={(incident) => {
               apiClient.getIncident(incident.id).then((fullIncident) => {
@@ -293,7 +281,7 @@ export function IncidentsPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Incident List</CardTitle>
-                <Badge variant="secondary">{filteredIncidents.length}</Badge>
+                <Badge variant="secondary">{total}</Badge>
               </div>
               <CardDescription>Click an incident to view details</CardDescription>
             </CardHeader>
@@ -315,7 +303,7 @@ export function IncidentsPage() {
                     Retry
                   </Button>
                 </div>
-              ) : filteredIncidents.length === 0 ? (
+              ) : combinedIncidents.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground">
                   <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No incidents found</p>
@@ -334,7 +322,7 @@ export function IncidentsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredIncidents.map((incident) => (
+                      {combinedIncidents.map((incident) => (
                         <TableRow
                           key={incident.id}
                           className="cursor-pointer hover:bg-muted/50 transition-colors"
@@ -372,12 +360,30 @@ export function IncidentsPage() {
                     </TableBody>
                   </Table>
 
-                  {/* Load More */}
-                  {(incidentsResponse?.total ?? 0) > (filters.offset || 0) + (filters.limit || 50) && !isLoading && (
-                    <div className="p-4 border-t">
-                      <Button variant="outline" className="w-full" onClick={loadMore} disabled={isLoading}>
-                        Load More ({filteredIncidents.length} of {incidentsResponse?.total})
-                      </Button>
+                  {/* Pagination */}
+                  {total > 0 && (
+                    <div className="flex items-center justify-between p-4 border-t">
+                      <span className="text-xs text-muted-foreground">
+                        Showing {Math.min(offset + 1, total)}–{Math.min(offset + pageSize, total)} of {total}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setFilters((prev) => ({ ...prev, offset: Math.max(0, (prev.offset ?? 0) - pageSize) }))}
+                          disabled={!canPrev || isFetching}
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setFilters((prev) => ({ ...prev, offset: (prev.offset ?? 0) + pageSize }))}
+                          disabled={!canNext || isFetching}
+                        >
+                          Next
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
