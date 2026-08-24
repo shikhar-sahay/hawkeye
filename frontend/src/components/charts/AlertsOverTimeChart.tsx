@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import * as React from "react";
 import {
   AreaChart,
   Area,
@@ -28,6 +29,36 @@ interface AlertsOverTimeChartProps {
   showLegend?: boolean;
   /** Y-axis label */
   yAxisLabel?: string;
+  /** Requested range in hours — selects the x-axis tick granularity.
+   *  24h → HH:mm, 7d → day + time, 30d → dates. Inferred from the data
+   *  span when omitted. */
+  hours?: number;
+}
+
+/**
+ * Picks x-axis tick formatting that matches the data granularity so the
+ * axis stays chronological and readable:
+ * - ≤ 24h of data  → "14:00"
+ * - ≤ 7d of data   → "Mon 14:00" (4-hourly buckets)
+ * - > 7d of data   → "Aug 01" (daily buckets)
+ */
+function axisFormatters(spanHours: number) {
+  if (spanHours <= 25) {
+    return {
+      tick: (t: Date) => format(t, "HH:mm"),
+      tooltip: (t: Date) => format(t, "eee d MMM, HH:mm"),
+    };
+  }
+  if (spanHours <= 24 * 8) {
+    return {
+      tick: (t: Date) => format(t, "eee HH:mm"),
+      tooltip: (t: Date) => format(t, "eee d MMM, HH:mm"),
+    };
+  }
+  return {
+    tick: (t: Date) => format(t, "MMM d"),
+    tooltip: (t: Date) => format(t, "eee d MMM yyyy"),
+  };
 }
 
 /**
@@ -42,19 +73,33 @@ export default function AlertsOverTimeChart({
   color = "hsl(var(--primary))",
   showLegend = false,
   yAxisLabel = "Alerts",
+  hours,
 }: AlertsOverTimeChartProps) {
-  // Format data for Recharts
+  // Format data for Recharts; keep the raw Date for the custom tick/tooltip
   const formattedData = data.map((point) => ({
     ...point,
-    time: format(new Date(point.timestamp), "MMM d HH:mm"),
-    shortTime: format(new Date(point.timestamp), "HH:mm"),
+    date: new Date(point.timestamp),
   }));
 
-  const customTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
+  // Span of the series (fall back to the requested range, then 24h)
+  const spanHours = React.useMemo(() => {
+    if (data.length >= 2) {
+      const first = new Date(data[0].timestamp).getTime();
+      const last = new Date(data[data.length - 1].timestamp).getTime();
+      return Math.max(1, Math.round((last - first) / 3_600_000));
+    }
+    return hours ?? 24;
+  }, [data, hours]);
+  const formatters = axisFormatters(spanHours);
+
+  const customTooltip = ({ active, payload }: TooltipProps<number, string>) => {
     if (active && payload && payload.length > 0) {
+      const pointDate = payload[0].payload?.date as Date | undefined;
       return (
         <div className="bg-background p-3 border rounded-lg shadow-lg">
-          <p className="font-mono text-sm font-medium">{label}</p>
+          <p className="font-mono text-sm font-medium">
+            {pointDate ? formatters.tooltip(pointDate) : ""}
+          </p>
           {payload.map((entry, index) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
               {entry.name}: <span className="font-medium">{entry.value}</span>
@@ -87,10 +132,12 @@ export default function AlertsOverTimeChart({
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
         <XAxis
-          dataKey="shortTime"
+          dataKey="date"
+          tickFormatter={formatters.tick}
           tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
           tickLine={false}
           axisLine={false}
+          minTickGap={28}
           interval="preserveStartEnd"
         />
         <YAxis

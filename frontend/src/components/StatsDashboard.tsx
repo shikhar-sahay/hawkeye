@@ -216,6 +216,7 @@ export function StatsDashboard({ initialTimeRange = "24h", refreshInterval = 600
                 <AlertsOverTimeChart
                   data={alertsOverTime || []}
                   isLoading={alertsOverTimeLoading}
+                  hours={hours}
                 />
               </React.Suspense>
             </div>
@@ -265,6 +266,7 @@ export function StatsDashboard({ initialTimeRange = "24h", refreshInterval = 600
                     value,
                   })) : []}
                   isLoading={isLoading}
+                  layout="horizontal"
                 />
               </React.Suspense>
             </div>
