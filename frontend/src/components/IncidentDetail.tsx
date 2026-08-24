@@ -420,7 +420,7 @@ export function IncidentDetail({
                   <CardDescription>Update the incident status</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                     <StatusActionButton
                       label="Open"
                       description="Reopen incident"
@@ -438,11 +438,19 @@ export function IncidentDetail({
                       onClick={() => handleStatusChange("investigating")}
                     />
                     <StatusActionButton
+                      label="Contained"
+                      description="Threat has been contained"
+                      icon={<Shield className="h-4 w-4" />}
+                      variant={displayIncident.status === "contained" ? "default" : "outline"}
+                      disabled={displayIncident.status === "contained" || updateStatusMutation.isPending}
+                      onClick={() => handleStatusChange("contained")}
+                    />
+                    <StatusActionButton
                       label="Resolve"
                       description="Mark as resolved"
                       icon={<CheckCircle className="h-4 w-4" />}
                       variant={displayIncident.status === "resolved" ? "default" : "outline"}
-                      disabled={displayIncident.status === "resolved" || displayIncident.status === "closed" || updateStatusMutation.isPending}
+                      disabled={displayIncident.status === "resolved" || updateStatusMutation.isPending}
                       onClick={() => handleStatusChange("resolved")}
                     />
                     <StatusActionButton

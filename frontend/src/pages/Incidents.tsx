@@ -236,6 +236,7 @@ export function IncidentsPage() {
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="open">Open</SelectItem>
                   <SelectItem value="investigating">Investigating</SelectItem>
+                  <SelectItem value="contained">Contained</SelectItem>
                   <SelectItem value="resolved">Resolved</SelectItem>
                   <SelectItem value="closed">Closed</SelectItem>
                 </SelectContent>

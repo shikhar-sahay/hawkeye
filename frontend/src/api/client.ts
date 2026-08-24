@@ -181,7 +181,7 @@ class ApiClient {
   }
 
   async updateAlertStatus(id: number, data: AlertStatusUpdate): Promise<Alert> {
-    return this.request<Alert>(`/alerts/${id}/status`, {
+    return this.request<Alert>(`/alerts/${id}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     });

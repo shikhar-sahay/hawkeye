@@ -128,15 +128,13 @@ export interface Alert {
   description: string;
   severity: "critical" | "high" | "medium" | "low";
   confidence: number;
-  status: "open" | "acknowledged" | "resolved" | "suppressed";
+  /** Backend AlertStatus vocabulary */
+  status: "new" | "processing" | "correlated" | "dismissed";
   evidence: Record<string, unknown>;
   mitre_tactics: string[];
   mitre_techniques: string[];
   created_at: string;
   updated_at: string;
-  acknowledged_at: string | null;
-  acknowledged_by: string | null;
-  resolved_at: string | null;
 }
 
 export interface AlertListParams {
@@ -151,7 +149,7 @@ export interface AlertListParams {
 }
 
 export interface AlertStatusUpdate {
-  status: "open" | "acknowledged" | "resolved" | "suppressed";
+  status: "new" | "processing" | "correlated" | "dismissed";
 }
 
 export interface AlertStats {
@@ -178,7 +176,8 @@ export interface Incident {
   title: string;
   description: string;
   severity: "critical" | "high" | "medium" | "low";
-  status: "open" | "investigating" | "resolved" | "closed";
+  /** Backend IncidentStatus vocabulary */
+  status: "open" | "investigating" | "contained" | "resolved" | "closed";
   affected_ips: string[];
   affected_users: string[];
   mitre_tactics: string[];
@@ -203,7 +202,7 @@ export interface IncidentListParams {
 }
 
 export interface IncidentStatusUpdate {
-  status: "open" | "investigating" | "resolved" | "closed";
+  status: "open" | "investigating" | "contained" | "resolved" | "closed";
 }
 
 export interface IncidentStats {

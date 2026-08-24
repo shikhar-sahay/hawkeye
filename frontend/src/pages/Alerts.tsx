@@ -138,9 +138,6 @@ export function AlertsPage() {
         mitre_techniques: la.mitre_techniques,
         created_at: la.created_at,
         updated_at: la.updated_at,
-        acknowledged_at: null,
-        acknowledged_by: null,
-        resolved_at: null,
       }));
 
     return [...liveAlertsConverted, ...restAlerts];
@@ -230,10 +227,10 @@ export function AlertsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="acknowledged">Acknowledged</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
-                  <SelectItem value="suppressed">Suppressed</SelectItem>
+                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="processing">Processing</SelectItem>
+                  <SelectItem value="correlated">Correlated</SelectItem>
+                  <SelectItem value="dismissed">Dismissed</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -309,9 +306,6 @@ export function AlertsPage() {
                   mitre_techniques: alert.mitre_techniques,
                   created_at: alert.created_at,
                   updated_at: alert.updated_at,
-                  acknowledged_at: null,
-                  acknowledged_by: null,
-                  resolved_at: null,
                 });
               });
             }}

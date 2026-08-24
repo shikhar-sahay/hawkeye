@@ -105,16 +105,24 @@ export function getSeverityBadgeVariant(severity: string): "default" | "destruct
 
 export function getStatusBadgeVariant(status: string): "default" | "destructive" | "outline" | "secondary" {
   switch (status?.toLowerCase()) {
+    // Alert processing statuses (backend AlertStatus)
+    case 'new':
+      return 'destructive'
+    case 'processing':
+      return 'default'
+    case 'correlated':
+      return 'secondary'
+    case 'dismissed':
+      return 'outline'
+    // Incident lifecycle statuses (backend IncidentStatus)
     case 'open':
       return 'destructive'
-    case 'acknowledged':
-      return 'default'
     case 'investigating':
       return 'default'
+    case 'contained':
+      return 'secondary'
     case 'resolved':
       return 'secondary'
-    case 'suppressed':
-      return 'outline'
     case 'closed':
       return 'outline'
     default:

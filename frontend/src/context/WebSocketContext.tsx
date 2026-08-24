@@ -55,7 +55,7 @@ export interface AlertPayload {
   description: string;
   severity: "critical" | "high" | "medium" | "low";
   confidence: number;
-  status: "open" | "acknowledged" | "resolved" | "suppressed";
+  status: "new" | "processing" | "correlated" | "dismissed";
   evidence: Record<string, unknown>;
   mitre_tactics: string[];
   mitre_techniques: string[];
@@ -73,7 +73,7 @@ export interface IncidentPayload {
   title: string;
   description: string;
   severity: "critical" | "high" | "medium" | "low";
-  status: "open" | "investigating" | "resolved" | "closed";
+  status: "open" | "investigating" | "contained" | "resolved" | "closed";
   affected_ips: string[];
   affected_users: string[];
   mitre_tactics: string[];
