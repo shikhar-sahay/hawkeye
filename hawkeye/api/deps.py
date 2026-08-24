@@ -4,7 +4,7 @@ from collections.abc import AsyncGenerator
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import APIKeyHeader
-from sqlmodel import select
+from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.config import settings
@@ -109,3 +109,26 @@ async def verify_api_key(
         )
 
     return source
+
+
+async def allow_source_registration(
+    api_key: str = Depends(api_key_header),
+    session: AsyncSession = Depends(get_db_session),
+) -> None:
+    """Guard for POST /sources.
+
+    Registering the FIRST source is allowed without credentials (bootstrap);
+    afterwards a valid API key is required for all source management.
+    """
+    if api_key:
+        await verify_api_key(api_key=api_key, session=session)
+        return
+
+    count_result = await session.execute(select(func.count(ApplicationSource.id)))
+    total_sources = count_result.scalars().one()
+    if total_sources > 0:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key required to register additional sources",
+            headers={"WWW-Authenticate": "APIKey"},
+        )

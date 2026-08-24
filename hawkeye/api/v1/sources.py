@@ -1,4 +1,4 @@
-"""Source and API key management API endpoints."""
+﻿"""Source and API key management API endpoints."""
 
 from datetime import datetime
 
@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from hawkeye.api.deps import get_session
+from hawkeye.api.deps import allow_source_registration, get_current_source, get_session
 from hawkeye.core.auth import generate_api_key
 from hawkeye.models.events import Alert, ApiKey, ApplicationSource, Incident, NormalizedEvent
 from hawkeye.schemas import (
@@ -32,9 +32,14 @@ router = APIRouter(prefix="/sources", tags=["sources"])
 )
 async def create_source(
     source_data: SourceCreate,
+    _guard: None = Depends(allow_source_registration),
     session: AsyncSession = Depends(get_session),
 ) -> SourceResponse:
-    """Register a new application source (admin endpoint)."""
+    """Register a new application source.
+
+    Open only while the deployment has no sources (bootstrap); afterwards
+    a valid API key is required.
+    """
     source = ApplicationSource(
         name=source_data.name,
         description=source_data.description,
@@ -57,6 +62,7 @@ async def list_sources(
     offset: int = Query(default=0, ge=0),
     search: str | None = Query(None),
     is_active: bool | None = Query(None),
+    _source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
 ) -> SourceListResponse:
     """List all registered application sources."""
@@ -100,6 +106,7 @@ async def list_sources(
     summary="Get event, alert, and incident counts per source",
 )
 async def get_source_event_counts(
+    _source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
 ) -> list[SourceEventCountsResponse]:
     """Get aggregated event, alert, and incident counts for all sources."""
@@ -145,6 +152,7 @@ async def get_source_event_counts(
 )
 async def get_source(
     source_id: int,
+    _source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
 ) -> SourceResponse:
     """Get a single source by ID."""
@@ -169,6 +177,7 @@ async def get_source(
 async def update_source(
     source_id: int,
     update: SourceUpdate,
+    _source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
 ) -> SourceResponse:
     """Update a source's details."""
@@ -203,6 +212,7 @@ async def update_source(
 async def create_api_key(
     source_id: int,
     key_data: ApiKeyCreate,
+    _source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
 ) -> ApiKeyResponse:
     """Generate a new API key for a source."""
@@ -250,6 +260,7 @@ async def list_api_keys(
     source_id: int,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
+    _source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
 ) -> ApiKeyListResponse:
     """List all API keys for a source (hashes only)."""
@@ -322,6 +333,7 @@ async def update_api_key(
 async def revoke_api_key(
     source_id: int,
     key_id: int,
+    _source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
 ) -> None:
     """Revoke (deactivate) an API key."""
