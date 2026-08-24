@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.6.0] - 2026-08-24 - Dashboard Usability, Authentication & Security Hardening
+
+### Fixed
+- **TypeScript checking was a no-op** — root `tsconfig.json` had `include: []`, so
+  `tsc --noEmit` compiled nothing and ~43 real errors were hidden. Config repaired;
+  all errors fixed; `npm run build` now performs a real project-wide typecheck.
+- **Alerts page crash** — clicking any alert threw `ReferenceError` (missing
+  `selectedAlert` state declaration). Now opens the detail dialog.
+- **Detail dialog crashes** — AlertDetail/IncidentDetail used `CardDescription`
+  (and `cn`) without importing them; Evidence/MITRE/Actions tabs crashed at render.
+- **Unauthenticated source management** — the entire `/sources` router (create,
+  update, delete, API-key lifecycle) accepted anonymous requests. All endpoints now
+  require a valid API key; `POST /sources` remains open only for first-source
+  bootstrap.
+- **Secret in bundle** — removed hardcoded demo key from `api/client.ts` and deleted
+  `frontend/.env` (`VITE_API_KEY`) which Vite inlined into every build.
+- **Broken pagination** — Events/Alerts/Incidents "Load More" replaced results
+  instead of appending; replaced with Previous/Next + "Showing X–Y of Z".
+- **Incident IP/user filters were no-ops** — backend `affected_ip`/`affected_user`
+  params did nothing (`pass`); now implemented.
+- **Dead Settings controls** — WebSocket tab showed hardcoded status with a disabled
+  button (now live status + working connect/disconnect); "Run Connection Test" and
+  reconnect buttons functional; fake "API Endpoint" setting removed.
+- **Wrong ingestion paths in API client** — `/events/ingest*` → actual
+  `POST /api/v1/events` and `/api/v1/events/batch`.
+- **Dashboard honesty** — duplicate/mislabeled "Events Today" KPI replaced with
+  Resolved Alerts; "(24h)" labels corrected to all-time totals.
+
+### Added
+- **API key sign-in flow** — new `/login` page validating against the backend;
+  `RequireAuth` route gate with return-to-page redirects; global 401 handling that
+  routes expired keys back to login; Sign Out clears local key.
+- **Event detail dialog** — click any event row for full analyst metadata
+  (actor/target/MITRE/raw metadata JSON).
+- **Deep links** — `/events?event=N`, `/alerts?alert=N`,
+  `/incidents?incident=N`, `/sources?source=N` open the matching entity; global
+  search and notifications navigate via these (previously dead routes).
+
+### Changed
+- Search on Alerts/Incidents/Sources is now server-side (debounced), consistent
+  with Events and TopNav search.
+- Sources list supports `is_active` filter param; SourceManager uses server-side
+  filtering/pagination throughout.
+- Notifications deduplicated by entity id, respect the enable/disable setting,
+  and no longer flash "new" highlights on initial load.
+- Auto-refresh interval on Dashboard comes from Settings; notification bell honors
+  its enable toggle.
+- Settings tabs driven by `?tab=` query param (Profile/Security menu links work).
+
+### Verified
+- Backend tests: ✅ 33/33 PASS
+- Frontend: ✅ tsc clean (real check), vite build PASS, eslint PASS
+- Runtime: all routes 200 incl. /login; API + WS verified through Vite proxy;
+  auth matrix exercised (401 without key / 200 with key)
+- E2E pipeline: batch ingest → brute-force detection → alert broadcast received
+  over WebSocket
+- Built bundle scanned: no API-key material present
+
+---
+
 ## [2.5.0] - 2026-08-24 - DASH-POLISH-01: Issues 3–7 (Dashboard Polish Completion)
 
 ### Added

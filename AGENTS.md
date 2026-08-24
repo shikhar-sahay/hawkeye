@@ -365,12 +365,21 @@ Read `SESSION.md` for current task details. Read `TODO.md` for full backlog.
 ## API Conventions
 
 - **Prefix:** All REST endpoints under `/api/v1`
-- **Auth:** `X-API-Key` header (required for all endpoints except `/health`, `/`)
+- **Auth:** `X-API-Key` header (required for all endpoints except `/health`, `/`, and first-source bootstrap — see Authentication below)
 - **Pagination:** `limit` (default 50, max 100), `offset` (default 0)
-- **Filtering:** Query parameters (e.g., `?severity=high&status=new`)
+- **Filtering:** Query parameters (e.g., `?severity=high&status=new`); alerts/incidents/sources/events also accept `search`
 - **Response Envelope:** Lists return `{ items: [], total: N, limit: L, offset: O }`
 - **Error Format:** `{ "detail": "error message" }` with appropriate HTTP status
 - **WebSocket:** Separate router at `/ws`, no `/api/v1` prefix
+
+**Authentication (frontend):**
+- The dashboard signs in with a source API key on the `/login` page; the key is
+  validated against `GET /api/v1/sources?limit=1` and stored in localStorage
+  (`hawkeye_api_key`). No secret is ever baked into the frontend bundle.
+- 401/403 responses trigger a global unauthorized event that routes back to login.
+- Backend: ALL `/sources/*` endpoints require auth EXCEPT `POST /sources`, which is
+  open only while the deployment has zero registered sources (bootstrap).
+- Ingestion endpoints: `POST /api/v1/events` (single) and `POST /api/v1/events/batch`.
 
 **Additional Backend Endpoints (for Dashboard):**
 - `GET /api/v1/sources/event-counts` — Event/alert/incident counts per source
@@ -378,6 +387,11 @@ Read `SESSION.md` for current task details. Read `TODO.md` for full backlog.
 - `GET /api/v1/alerts/time-series?hours=N` — Time-series alert data (NOTE: it is `/time-series`, NOT `/over-time`)
 - `GET /api/v1/alerts/mitre-coverage` — MITRE ATT&CK tactic/technique counts
 - `GET /api/v1/incidents/stats` — Aggregate incident statistics
+
+**TypeScript checking (IMPORTANT):** run typechecks from `frontend/` with
+`tsc --noEmit -p tsconfig.app.json` or just `npm run build` (which runs it).
+A bare `tsc --noEmit` compiles nothing because of project config history —
+do not trust it as verification.
 
 ---
 

@@ -531,6 +531,20 @@ Each task has:
 | **DASH-POLISH-01/ISSUE-5** | Notification Bell | 2026-08-24 |
 | **DASH-POLISH-01/ISSUE-6** | Profile/User Menu | 2026-08-24 |
 | **DASH-POLISH-01/ISSUE-7** | General Visual/UX Polish | 2026-08-24 |
+| **DASH-USABLE-01** | Auth flow, crash fixes, real typecheck, dead-control cleanup, server-side search everywhere, deep links, sources auth lockdown | 2026-08-24 |
 
-**Total Completed: 42 tasks**
+**Total Completed: 43 tasks**
+
+---
+
+## P1 - Manual Browser Verification Pass (recommended next)
+
+### VERIFY-01: Human click-through of the dashboard 🟢 RECOMMENDED
+- **Why**: The 2026-08-24 sessions verified the app at HTTP/build/runtime-API
+  level; no browser automation was available in that environment.
+- **Checklist**: sign in → visit every page → refresh buttons → time ranges →
+  search + keyboard nav → notifications → profile menu → settings tabs →
+  alert acknowledge/resolve/suppress → source CRUD + API key lifecycle →
+  sign out → re-authenticate. Watch console for uncaught exceptions.
+
 **Next Active: T-040 (Chrome MV3 Extension Scaffold)**
