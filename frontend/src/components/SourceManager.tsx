@@ -63,11 +63,12 @@ import {
   Copy,
   RotateCcw,
   Loader2,
+  RefreshCw,
   Server,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/lib/utils";
 import { apiClient, queryKeys } from "@/api/client";
 import type { Source, SourceCreate, SourceUpdate, ApiKey, ApiKeyCreate, SourceListResponse } from "@/types";
 import { useToast } from "@/hooks/use-toast";
@@ -116,6 +117,7 @@ export function SourceManager() {
   // Fetch sources with server-side pagination + search + status filter
   const {
     data: sourcesResponse,
+    dataUpdatedAt,
     isLoading,
     isFetching,
     isError,
@@ -132,6 +134,32 @@ export function SourceManager() {
       }),
     staleTime: 30000,
   });
+
+  // Refresh handler: forces a network fetch and surfaces the outcome.
+  // TanStack keeps showing current data while fetching; without explicit
+  // feedback an unchanged result looked like a dead button.
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      const result = await refetch();
+      if (result.isError) {
+        toast({
+          title: "Refresh failed",
+          description: (result.error as Error)?.message ?? "Could not load sources.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Sources refreshed",
+          description: `${result.data?.total ?? 0} sources loaded.`,
+        });
+      }
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Deep link: /sources?source=ID selects that source (global search)
   const deepLinkSourceId = searchParams.get("source");
@@ -335,10 +363,20 @@ export function SourceManager() {
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-            <Loader2 className={cn("h-4 w-4 mr-2", isFetching && "animate-spin")} />
-            Refresh
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing || isFetching}
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-2", (isRefreshing || isFetching) && "animate-spin")} />
+            {isRefreshing ? "Refreshing..." : "Refresh"}
           </Button>
+          {dataUpdatedAt > 0 && !isFetching && (
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              Updated {formatRelativeTime(new Date(dataUpdatedAt))}
+            </span>
+          )}
           <Button onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Add Source

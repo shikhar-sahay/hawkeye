@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { API_KEY_STORAGE, getStoredApiKey } from "@/auth";
@@ -454,7 +454,6 @@ export function WebSocketProvider({
     }
     const currentApiKey = connectedApiKeyRef.current;
     if (!currentApiKey) {
-      console.debug("No API key, skipping WebSocket connection");
       return;
     }
 
@@ -468,70 +467,76 @@ export function WebSocketProvider({
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        console.debug("WebSocket connection opened");
-      };
+        };
 
       ws.onmessage = handleMessage;
 
       ws.onclose = (event) => {
-        console.debug("WebSocket closed:", event.code, event.reason);
+        console.debug("WebSocket closed:", event.code);
         clearHeartbeat();
         clearReconnectTimeout();
 
-        if (isMountedRef.current) {
-          updateStatus("disconnected");
-          callbackRefs.current.onStatusChange?.("disconnected");
-          callbackRefs.current.onDisconnect?.();
+        if (!isMountedRef.current) return;
 
-          // Attempt reconnection if not intentional and auto-reconnect is enabled
-          if (!isIntentionalDisconnectRef.current) {
-            const shouldReconnect = reconnectAttemptsRef.current < 10; // Max 10 attempts
+        // 1008 = policy violation: backend rejected our API key (missing,
+        // invalid, or inactive source). Retrying cannot succeed until the
+        // user signs in again, so surface an error and stop reconnecting.
+        if (event.code === 1008) {
+          isIntentionalDisconnectRef.current = true;
+          updateStatus("error");
+          callbackRefs.current.onStatusChange?.("error");
+          callbackRefs.current.onError?.(new Error(event.reason || "WebSocket authentication failed"));
+          return;
+        }
 
-            if (shouldReconnect) {
-              updateStatus("reconnecting");
-              callbackRefs.current.onStatusChange?.("reconnecting");
-              reconnectAttemptsRef.current += 1;
+        updateStatus("disconnected");
+        callbackRefs.current.onStatusChange?.("disconnected");
+        callbackRefs.current.onDisconnect?.();
 
-              // Exponential backoff with jitter
-              const delay = Math.min(
-                1000 * Math.pow(2, reconnectAttemptsRef.current - 1) + Math.random() * 1000,
-                30000
-              );
+        // Attempt reconnection if not intentional and auto-reconnect is enabled
+        if (!isIntentionalDisconnectRef.current) {
+          const shouldReconnect = reconnectAttemptsRef.current < 10; // Max 10 attempts
 
-              console.debug(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
+          if (shouldReconnect) {
+            updateStatus("reconnecting");
+            callbackRefs.current.onStatusChange?.("reconnecting");
+            reconnectAttemptsRef.current += 1;
 
-              reconnectTimeoutRef.current = setTimeout(() => {
-                if (isMountedRef.current && !isIntentionalDisconnectRef.current) {
-                  const currentSessionId = sessionIdRef.current;
-                  const currentLastEventId = lastEventIdRef.current;
-                  if (currentSessionId && currentLastEventId > 0) {
-                    connect();
-                    setTimeout(() => {
-                      send({
-                        type: "reconnect",
-                        data: { session_id: currentSessionId, last_event_id: currentLastEventId },
-                      });
-                    }, 100);
-                  } else {
-                    connect();
-                  }
+            // Exponential backoff with jitter
+            const delay = Math.min(
+              1000 * Math.pow(2, reconnectAttemptsRef.current - 1) + Math.random() * 1000,
+              30000
+            );
+
+            reconnectTimeoutRef.current = setTimeout(() => {
+              if (isMountedRef.current && !isIntentionalDisconnectRef.current) {
+                const currentSessionId = sessionIdRef.current;
+                const currentLastEventId = lastEventIdRef.current;
+                if (currentSessionId && currentLastEventId > 0) {
+                  connect();
+                  setTimeout(() => {
+                    send({
+                      type: "reconnect",
+                      data: { session_id: currentSessionId, last_event_id: currentLastEventId },
+                    });
+                  }, 100);
+                } else {
+                  connect();
                 }
-              }, delay);
-            } else {
-              updateStatus("error");
-              callbackRefs.current.onStatusChange?.("error");
-            }
+              }
+            }, delay);
+          } else {
+            updateStatus("error");
+            callbackRefs.current.onStatusChange?.("error");
           }
         }
       };
 
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
-        if (isMountedRef.current) {
-          updateStatus("error");
-          callbackRefs.current.onStatusChange?.("error");
-          callbackRefs.current.onError?.(new Error("WebSocket connection error"));
-        }
+      // Network-level errors are always followed by a close event which owns
+      // the status transition; here we only notify error listeners to avoid
+      // the indicator flickering between Error and Reconnecting.
+      ws.onerror = () => {
+        callbackRefs.current.onError?.(new Error("WebSocket connection error"));
       };
 
       wsRef.current = ws;
@@ -630,27 +635,33 @@ export function WebSocketProvider({
     send({ type: "unsubscribe", data: { types: Array.from(currentSubscriptionsRef.current) } });
   }, [send]);
 
-  // Single effect: initialize connection on mount, handle apiKey changes, and cleanup on unmount
-  // Reconnection is handled exclusively by the onclose handler in connect()
-  // Only depends on apiKey - connect/disconnect/cleanupDisconnect are stable callbacks (useCallback with empty deps)
+  // Single effect: ensure a connection exists whenever we have an API key.
+  // Idempotent: connect() itself is a no-op when a socket is already
+  // OPEN/CONNECTING, so StrictMode double-mount, HMR remounts, and route
+  // changes all safely re-ensure the connection instead of leaving a closed
+  // socket behind (the previous key-comparison check skipped connect() on
+  // remount and left the indicator stuck).
   React.useEffect(() => {
     isMountedRef.current = true;
     setIsInitialized(!!apiKey);
 
-    // Connect if we have an apiKey and it's different from the one we're already connected with
-    if (apiKey && apiKey !== connectedApiKeyRef.current) {
-      // apiKey changed - disconnect old connection first if exists
-      if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) {
-        disconnect(); // Intentional disconnect for apiKey change
+    if (apiKey) {
+      if (apiKey !== connectedApiKeyRef.current) {
+        // Key changed: tear down any existing socket first
+        disconnect();
       }
       connectedApiKeyRef.current = apiKey;
+      reconnectAttemptsRef.current = 0;
+      isIntentionalDisconnectRef.current = false;
       connect();
+    } else {
+      disconnect();
     }
-    // Reconnection for same apiKey is handled by the onclose handler in connect()
 
     return () => {
-      // Cleanup disconnect on unmount - preserves connectedApiKeyRef for StrictMode remount
-      // Set isMountedRef.current = false FIRST to prevent any async onclose from triggering reconnect
+      // Cleanup disconnect on unmount - preserves connectedApiKeyRef for
+      // StrictMode remount. Set isMountedRef.current = false FIRST to prevent
+      // async onclose from scheduling a reconnect.
       isMountedRef.current = false;
       cleanupDisconnect();
     };
