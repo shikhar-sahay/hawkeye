@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.7.0] - 2026-08-24 - Visual System, Landing Page & Navigation Overhaul
+
+### Fixed
+- **WebSocket status indicator stuck on Connecting/Disconnected** — the provider
+  mount effect only connected when the API key CHANGED, so StrictMode remounts
+  and HMR closed the socket in cleanup and never reconnected. The effect is now
+  idempotent and always ensures a live connection for the current key.
+  WebSocket close code 1008 (auth rejection) now surfaces Error status and stops
+  pointless reconnect attempts.
+- **Duplicate Hawkeye branding when the sidebar collapsed** — header rendered a
+  second logo+wordmark next to the collapsed rail's icon. Branding now lives in
+  the sidebar at lg+ and in the header only below lg.
+- **Mobile navigation drawer did not work** — the overlay existed but never
+  controlled the sidebar; the sidebar is now a proper drawer below lg.
+- **Sources Refresh gave no feedback** — refetch worked but an unchanged result
+  looked like a dead button; refresh now toasts success/failure, disables with a
+  spinner while fetching, and shows an updated-time stamp.
+- **AlertFeed/IncidentTimeline showed empty state during initial load** instead
+  of their (previously unused) loading skeletons.
+
+### Changed
+- **Design system rebuilt** — new dark theme with layered blue-slate surfaces,
+  new light theme, semantic success/warning/info tokens, and a per-theme severity
+  palette (critical/high/medium/low) used consistently across charts, badges,
+  tables, timelines, and detail views. Fixed root cause of the Severity
+  Distribution legend rendering without colors: it referenced a CSS token that
+  never existed.
+- Typography scale tightened for information density (page titles, uppercase
+  table headers, tabular numerals), themed scrollbars, consistent focus rings,
+  global prefers-reduced-motion handling.
+
+### Added
+- **Public landing page at `/`** presenting real product capabilities (detection
+  engines, MITRE mapping, correlation, WebSocket streaming, source/key model)
+  with CSS-only entrance and scroll-reveal animations; dashboard moved to
+  `/dashboard`.
+- **Get started page (`/get-started`)** documenting the honest path to a
+  credential: run instance, bootstrap first source, generate API key, sign in.
+  No fake account registration; API-key authentication remains the mechanism.
+
+### Verified
+- tsc clean (project-wide), vite build PASS, eslint PASS, backend tests 33/33
+- All routes serve via dev server incl. new public pages; WS handshake verified
+
+---
+
 ## [2.6.0] - 2026-08-24 - Dashboard Usability, Authentication & Security Hardening
 
 ### Fixed
