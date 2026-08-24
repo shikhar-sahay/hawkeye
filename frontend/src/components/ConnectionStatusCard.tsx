@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,9 +47,9 @@ export function ConnectionStatusCard({
   const isError = status === "error";
 
   const statusConfig = {
-    connected: { icon: Wifi, color: "text-green-500", bg: "bg-green-500", label: "Connected" },
-    connecting: { icon: Wifi, color: "text-yellow-500", bg: "bg-yellow-500 animate-pulse", label: "Connecting..." },
-    reconnecting: { icon: Wifi, color: "text-yellow-500", bg: "bg-yellow-500 animate-pulse", label: "Reconnecting..." },
+    connected: { icon: Wifi, color: "text-success", bg: "bg-success", label: "Connected" },
+    connecting: { icon: Wifi, color: "text-warning", bg: "bg-warning animate-pulse", label: "Connecting..." },
+    reconnecting: { icon: Wifi, color: "text-warning", bg: "bg-warning animate-pulse", label: "Reconnecting..." },
     error: { icon: WifiOff, color: "text-destructive", bg: "bg-destructive", label: "Error" },
     disconnected: { icon: WifiOff, color: "text-muted-foreground", bg: "bg-muted-foreground", label: "Disconnected" },
   };
@@ -58,7 +58,7 @@ export function ConnectionStatusCard({
 
   if (compact) {
     return (
-      <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted text-xs font-medium", isConnected && "text-green-600")}>
+      <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted text-xs font-medium", isConnected && "text-success")}>
         <config.icon className={cn("h-3.5 w-3.5", config.color, isConnecting && "animate-pulse")} aria-hidden="true" />
         <span>{config.label}</span>
       </div>
@@ -70,12 +70,12 @@ export function ConnectionStatusCard({
       <CardContent className="pt-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-sm">
           <div className="flex flex-col sm:flex-row items-center gap-4">
-            <span className={cn("flex items-center gap-2", isConnected && "text-green-600")}>
+            <span className={cn("flex items-center gap-2", isConnected && "text-success")}>
               <span
                 className={cn(
                   "h-2 w-2 rounded-full",
-                  isConnected && "bg-green-500",
-                  isConnecting && "bg-yellow-500 animate-pulse",
+                  isConnected && "bg-success",
+                  isConnecting && "bg-warning animate-pulse",
                   isError && "bg-destructive",
                   (!isConnected && !isConnecting && !isError) && "bg-muted-foreground"
                 )}
@@ -128,9 +128,9 @@ export function ConnectionStatusInline({
   const isConnecting = status === "connecting" || status === "reconnecting";
 
   const statusConfig = {
-    connected: { icon: Wifi, color: "text-green-500", label: "Connected" },
-    connecting: { icon: Wifi, color: "text-yellow-500", label: "Connecting..." },
-    reconnecting: { icon: Wifi, color: "text-yellow-500", label: "Reconnecting..." },
+    connected: { icon: Wifi, color: "text-success", label: "Connected" },
+    connecting: { icon: Wifi, color: "text-warning", label: "Connecting..." },
+    reconnecting: { icon: Wifi, color: "text-warning", label: "Reconnecting..." },
     error: { icon: WifiOff, color: "text-destructive", label: "Error" },
     disconnected: { icon: WifiOff, color: "text-muted-foreground", label: "Disconnected" },
   };
@@ -138,7 +138,7 @@ export function ConnectionStatusInline({
   const config = statusConfig[status];
 
   return (
-    <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted text-xs font-medium", isConnected && "text-green-600")}>
+    <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted text-xs font-medium", isConnected && "text-success")}>
       <config.icon className={cn("h-3.5 w-3.5", config.color, isConnecting && "animate-pulse")} aria-hidden="true" />
       <span>{config.label}</span>
       {!isConnected && onReconnect && (

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   BarChart,
@@ -134,7 +134,7 @@ export default function MITRECoverageChart({
         layout="vertical"
         margin={{ top: 10, right: 10, left: 5, bottom: 10 }}
       >
-        <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" vertical={false} horizontal={true} />
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" vertical={false} horizontal={true} />
         <XAxis
           type="number"
           tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}

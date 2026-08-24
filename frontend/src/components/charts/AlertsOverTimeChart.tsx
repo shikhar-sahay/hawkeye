@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   AreaChart,
@@ -85,7 +85,7 @@ export default function AlertsOverTimeChart({
             <stop offset="95%" stopColor={color} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" />
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
         <XAxis
           dataKey="shortTime"
           tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   BarChart,
@@ -125,7 +125,7 @@ export default function DetectionTypeChart({
           layout="vertical"
           margin={{ top: 10, right: 30, left: 5, bottom: 0 }}
         >
-          <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" />
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
           <XAxis
             type="number"
             tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
@@ -155,7 +155,7 @@ export default function DetectionTypeChart({
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={sortedData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" />
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--chart-grid))" />
         <XAxis
           dataKey="label"
           tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}

@@ -383,7 +383,7 @@ export function SettingsPage() {
               <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
                 <div className="flex-shrink-0 w-12 h-12 rounded-full bg-background flex items-center justify-center">
                   {wsStatus === "connected" ? (
-                    <Wifi className="h-6 w-6 text-green-500" />
+                    <Wifi className="h-6 w-6 text-success" />
                   ) : (
                     <WifiOff className="h-6 w-6 text-muted-foreground" />
                   )}

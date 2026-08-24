@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import {
@@ -240,7 +240,7 @@ export function AlertDetail({
                         label="Processing"
                         time={displayAlert.updated_at}
                         description="Alert is being processed"
-                        icon={<Clock className="h-4 w-4 text-orange-500" />}
+                        icon={<Clock className="h-4 w-4 text-warning" />}
                       />
                     )}
                     {displayAlert.status === "correlated" && (
@@ -248,7 +248,7 @@ export function AlertDetail({
                         label="Correlated"
                         time={displayAlert.updated_at}
                         description="Alert was correlated into an incident"
-                        icon={<CheckCircle className="h-4 w-4 text-green-500" />}
+                        icon={<CheckCircle className="h-4 w-4 text-success" />}
                       />
                     )}
                     {displayAlert.status === "dismissed" && (

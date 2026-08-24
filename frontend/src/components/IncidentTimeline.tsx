@@ -329,9 +329,9 @@ export function IncidentTimeline({
               <span
                 className={cn(
                   "h-2 w-2 rounded-full",
-                  connectionStatus === "connected" && "bg-green-500",
-                  connectionStatus === "connecting" && "bg-yellow-500 animate-pulse",
-                  connectionStatus === "reconnecting" && "bg-yellow-500 animate-pulse",
+                  connectionStatus === "connected" && "bg-success",
+                  connectionStatus === "connecting" && "bg-warning animate-pulse",
+                  connectionStatus === "reconnecting" && "bg-warning animate-pulse",
                   connectionStatus === "error" && "bg-destructive",
                   connectionStatus === "disconnected" && "bg-muted-foreground"
                 )}

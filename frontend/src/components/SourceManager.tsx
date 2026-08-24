@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -713,7 +713,7 @@ export function SourceManager() {
                     {apiKeys.map((key) => (
                       <TableRow key={key.id}>
                         <TableCell className="font-medium">{key.name}</TableCell>
-                        <TableCell className="font-mono text-sm">{key.key_prefix}••••</TableCell>
+                        <TableCell className="font-mono text-sm">{key.key_prefix}â€¢â€¢â€¢â€¢</TableCell>
                         <TableCell className="hidden md:table-cell">
                           <Badge variant={key.is_active ? "default" : "secondary"}>
                             {key.is_active ? "Active" : "Revoked"}
@@ -745,7 +745,7 @@ export function SourceManager() {
                                     aria-label="Copy key prefix"
                                     disabled={!key.is_active}
                                   >
-                                    <Copy className={cn("h-4 w-4", copyFeedback === key.id ? "text-green-500" : "")} />
+                                    <Copy className={cn("h-4 w-4", copyFeedback === key.id ? "text-success" : "")} />
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent side="top">

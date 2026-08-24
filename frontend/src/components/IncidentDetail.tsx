@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import {
@@ -208,7 +208,7 @@ export function IncidentDetail({
                       <div className="space-y-1">
                         <Label className="text-xs text-muted-foreground">Closed</Label>
                         <div className="flex items-center gap-1 text-sm">
-                          <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                          <CheckCircle className="h-3.5 w-3.5 text-success" />
                           <span>{formatDate(displayIncident.closed_at)}</span>
                         </div>
                       </div>
@@ -279,7 +279,7 @@ export function IncidentDetail({
                         label="Investigating"
                         time={displayIncident.updated_at}
                         description="Incident is under active investigation"
-                        icon={<AlertCircle className="h-4 w-4 text-blue-500" />}
+                        icon={<AlertCircle className="h-4 w-4 text-info" />}
                       />
                     )}
                     {displayIncident.status === "resolved" && (
@@ -287,7 +287,7 @@ export function IncidentDetail({
                         label="Resolved"
                         time={displayIncident.updated_at}
                         description="Incident marked as resolved"
-                        icon={<CheckCircle className="h-4 w-4 text-green-500" />}
+                        icon={<CheckCircle className="h-4 w-4 text-success" />}
                       />
                     )}
                     {displayIncident.status === "closed" && displayIncident.closed_at && (
@@ -295,7 +295,7 @@ export function IncidentDetail({
                         label="Closed"
                         time={displayIncident.closed_at}
                         description="Incident closed"
-                        icon={<CheckCircle className="h-4 w-4 text-green-500" />}
+                        icon={<CheckCircle className="h-4 w-4 text-success" />}
                       />
                     )}
                   </div>
