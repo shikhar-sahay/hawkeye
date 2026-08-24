@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -62,7 +63,6 @@ import {
   Copy,
   RotateCcw,
   Loader2,
-  Filter,
   Server,
   ChevronLeft,
   ChevronRight,
@@ -75,10 +75,11 @@ import { useToast } from "@/hooks/use-toast";
 export function SourceManager() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Local state
+  const [searchInput, setSearchInput] = React.useState("");
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "inactive">("all");
   const [selectedSource, setSelectedSource] = React.useState<Source | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
@@ -98,9 +99,21 @@ export function SourceManager() {
   const [formData, setFormData] = React.useState<SourceCreate>({
     name: "",
     description: "",
+    is_active: true,
   });
 
-  // Fetch sources with pagination
+  // Debounce search input into the query used for server-side search
+  React.useEffect(() => {
+    const timer = setTimeout(() => setSearchQuery(searchInput.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Reset to first page whenever server-side filters change
+  React.useEffect(() => {
+    setPage(0);
+  }, [searchQuery, statusFilter]);
+
+  // Fetch sources with server-side pagination + search + status filter
   const {
     data: sourcesResponse,
     isLoading,
@@ -109,10 +122,33 @@ export function SourceManager() {
     error,
     refetch,
   } = useQuery<SourceListResponse>({
-    queryKey: [...queryKeys.sources.all, { search: searchQuery, status: statusFilter, page, pageSize }],
-    queryFn: () => apiClient.getSources(pageSize, page * pageSize),
+    queryKey: [...queryKeys.sources.all, { search: searchQuery || undefined, is_active: statusFilter === "all" ? undefined : statusFilter === "active", page, pageSize }],
+    queryFn: () =>
+      apiClient.getSources({
+        limit: pageSize,
+        offset: page * pageSize,
+        search: searchQuery || undefined,
+        is_active: statusFilter === "all" ? undefined : statusFilter === "active",
+      }),
     staleTime: 30000,
   });
+
+  // Deep link: /sources?source=ID selects that source (global search)
+  const deepLinkSourceId = searchParams.get("source");
+  const deepLinkAppliedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!deepLinkSourceId || deepLinkAppliedRef.current || !sourcesResponse) return;
+    const id = Number(deepLinkSourceId);
+    const match = sourcesResponse.sources.find((s) => s.id === id) ?? null;
+    if (match) {
+      setSelectedSource(match);
+      setShowApiKeysForSource(match.id);
+      deepLinkAppliedRef.current = true;
+      const params = new URLSearchParams(searchParams);
+      params.delete("source");
+      setSearchParams(params, { replace: true });
+    }
+  }, [deepLinkSourceId, sourcesResponse, searchParams, setSearchParams]);
 
   // Fetch API keys for selected source
   const {
@@ -234,7 +270,7 @@ export function SourceManager() {
   // Handle edit dialog open
   const handleEditOpen = (source: Source, e?: React.MouseEvent) => {
     setSelectedSource(source);
-    setFormData({ name: source.name, description: source.description || "" });
+    setFormData({ name: source.name, description: source.description || "", is_active: source.is_active });
     setIsEditDialogOpen(true);
     e?.stopPropagation();
   };
@@ -260,17 +296,21 @@ export function SourceManager() {
     setRevokeKeyId(keyId);
   };
 
-  // Handle rotate API key (revoke old + create new with same name)
+  // Handle rotate API key (revoke old + create new with same name; preserve
+  // remaining validity window of the old key)
   const handleRotateApiKey = async (key: ApiKey) => {
     if (!selectedSource) return;
     setRotateKeyId(key.id);
     try {
       // Revoke old key
       await apiClient.revokeApiKey(selectedSource.id, key.id);
-      // Create new key with same name
+      const expiresInDays = key.expires_at
+        ? Math.max(1, Math.ceil((new Date(key.expires_at).getTime() - Date.now()) / 86_400_000))
+        : undefined;
+      // Create new key with same name and remaining validity
       const response = await apiClient.createApiKey(selectedSource.id, {
         name: key.name,
-        expires_in_days: key.expires_at ? undefined : undefined,
+        expires_in_days: expiresInDays,
       });
       refetchApiKeys();
       setShowNewKey(response.api_key);
@@ -282,28 +322,7 @@ export function SourceManager() {
     }
   };
 
-  // Filter sources
-  const filteredSources = React.useMemo(() => {
-    let result = sourcesResponse?.sources || [];
-
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (s) =>
-          s.name.toLowerCase().includes(query) ||
-          (s.description?.toLowerCase().includes(query) ?? false) ||
-          String(s.id).includes(query)
-      );
-    }
-
-    if (statusFilter !== "all") {
-      result = result.filter((s) => (statusFilter === "active") === s.is_active);
-    }
-
-    return result;
-  }, [sourcesResponse, searchQuery, statusFilter]);
-
-  const sources = filteredSources;
+  const sources = sourcesResponse?.sources || [];
   const apiKeys = apiKeysResponse || [];
 
   // Handle form data change
@@ -335,13 +354,13 @@ export function SourceManager() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search sources by name, description..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="pl-10"
               />
             </div>
 
-            <div className="flex flex-wrap gap-2" style={{ display: isFilterOpen ? "flex" : "none" }}>
+            <div className="flex flex-wrap gap-2">
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | "active" | "inactive")}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Status" />
@@ -353,10 +372,11 @@ export function SourceManager() {
                 </SelectContent>
               </Select>
 
-              <Button variant="outline" size="sm" onClick={() => setIsFilterOpen(!isFilterOpen)}>
-                <Filter className="h-4 w-4 mr-2" />
-                Filters
-              </Button>
+              {(searchQuery || statusFilter !== "all") && (
+                <Button variant="ghost" size="sm" onClick={() => { setSearchInput(""); setStatusFilter("all"); }}>
+                  Clear filters
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -366,11 +386,9 @@ export function SourceManager() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Sources ({sources.length})</CardTitle>
-            {statusFilter !== "all" && (
-              <Badge variant="secondary" className="ml-2">
-                {statusFilter === "active" ? "Active" : "Inactive"}
-              </Badge>
+            <CardTitle className="text-lg">Sources</CardTitle>
+            {sourcesResponse && (
+              <Badge variant="secondary">{sourcesResponse.total} total</Badge>
             )}
           </div>
           <CardDescription>
@@ -420,7 +438,6 @@ export function SourceManager() {
                       <TableHead>Name</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead className="hidden md:table-cell">Status</TableHead>
-                      <TableHead className="hidden lg:table-cell">API Keys</TableHead>
                       <TableHead className="hidden lg:table-cell">Created</TableHead>
                       <TableHead className="w-40 text-right">Actions</TableHead>
                     </TableRow>
@@ -464,9 +481,6 @@ export function SourceManager() {
                           <Badge variant={source.is_active ? "default" : "secondary"}>
                             {source.is_active ? "Active" : "Inactive"}
                           </Badge>
-                        </TableCell>
-                        <TableCell className="hidden lg:table-cell font-mono text-sm">
-                          {apiKeys.length}
                         </TableCell>
                         <TableCell className="hidden lg:table-cell font-mono text-xs text-muted-foreground">
                           {new Date(source.created_at).toLocaleDateString()}

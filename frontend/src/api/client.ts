@@ -86,11 +86,15 @@ class ApiClient {
 
   // ==================== Sources ====================
 
-  async getSources(limit: number = 50, offset: number = 0): Promise<{ sources: Source[]; total: number; limit: number; offset: number }> {
-    const params = new URLSearchParams();
-    params.append("limit", String(limit));
-    params.append("offset", String(offset));
-    return this.request(`/sources?${params.toString()}`);
+  async getSources(params: { limit?: number; offset?: number; search?: string; is_active?: boolean } = {}): Promise<{ sources: Source[]; total: number; limit: number; offset: number }> {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, String(value));
+      }
+    });
+    const query = searchParams.toString();
+    return this.request(`/sources${query ? `?${query}` : ""}`);
   }
 
   async getSource(id: number): Promise<Source> {
@@ -248,7 +252,7 @@ class ApiClient {
     const [alertStats, incidentStats, sourcesResponse, sourceEventCounts] = await Promise.all([
       this.getAlertStats(),
       this.getIncidentStats(),
-      this.getSources(1, 0), // Only need the total; counts come from event-counts
+      this.getSources({ limit: 1, offset: 0 }), // Only need the total; counts come from event-counts
       this.getSourceEventCounts().catch(() => []), // Fallback to empty array if endpoint fails
     ]);
 

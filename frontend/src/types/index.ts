@@ -47,6 +47,7 @@ export interface SourceEventCounts {
 export interface SourceCreate {
   name: string;
   description?: string;
+  is_active?: boolean;
 }
 
 export interface SourceUpdate {

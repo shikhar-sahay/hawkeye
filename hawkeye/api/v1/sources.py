@@ -56,6 +56,7 @@ async def list_sources(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     search: str | None = Query(None),
+    is_active: bool | None = Query(None),
     session: AsyncSession = Depends(get_session),
 ) -> SourceListResponse:
     """List all registered application sources."""
@@ -72,6 +73,10 @@ async def list_sources(
             ApplicationSource.name.ilike(search_term) |
             ApplicationSource.description.ilike(search_term)
         )
+
+    if is_active is not None:
+        stmt = stmt.where(ApplicationSource.is_active == is_active)
+        count_stmt = count_stmt.where(ApplicationSource.is_active == is_active)
 
     stmt = stmt.offset(offset).limit(limit)
 

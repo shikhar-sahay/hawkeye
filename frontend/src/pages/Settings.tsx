@@ -108,7 +108,7 @@ export function SettingsPage() {
   const runConnectionTest = async () => {
     setIsTestingConnection(true);
     try {
-      await apiClient.getSources(1, 0);
+      await apiClient.getSources({ limit: 1, offset: 0 });
       toast({
         title: "API connection OK",
         description: `Backend reachable and authenticated. WebSocket: ${wsStatus}.`,

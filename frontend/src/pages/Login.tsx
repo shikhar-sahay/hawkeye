@@ -52,7 +52,7 @@ export function LoginPage() {
     try {
       // Temporarily store so the API client picks it up during validation
       setStoredApiKey(key);
-      await apiClient.getSources(1, 0);
+      await apiClient.getSources({ limit: 1, offset: 0 });
       // Key is valid - go to the requested page or the dashboard
       navigate(from, { replace: true });
     } catch (err) {
