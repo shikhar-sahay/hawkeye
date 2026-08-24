@@ -424,6 +424,33 @@ pytest tests/test_detection.py::TestBruteForceDetector::test_brute_force_thresho
 
 ---
 
+### Browser / UI Verification
+
+When a task changes the frontend UI or user-facing behavior, verify the running application with the OpenCode browser subagents when appropriate.
+
+- `browser-qa` — functional browser testing: navigation, interactions, forms, console errors, responsive behavior, and broken flows.
+- `visual-review` — visual inspection: screenshots, spacing, alignment, typography, hierarchy, responsive layout, and visual consistency.
+- Both agents are read-only and must not modify source files.
+- Use the project's running frontend dev server as the browser target.
+- Do not assume a UI change is correct from source code alone when rendered-browser verification is practical.
+- For significant frontend changes, run both `browser-qa` and `visual-review`.
+- Report browser verification results alongside the normal test/build results.
+- Fix identified issues in the main development session, then re-run the relevant browser checks.
+
+---	
+
+#### HawkEye Browser Target
+
+- Frontend directory: `frontend/`
+- Dev server command: `npm run dev`
+- Default Vite URL: `http://localhost:5173`
+- When browser verification is requested, first confirm the frontend dev server is running.
+- If Vite reports a different port, use the URL it reports instead of assuming `5173`.
+- The main development agent may start the frontend dev server when browser verification is required and it is not already running; browser subagents themselves must not start or stop it.
+- Browser agents must not start or stop the dev server unless explicitly instructed.
+
+---
+
 ## Documentation Workflow
 
 1. **Implementation complete** → Run tests → Verify pass
