@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
+import { useDocumentTitle } from "@/hooks/useRouteMeta";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ import type { IncidentPayload } from "@/context/WebSocketContext";
  * Fetches initial incidents via REST API, receives real-time updates via shared WebSocketContext
  */
 export function IncidentsPage() {
+  useDocumentTitle("Incidents");
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 

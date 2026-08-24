@@ -10,6 +10,7 @@ import { AlertsPage } from "@/pages/Alerts";
 import { IncidentsPage } from "@/pages/Incidents";
 import { SourcesPage } from "@/pages/Sources";
 import { SettingsPage } from "@/pages/Settings";
+import { NotFoundPage } from "@/pages/NotFound";
 import { hasUserApiKey } from "@/auth";
 
 /**
@@ -50,7 +51,8 @@ function App() {
         </Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* 404 - unknown routes get the branded not-found page */}
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

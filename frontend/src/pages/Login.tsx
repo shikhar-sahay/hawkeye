@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
 import { apiClient, ApiError } from "@/api/client";
 import { setStoredApiKey, hasUserApiKey, clearStoredApiKey } from "@/auth";
+import { useRouteMeta } from "@/hooks/useRouteMeta";
 
 /**
  * LoginPage - API key sign-in for the Hawkeye dashboard.
@@ -19,6 +20,10 @@ import { setStoredApiKey, hasUserApiKey, clearStoredApiKey } from "@/auth";
  * (created on the Sources page or via the backend API on a fresh install).
  */
 export function LoginPage() {
+  useRouteMeta(
+    "Sign in",
+    "Sign in to your Hawkeye dashboard with a source API key."
+  );
   const navigate = useNavigate();
   const location = useLocation() as { state?: { from?: string; message?: string } };
   const from = location.state?.from || "/dashboard";
@@ -106,7 +111,7 @@ export function LoginPage() {
         </div>
       </header>
 
-      <div className="relative z-10 flex flex-1 items-center justify-center p-4">
+      <main id="main-content" className="relative z-10 flex flex-1 items-center justify-center p-4">
         <div className="w-full max-w-md space-y-5 animate-fade-up">
           <div className="text-center">
             <h1 className="text-2xl font-bold tracking-tight">Sign in to your dashboard</h1>
@@ -157,7 +162,6 @@ export function LoginPage() {
                       className="absolute right-1.5 top-1/2 h-7 w-7 -translate-y-1/2"
                       onClick={() => setShowKey(!showKey)}
                       aria-label={showKey ? "Hide API key" : "Show API key"}
-                      tabIndex={-1}
                     >
                       {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
@@ -198,7 +202,7 @@ export function LoginPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

@@ -43,6 +43,12 @@ export function AppLayout() {
   return (
     <WebSocketProvider>
       <div className="min-h-screen bg-background">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:text-primary-foreground"
+        >
+          Skip to content
+        </a>
         {/* Sidebar */}
         <Sidebar
           collapsed={sidebarCollapsed}
@@ -66,11 +72,11 @@ export function AppLayout() {
 
           {/* Page content */}
           <main
+            id="main-content"
             className={cn(
               "pt-14 min-h-screen transition-all duration-200",
               "lg:pr-6 pb-6"
             )}
-            role="main"
           >
             <div className="max-w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
               <Outlet />

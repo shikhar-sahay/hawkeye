@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { HAWKEYE_THEMES, setThemeAnimated, type HawkeyeTheme } from "@/lib/theme";
+import { useDocumentTitle } from "@/hooks/useRouteMeta";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { apiClient } from "@/api/client";
@@ -60,6 +61,7 @@ const VALID_TABS = ["general", "api", "websocket", "about"] as const;
 type SettingsTab = (typeof VALID_TABS)[number];
 
 export function SettingsPage() {
+  useDocumentTitle("Settings");
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();

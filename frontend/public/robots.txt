@@ -1,0 +1,18 @@
+# Hawkeye — robots.txt
+# Public marketing/docs pages may be indexed. The dashboard is a private,
+# authenticated application surface and must not be indexed.
+
+User-agent: *
+Allow: /
+Allow: /get-started
+Allow: /login
+Disallow: /dashboard
+Disallow: /events
+Disallow: /alerts
+Disallow: /incidents
+Disallow: /sources
+Disallow: /settings
+Disallow: /api/
+Disallow: /ws
+
+Sitemap: http://localhost:5173/sitemap.xml

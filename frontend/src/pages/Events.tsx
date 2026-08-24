@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
+import { useDocumentTitle } from "@/hooks/useRouteMeta";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ import type { NormalizedEvent, EventListParams } from "@/types";
  * Real-time updates via shared WebSocket context (events subscription)
  */
 export function EventsPage() {
+  useDocumentTitle("Events");
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 

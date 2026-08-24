@@ -3,6 +3,7 @@
 import * as React from "react";
 import { StatsDashboard } from "@/components/StatsDashboard";
 import { PageContainer } from "@/components/ui";
+import { useDocumentTitle } from "@/hooks/useRouteMeta";
 
 /** Auto-refresh interval from Settings (seconds, 0 = disabled). Default 60s. */
 function getAutoRefreshInterval(): number {
@@ -12,6 +13,7 @@ function getAutoRefreshInterval(): number {
 }
 
 export function DashboardPage() {
+  useDocumentTitle("Dashboard");
   const [refreshInterval] = React.useState(getAutoRefreshInterval);
   return (
     <PageContainer title="Dashboard" description="Overview of your security posture">

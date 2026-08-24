@@ -13,6 +13,7 @@ import { DashboardPreview } from "@/components/site/DashboardPreview";
 import { FAQSection } from "@/components/site/FAQSection";
 import { MobileStickyCta } from "@/components/site/MobileStickyCta";
 import { Reveal } from "@/components/Reveal";
+import { useRouteMeta } from "@/hooks/useRouteMeta";
 
 /**
  * LandingPage - public product page for Hawkeye.
@@ -36,14 +37,27 @@ const ingestSnippet = `curl -X POST http://localhost:8000/api/v1/events \\
   }'`;
 
 export function LandingPage() {
+  useRouteMeta(
+    "Web Application Security Monitoring",
+    "Hawkeye is a self-hosted security monitoring platform for web applications: ingest security events, detect attacks with seven detection engines, map findings to MITRE ATT&CK, and correlate alerts into live incidents."
+  );
+
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0">
       <SiteHeader />
 
-      {/* ---------------------------------------------------------------- */}
-      {/* Hero: copy left, the observation field right                     */}
-      {/* ---------------------------------------------------------------- */}
-      <section className="relative overflow-hidden pt-28 sm:pt-32">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:text-primary-foreground"
+      >
+        Skip to content
+      </a>
+
+      <main id="main-content">
+        {/* ---------------------------------------------------------------- */}
+        {/* Hero: copy left, the observation field right                     */}
+        {/* ---------------------------------------------------------------- */}
+        <section className="relative overflow-hidden pt-28 sm:pt-32">
         {/* Faint surveillance grid backdrop */}
         <div
           aria-hidden="true"
@@ -182,6 +196,7 @@ export function LandingPage() {
           </Reveal>
         </div>
       </section>
+      </main>
 
       <SiteFooter />
       <MobileStickyCta />
