@@ -11,7 +11,7 @@
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 199 89% 40%;
+    --primary: 199 89% 35%;
     --primary-foreground: 210 40% 98%;
     --secondary: 214 32% 94%;
     --secondary-foreground: 222 47% 15%;
@@ -29,18 +29,18 @@
     /* Semantic status colors (light) */
     --success: 152 68% 34%;
     --success-foreground: 0 0% 100%;
-    --warning: 35 95% 42%;
+    --warning: 35 95% 34%;
     --warning-foreground: 0 0% 100%;
-    --info: 205 90% 42%;
+    --info: 205 90% 38%;
     --info-foreground: 0 0% 100%;
 
     /* Severity scale (light): tuned for contrast on white surfaces.
        Distinguishable by lightness and hue, not hue alone. */
     --severity-critical: 0 76% 44%;
     --severity-critical-foreground: 0 0% 100%;
-    --severity-high: 24 94% 43%;
+    --severity-high: 24 94% 38%;
     --severity-high-foreground: 0 0% 100%;
-    --severity-medium: 36 92% 36%;
+    --severity-medium: 36 95% 32%;
     --severity-medium-foreground: 0 0% 100%;
     --severity-low: 202 88% 38%;
     --severity-low-foreground: 0 0% 100%;
@@ -91,6 +91,48 @@
 
     --chart-grid: 220 28% 14%;
   }
+
+  /* Pitch black: neutral grayscale on true black, hairline borders, cyan
+     accent. Deliberately hue-less so severity colors carry all the color. */
+  .black {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 93%;
+    --card: 0 0% 4%;
+    --card-foreground: 0 0% 93%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 93%;
+    --primary: 197 92% 54%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 88%;
+    --muted: 0 0% 8%;
+    --muted-foreground: 0 0% 62%;
+    --accent: 0 0% 12%;
+    --accent-foreground: 0 0% 95%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 13%;
+    --input: 0 0% 16%;
+    --ring: 197 92% 54%;
+
+    --success: 152 70% 46%;
+    --success-foreground: 152 80% 6%;
+    --warning: 40 96% 56%;
+    --warning-foreground: 35 90% 8%;
+    --info: 200 95% 58%;
+    --info-foreground: 210 90% 6%;
+
+    --severity-critical: 4 90% 62%;
+    --severity-critical-foreground: 0 80% 8%;
+    --severity-high: 27 96% 58%;
+    --severity-high-foreground: 24 90% 9%;
+    --severity-medium: 43 96% 56%;
+    --severity-medium-foreground: 35 95% 10%;
+    --severity-low: 199 95% 60%;
+    --severity-low-foreground: 205 90% 8%;
+
+    --chart-grid: 0 0% 10%;
+  }
 }
 
 @layer base {
@@ -101,11 +143,31 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
+  html.light {
+    color-scheme: light;
+  }
+  html.dark,
+  html.black {
+    color-scheme: dark;
+  }
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1, "tnum" 1;
     font-size: 0.9375rem;
     line-height: 1.5;
+  }
+
+  /* Smooth-but-restrained theme transition: enabled only while switching
+     themes (html.theme-anim is added for 300ms by the theme switcher). */
+  html.theme-anim *,
+  html.theme-anim *::before,
+  html.theme-anim *::after {
+    transition:
+      background-color 0.25s ease,
+      border-color 0.25s ease,
+      color 0.25s ease,
+      fill 0.25s ease,
+      stroke 0.25s ease !important;
   }
 
   /* Consistent focus visibility across the app */
@@ -216,7 +278,10 @@
   }
 
   /* Scroll reveal helper: elements start hidden and reveal when the
-     .is-visible class is added by the IntersectionObserver hook */
+     .is-visible class is added by the IntersectionObserver hook.
+     Fallbacks below guarantee content is never permanently hidden:
+     - reduced motion: everything visible immediately
+     - print / crawlers without JS execution: visible */
   .reveal {
     opacity: 0;
     transform: translateY(16px);
@@ -226,4 +291,24 @@
     opacity: 1;
     transform: translateY(0);
   }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+  @media print {
+    .reveal {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
+}
+
+/* No-JS safety: without JavaScript the IntersectionObserver never runs,
+   so revealed sections must render visible. */
+.noscript .reveal {
+  opacity: 1;
+  transform: none;
 }

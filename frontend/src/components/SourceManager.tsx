@@ -713,7 +713,7 @@ export function SourceManager() {
                     {apiKeys.map((key) => (
                       <TableRow key={key.id}>
                         <TableCell className="font-medium">{key.name}</TableCell>
-                        <TableCell className="font-mono text-sm">{key.key_prefix}â€¢â€¢â€¢â€¢</TableCell>
+                        <TableCell className="font-mono text-sm">{key.key_prefix}••••</TableCell>
                         <TableCell className="hidden md:table-cell">
                           <Badge variant={key.is_active ? "default" : "secondary"}>
                             {key.is_active ? "Active" : "Revoked"}

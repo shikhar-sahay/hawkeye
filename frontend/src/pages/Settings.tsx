@@ -46,6 +46,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import { HAWKEYE_THEMES, setThemeAnimated, type HawkeyeTheme } from "@/lib/theme";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { apiClient } from "@/api/client";
@@ -197,14 +198,16 @@ export function SettingsPage() {
                   <Label>Theme</Label>
                   <p className="text-sm text-muted-foreground">Choose your preferred color scheme</p>
                 </div>
-                <Select value={theme} onValueChange={setTheme}>
+                <Select value={theme ?? "dark"} onValueChange={(v) => setThemeAnimated(setTheme, v as HawkeyeTheme)}>
                   <SelectTrigger className="w-[200px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="dark">Dark</SelectItem>
-                    <SelectItem value="system">System</SelectItem>
+                    {HAWKEYE_THEMES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>
+                        {t.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -560,7 +563,7 @@ export function SettingsPage() {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
-                    <p>Not yet available â€” placeholder for future GitHub repo</p>
+                    <p>Not yet available — placeholder for future GitHub repo</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -584,7 +587,7 @@ export function SettingsPage() {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
-                    <p>Not yet available â€” placeholder for future security policy</p>
+                    <p>Not yet available — placeholder for future security policy</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -608,7 +611,7 @@ export function SettingsPage() {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
-                    <p>Not yet available â€” placeholder for future documentation site</p>
+                    <p>Not yet available — placeholder for future documentation site</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

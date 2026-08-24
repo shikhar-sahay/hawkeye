@@ -402,7 +402,7 @@ export function EventsPage() {
             </div>
             <CardDescription>
               {eventsResponse !== undefined
-                ? `Showing page ${Math.floor(offset / pageSize) + 1} of ${Math.max(1, Math.ceil(total / pageSize))} â€” click a row for details`
+                ? `Showing page ${Math.floor(offset / pageSize) + 1} of ${Math.max(1, Math.ceil(total / pageSize))} — click a row for details`
                 : "Loading..."}
             </CardDescription>
           </CardHeader>
