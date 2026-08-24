@@ -124,23 +124,7 @@ export default function SeverityDistributionChart({
           paddingAngle={2}
           dataKey="value"
           nameKey="name"
-          // Percentage callouts sit outside the ring in muted text so they
-          // stay legible over both light and dark surfaces.
-          label={({ percent }) =>
-            total > 0 && percent > 0.05 ? (
-              <text
-                x={0}
-                y={0}
-                textAnchor="middle"
-                dominantBaseline="central"
-                className="fill-muted-foreground font-mono"
-                fontSize={11}
-              >
-                {(percent * 100).toFixed(0)}%
-              </text>
-            ) : null
-          }
-          labelLine={{ stroke: "hsl(var(--border))" }}
+          labelLine={false}
         >
           {chartData.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={entry.fill} stroke="none" />

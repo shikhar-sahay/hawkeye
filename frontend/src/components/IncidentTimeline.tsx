@@ -70,7 +70,7 @@ function TimelineItem({ incident, index, total, isExpanded, onToggle, onClick }:
           )}
         >
           <span className="text-[10px] font-bold text-white" style={{ lineHeight: 1 }}>
-            {incident.severity === "critical" ? "!" : incident.severity === "high" ? "â–²" : "â—"}
+            {incident.severity === "critical" ? "!" : incident.severity === "high" ? "▲" : "●"}
           </span>
         </div>
 
@@ -89,8 +89,9 @@ function TimelineItem({ incident, index, total, isExpanded, onToggle, onClick }:
                 {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
               </Button>
 
-              {/* Main content */}
-              <div className="flex-1 min-w-0">
+              {/* Main content — contain:inline-size keeps truncated/nowrap
+                  children from inflating the card's intrinsic width */}
+              <div className="flex-1 min-w-0 [contain:inline-size]">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <h4 className="font-medium text-sm truncate">{incident.title}</h4>
@@ -101,14 +102,16 @@ function TimelineItem({ incident, index, total, isExpanded, onToggle, onClick }:
                       {incident.status.charAt(0).toUpperCase() + incident.status.slice(1)}
                     </Badge>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground flex-shrink-0">
-                    <span className="font-mono">#{incident.id}</span>
-                    <Clock className="h-3 w-3" />
-                    <span>{formatRelativeTime(incident.created_at)}</span>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground flex-shrink-0 min-w-0 max-w-[45%] justify-end">
+                    <span className="font-mono flex-none">#{incident.id}</span>
+                    <Clock className="h-3 w-3 flex-none" />
+                    <span className="truncate">{formatRelativeTime(incident.created_at)}</span>
                   </div>
                 </div>
 
-                <p className="text-sm text-muted-foreground line-clamp-2">{incident.description}</p>
+                {/* contain:inline-size keeps the -webkit-box clamp from
+                    inflating the card's intrinsic (min-content) width */}
+                <p className="text-sm text-muted-foreground line-clamp-2 [contain:inline-size]">{incident.description}</p>
 
                 {/* Quick stats row */}
                 <div className="flex flex-wrap items-center gap-4 mt-3 pt-3 border-t">

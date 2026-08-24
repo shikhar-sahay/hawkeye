@@ -17,16 +17,30 @@ interface CodeBlockProps {
  * visible scroll affordance on narrow screens.
  */
 export function CodeBlock({ code, label = "Shell", meta, className }: CodeBlockProps) {
-  const [copied, setCopied] = React.useState(false);
+  const [state, setState] = React.useState<"idle" | "copied" | "failed">("idle");
 
   const copy = async () => {
+    let ok = false;
     try {
       await navigator.clipboard.writeText(code);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
+      ok = true;
     } catch {
-      // Clipboard unavailable (permissions/insecure context) - ignore
+      // Clipboard API unavailable/denied - fall back to a temporary textarea
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = code;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+      } catch {
+        ok = false;
+      }
     }
+    setState(ok ? "copied" : "failed");
+    window.setTimeout(() => setState("idle"), 1600);
   };
 
   return (
@@ -40,13 +54,15 @@ export function CodeBlock({ code, label = "Shell", meta, className }: CodeBlockP
           type="button"
           onClick={copy}
           className="inline-flex min-h-[28px] items-center gap-1 rounded px-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          aria-label={copied ? "Copied" : "Copy to clipboard"}
+          aria-label={state === "copied" ? "Copied" : state === "failed" ? "Copy failed" : "Copy to clipboard"}
         >
-          {copied ? (
+          {state === "copied" ? (
             <>
               <Check className="h-3 w-3 text-success" aria-hidden="true" />
               <span className="text-success">Copied</span>
             </>
+          ) : state === "failed" ? (
+            <span className="text-destructive">Copy failed</span>
           ) : (
             <>
               <Copy className="h-3 w-3" aria-hidden="true" />

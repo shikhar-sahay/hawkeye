@@ -31,7 +31,9 @@ const DETECTION_TYPE_LABELS: Record<string, string> = {
   credential_stuffing: "Credential Stuffing",
   enumeration: "Enumeration",
   bot: "Bot Activity",
+  bot_detection: "Bot Activity",
   sensitive_action: "Sensitive Action",
+  sensitive_actions: "Sensitive Action",
   session_hijacking: "Session Hijacking",
   api_abuse: "API Abuse",
 };
