@@ -1,128 +1,175 @@
 ﻿"use client";
 
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, KeyRound, Server, Terminal, Upload } from "lucide-react";
+import { ArrowRight, ChevronRight, Download, KeyRound, Eye, Send, Radar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/ui/logo";
+import { SiteHeader } from "@/components/site/SiteHeader";
+import { SiteFooter } from "@/components/site/SiteFooter";
+import { CodeBlock } from "@/components/site/CodeBlock";
+import { useRouteMeta } from "@/hooks/useRouteMeta";
 
 /**
- * GetStartedPage - explains how to obtain dashboard access.
+ * GetStartedPage - the zero-to-live-dashboard journey.
  *
- * Hawkeye authenticates with per-source API keys rather than user accounts.
- * This page walks through the honest path to getting one: stand up an
- * instance, bootstrap a source, ingest events, sign in with the key.
+ * Hawkeye authenticates with per-source API keys rather than user accounts;
+ * this page walks the honest path: run the backend, register a source,
+ * generate a key, send an event, watch detection fire. All commands are
+ * real and copyable.
  */
 
 const steps = [
   {
-    icon: Server,
+    icon: Download,
+    key: "01",
     title: "Run Hawkeye",
     description:
       "Install and start the backend. SQLite works out of the box; point DATABASE_URL at PostgreSQL for production.",
-    snippet: `pip install -e .
+    code: `pip install -e .
 uvicorn hawkeye.main:app --port 8000`,
-    language: "Register the first source while the instance has none",
+    meta: "API live on http://localhost:8000 · docs at /docs",
+  },
+  {
+    icon: Radar,
+    key: "02",
+    title: "Register your source",
+    description:
+      "Each application you monitor is a source. The first source can be registered without credentials — open only until one exists.",
+    code: `curl -X POST http://localhost:8000/api/v1/sources \\
+  -H "Content-Type: application/json" \\
+  -d '{"name": "production-web", "description": "Public web app"}'`,
+    meta: "POST /api/v1/sources",
   },
   {
     icon: KeyRound,
-    title: "Bootstrap your source",
+    key: "03",
+    title: "Generate an API key",
     description:
-      "The first source can be registered without credentials. Generate its API key right after; it is shown once.",
-    snippet: `# Register the first source (open until one exists)
-curl -X POST http://localhost:8000/api/v1/sources \\
-  -H "Content-Type: application/json" \\
-  -d '{"name": "production-web", "description": "Public web app"}'
-
-# Create its API key
-curl -X POST http://localhost:8000/api/v1/sources/1/api-keys \\
+      "Create the source's first key. It is shown exactly once — this single credential both ingests events and signs in to the dashboard.",
+    code: `curl -X POST http://localhost:8000/api/v1/sources/1/api-keys \\
   -H "X-API-Key: <key-from-source-1>" \\
   -H "Content-Type: application/json" \\
-  -d '{"name": "dashboard"}`,
-    language: "",
+  -d '{"name": "dashboard"}'`,
+    meta: "returns { \"key\": \"hawk_...\" } — save it now",
   },
   {
-    icon: Upload,
-    title: "Send events",
+    icon: Send,
+    key: "04",
+    title: "Send your first event",
     description:
-      "Point your application at the ingestion endpoint. Events are normalized, scored by all detection engines, and correlated into incidents.",
-    snippet: `curl -X POST http://localhost:8000/api/v1/events/batch \\
+      "Point your application at ingestion. This login failure is enough — it gets normalized, tagged T1110, and scored by all seven engines.",
+    code: `curl -X POST http://localhost:8000/api/v1/events \\
   -H "X-API-Key: hawk_..." \\
   -H "Content-Type: application/json" \\
-  -d '{"events": [ ... ]}'`,
-    language: "",
+  -d '{
+    "event_type": "login_failed",
+    "category": "authentication",
+    "ip": "203.0.113.7",
+    "route": "/login",
+    "method": "POST",
+    "status_code": 401
+  }'`,
+    meta: "POST /api/v1/events · batches of up to 1,000 via /api/v1/events/batch",
+  },
+  {
+    icon: Eye,
+    key: "05",
+    title: "Watch Hawkeye detect it",
+    description:
+      "Open the dashboard and sign in with the key. Send five failed logins within 15 minutes and the Brute Force engine raises an alert that streams in live.",
+    code: `# sign in at /login with hawk_...
+# or watch the event land:
+curl http://localhost:8000/api/v1/events?limit=5 \\
+  -H "X-API-Key: hawk_..."`,
+    meta: "detection → alert → incident, all on your dashboard",
   },
 ];
 
 export function GetStartedPage() {
+  useRouteMeta(
+    "Get started",
+    "Run Hawkeye, register a source, generate an API key, send your first event, and watch detection fire — five commands from zero to a live dashboard."
+  );
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="fixed top-0 inset-x-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4 sm:px-6">
-          <Link to="/" className="flex items-center gap-2" aria-label="Hawkeye home">
-            <Logo size={26} />
-            <span className="text-base font-semibold tracking-tight">Hawkeye</span>
-          </Link>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/login">
-              Sign in
-              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-            </Link>
-          </Button>
-        </div>
-      </header>
+      <SiteHeader />
 
-      <main className="mx-auto max-w-3xl px-4 pb-24 pt-28 sm:px-6">
-        <p className="text-sm font-medium uppercase tracking-wider text-primary">Get started</p>
+      <main id="main-content" className="mx-auto max-w-3xl px-4 pb-24 pt-24 sm:px-6 sm:pt-28">
+        {/* Breadcrumb */}
+        <nav aria-label="Breadcrumb" className="font-mono text-2xs text-muted-foreground">
+          <ol className="flex items-center gap-1">
+            <li>
+              <Link to="/" className="hover:text-foreground">Overview</Link>
+            </li>
+            <li aria-hidden="true">
+              <ChevronRight className="h-3 w-3" />
+            </li>
+            <li aria-current="page" className="text-foreground">Get started</li>
+          </ol>
+        </nav>
+
+        <p className="mt-6 font-mono text-xs uppercase tracking-[0.2em] text-primary">
+          Get started
+        </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
-          Get your dashboard credential
+          From zero to a live detection
         </h1>
         <p className="mt-4 leading-relaxed text-muted-foreground">
-          Hawkeye authenticates with per-source API keys instead of user accounts.
-          Each application you monitor is registered as a source, and its keys act
-          as both the ingestion credential and the dashboard login. Here is the
-          path from zero to a live dashboard.
+          Hawkeye authenticates with per-source API keys instead of user
+          accounts. Each application you monitor is registered as a source, and
+          its keys act as both the ingestion credential and the dashboard login.
+          Five steps, five commands:
         </p>
 
-        <ol className="mt-10 space-y-6">
+        {/* The relationship, up front */}
+        <div className="mt-6 overflow-x-auto rounded-lg border bg-card px-4 py-3">
+          <p className="flex items-center gap-2 whitespace-nowrap font-mono text-2xs uppercase tracking-wider text-muted-foreground">
+            {["source", "api key", "event", "detection", "dashboard"].map((s, i) => (
+              <span key={s} className="flex items-center gap-2">
+                {i > 0 && <ChevronRight className="h-3 w-3 text-primary" aria-hidden="true" />}
+                <span className={i === 0 || i === 4 ? "text-foreground" : undefined}>{s}</span>
+              </span>
+            ))}
+          </p>
+        </div>
+
+        <ol className="relative mt-10 space-y-8">
+          {/* Timeline rail */}
+          <div
+            aria-hidden="true"
+            className="absolute bottom-4 left-[19px] top-4 w-px border-l border-dashed border-border"
+          />
           {steps.map((step, i) => (
-            <li
-              key={step.title}
-              className="animate-fade-up rounded-lg border bg-card p-5 shadow-card sm:p-6"
-              style={{ animationDelay: `${i * 90}ms` }}
-            >
-              <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
-                  <step.icon className="h-[18px] w-[18px]" aria-hidden="true" />
-                </span>
-                <div>
-                  <span className="font-mono text-xs text-muted-foreground">Step {i + 1}</span>
+            <li key={step.key} className="relative pl-14">
+              {/* Node */}
+              <div
+                className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-full border bg-card font-mono text-xs text-primary shadow-card"
+                aria-hidden="true"
+              >
+                {step.key}
+              </div>
+              <div className="rounded-lg border bg-card p-5 shadow-card sm:p-6">
+                <div className="flex items-center gap-2.5">
+                  <step.icon className="h-4 w-4 text-primary" aria-hidden="true" />
                   <h2 className="font-semibold leading-tight">{step.title}</h2>
                 </div>
-              </div>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                {step.description}
-              </p>
-              {step.snippet && (
-                <div className="mt-4 overflow-hidden rounded-md border">
-                  <div className="flex items-center gap-2 border-b bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground">
-                    <Terminal className="h-3 w-3" />
-                    Shell
-                  </div>
-                  <pre className="overflow-x-auto p-3 text-xs leading-relaxed text-foreground/90">
-                    <code>{step.snippet}</code>
-                  </pre>
+                <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
+                  {step.description}
+                </p>
+                <div className="mt-4">
+                  <CodeBlock code={step.code} meta={step.meta} />
                 </div>
-              )}
+              </div>
+              {i === steps.length - 1 && null}
             </li>
           ))}
         </ol>
 
-        <div className="animate-fade-up mt-10 rounded-lg border border-primary/25 bg-primary/5 p-5" style={{ animationDelay: "300ms" }}>
+        <div className="mt-10 rounded-lg border border-primary/25 bg-primary/5 p-5">
           <h2 className="font-semibold">Already have an API key?</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Sign in directly with any active source key. On an existing deployment,
-            ask whoever manages the sources to issue you a key from the Sources page.
+            Sign in directly with any active source key. On an existing
+            deployment, ask whoever manages the sources to issue you a key from
+            the Sources page.
           </p>
           <Button className="mt-4" asChild>
             <Link to="/login">
@@ -133,12 +180,13 @@ export function GetStartedPage() {
         </div>
 
         <div className="mt-8 text-sm">
-          <Link to="/" className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to overview
+          <Link to="/" className="inline-flex min-h-[36px] items-center gap-1.5 text-muted-foreground hover:text-foreground">
+            ← Back to overview
           </Link>
         </div>
       </main>
+
+      <SiteFooter />
     </div>
   );
 }
