@@ -1,17 +1,34 @@
 "use client";
 
 import * as React from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
 import { cn } from "@/lib/utils";
 import { Toaster } from "sonner";
 import { WebSocketProvider } from "@/context/WebSocketContext";
+import { UNAUTHORIZED_EVENT, clearStoredApiKey } from "@/auth";
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // If the backend rejects our API key (expired/revoked), return to login
+  React.useEffect(() => {
+    const handleUnauthorized = () => {
+      clearStoredApiKey();
+      navigate("/login", {
+        replace: true,
+        state: { from: location.pathname + location.search, message: "Your session is no longer valid. Please sign in again." },
+      });
+    };
+    window.addEventListener(UNAUTHORIZED_EVENT, handleUnauthorized);
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, handleUnauthorized);
+    // location changes are handled by navigate() reading latest at call time
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate]);
 
   // Close sidebar on mobile when navigating
   React.useEffect(() => {

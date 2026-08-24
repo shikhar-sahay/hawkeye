@@ -37,6 +37,7 @@ import { Logo } from "@/components/ui/logo";
 import hawkeyeLogo from "@/assets/hawkeyelogo.png";
 import type { AlertPayload, IncidentPayload } from "@/context/WebSocketContext";
 import { apiClient } from "@/api/client";
+import { clearStoredApiKey } from "@/auth";
 
 interface TopNavProps {
   onMenuClick: () => void;
@@ -267,9 +268,9 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
 
   // Handle sign out
   const handleSignOut = () => {
-    localStorage.removeItem("hawkeye_api_key");
-    // Reload to reset WebSocket connection with cleared API key
-    window.location.href = "/";
+    clearStoredApiKey();
+    // Navigate to login; WebSocket provider unmounts with the layout
+    navigate("/login", { replace: true });
   };
 
   // Handle profile click

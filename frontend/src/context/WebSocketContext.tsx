@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { API_KEY as BUILD_TIME_API_KEY } from "@/api/client";
+import { API_KEY_STORAGE, getStoredApiKey } from "@/auth";
 
 /**
  * WebSocket message types matching the backend protocol
@@ -267,19 +267,16 @@ export function WebSocketProvider({
 
   const getConfig = React.useCallback(() => config, [config]);
 
-  // Get API key from localStorage, fallback to build-time VITE_API_KEY
-  // Use state to make it reactive to localStorage changes
+  // Get API key from localStorage (fallback: build-time VITE_API_KEY for dev).
+  // Use state to make it reactive to localStorage changes.
   // Config apiKey takes precedence if provided
-  const [apiKey, setApiKey] = React.useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("hawkeye_api_key") || BUILD_TIME_API_KEY || null;
-  });
+  const [apiKey, setApiKey] = React.useState<string | null>(() => getStoredApiKey());
 
   // Listen for localStorage changes to update apiKey (cross-tab)
   React.useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === "hawkeye_api_key") {
-        setApiKey(event.newValue || BUILD_TIME_API_KEY || null);
+      if (event.key === API_KEY_STORAGE) {
+        setApiKey(event.newValue || getStoredApiKey());
       }
     };
 

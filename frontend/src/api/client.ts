@@ -29,21 +29,25 @@ import type {
   MITRECoverage,
   SourceEventCounts,
 } from "@/types";
+import { getStoredApiKey, notifyUnauthorized } from "@/auth";
+
+/** Error with an HTTP status code, thrown by every API call */
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
 
 const API_BASE = "/api/v1";
-// Temporary hardcoded API key for testing - Vite not loading .env
-export const API_KEY = "hawk_F5IHr9TsIUujgs_9E_BWsLxmQIA5pYz8aFYcggzHqH0";
 
 class ApiClient {
   private baseUrl: string;
-  private defaultHeaders: HeadersInit;
 
   constructor(baseUrl: string = API_BASE) {
     this.baseUrl = baseUrl;
-    this.defaultHeaders = {
-      "Content-Type": "application/json",
-      ...(API_KEY && { "X-API-Key": API_KEY }),
-    };
   }
 
   private async request<T>(
@@ -51,17 +55,26 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    const apiKey = getStoredApiKey();
     const response = await fetch(url, {
       ...options,
       headers: {
-        ...this.defaultHeaders,
+        "Content-Type": "application/json",
+        ...(apiKey && { "X-API-Key": apiKey }),
         ...options.headers,
       },
     });
 
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        // Key missing/invalid/expired - let the app route back to login
+        notifyUnauthorized();
+      }
       const error = await response.json().catch(() => ({ detail: "Unknown error" }));
-      throw new Error(error.detail || `HTTP ${response.status}`);
+      throw new ApiError(
+        error.detail || `HTTP ${response.status}`,
+        response.status
+      );
     }
 
     if (response.status === 204) {
@@ -216,14 +229,14 @@ class ApiClient {
   // ==================== Ingestion ====================
 
   async ingestEvent(data: RawEventIngest): Promise<EventIngestResponse> {
-    return this.request<EventIngestResponse>("/events/ingest", {
+    return this.request<EventIngestResponse>("/events", {
       method: "POST",
       body: JSON.stringify(data),
     });
   }
 
   async ingestBatch(data: BatchEventsIngest): Promise<BatchIngestResponse> {
-    return this.request<BatchIngestResponse>("/events/ingest/batch", {
+    return this.request<BatchIngestResponse>("/events/batch", {
       method: "POST",
       body: JSON.stringify(data),
     });
@@ -235,20 +248,19 @@ class ApiClient {
     const [alertStats, incidentStats, sourcesResponse, sourceEventCounts] = await Promise.all([
       this.getAlertStats(),
       this.getIncidentStats(),
-      this.getSources(),
+      this.getSources(1, 0), // Only need the total; counts come from event-counts
       this.getSourceEventCounts().catch(() => []), // Fallback to empty array if endpoint fails
     ]);
 
-    const sources = sourcesResponse.sources;
     const totalEvents = sourceEventCounts.reduce((sum, s) => sum + s.event_count, 0);
 
     return {
       alerts: alertStats,
       incidents: incidentStats,
       sources: {
-        total: sources.length,
-        active: sources.filter((s) => s.is_active).length,
-        inactive: sources.filter((s) => !s.is_active).length,
+        total: sourcesResponse.total,
+        active: sourceEventCounts.filter((s) => s.is_active).length || sourcesResponse.total,
+        inactive: Math.max(0, sourcesResponse.total - (sourceEventCounts.filter((s) => s.is_active).length || sourcesResponse.total)),
       },
       events_24h: totalEvents, // Total events across all sources (best available without 24h endpoint)
     };
