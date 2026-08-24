@@ -1,6 +1,6 @@
 """Alert API endpoints."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 from sqlmodel import func, select
@@ -292,12 +292,20 @@ async def get_alerts_over_time(
     session: AsyncSession = Depends(get_session),
 ) -> list[dict[str, str | int]]:
     """Get alert counts grouped by time intervals over the specified hours."""
-    print(f"DEBUG: time-series endpoint called with hours={hours}")
     since = datetime.utcnow() - timedelta(hours=hours)
+
+    # Bucket size adapts to the requested range so the chart axis stays
+    # readable: 24h -> hourly, 7d -> 4-hourly, 30d -> daily.
+    if hours <= 24:
+        bucket = timedelta(hours=1)
+    elif hours <= 24 * 8:
+        bucket = timedelta(hours=4)
+    else:
+        bucket = timedelta(days=1)
 
     # Use database-agnostic date truncation (works with SQLite and PostgreSQL)
     # SQLite: strftime('%Y-%m-%d %H:00:00', created_at)
-    # PostgreSQL: date_trunc('hour', created_at)
+    # PostgreSQL: date_trunc('hour', Alert.created_at)
     dialect_name = session.bind.dialect.name
 
     if dialect_name == "postgresql":
@@ -319,10 +327,42 @@ async def get_alerts_over_time(
     result = await session.execute(stmt)
     rows = result.all()
 
-    return [
-        {"timestamp": row[0].isoformat() + "Z" if hasattr(row[0], 'isoformat') else str(row[0]) + "Z", "value": row[1]}
-        for row in rows
-    ]
+    # Normalize SQL rows into (utc datetime, count). SQLite strftime returns
+    # naive strings in UTC; PostgreSQL date_trunc returns tz-aware values.
+    counts: dict[datetime, int] = {}
+    for row in rows:
+        raw = row[0]
+        if isinstance(raw, str):
+            parsed = datetime.strptime(raw, "%Y-%m-%d %H:%M:%S")
+        elif raw.tzinfo is None:
+            parsed = raw
+        else:
+            parsed = raw.astimezone(timezone.utc).replace(tzinfo=None)
+        # Truncate to the bucket boundary so partial buckets merge correctly
+        bucket_hours = bucket // timedelta(hours=1)
+        if bucket_hours >= 24:
+            key = parsed.replace(hour=0, minute=0, second=0, microsecond=0)
+        else:
+            aligned_hour = (parsed.hour // bucket_hours) * bucket_hours
+            key = parsed.replace(hour=aligned_hour, minute=0, second=0, microsecond=0)
+        counts[key] = counts.get(key, 0) + int(row[1])
+
+    # Fill gaps with zero so the time axis is honest and chronological.
+    # The cursor MUST be aligned to the same bucket grid as the counts keys
+    # (UTC midnight-multiples), otherwise lookups miss and buckets read as 0.
+    now = datetime.utcnow()
+    series: list[dict[str, str | int]] = []
+    cursor = since.replace(minute=0, second=0, microsecond=0)
+    if bucket >= timedelta(days=1):
+        cursor = cursor.replace(hour=0)
+    elif bucket >= timedelta(hours=4):
+        cursor = cursor.replace(hour=(cursor.hour // 4) * 4)
+    while cursor <= now:
+        value = counts.get(cursor, 0)
+        series.append({"timestamp": cursor.strftime("%Y-%m-%dT%H:%M:%SZ"), "value": value})
+        cursor += bucket
+
+    return series
 
 
 @router.patch(
