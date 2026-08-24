@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, KeyRound, Server, Terminal, Upload } from "lucide-react";
@@ -93,7 +93,7 @@ export function GetStartedPage() {
             >
               <div className="flex items-center gap-3">
                 <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
-                  <step.icon className="h-4.5 w-4.5" aria-hidden="true" />
+                  <step.icon className="h-[18px] w-[18px]" aria-hidden="true" />
                 </span>
                 <div>
                   <span className="font-mono text-xs text-muted-foreground">Step {i + 1}</span>
