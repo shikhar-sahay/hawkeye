@@ -7,6 +7,80 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.8.0] - 2026-08-25 - Deep Frontend Redesign: Hawkeye Identity, Three Themes, Chart Fixes
+
+### Fixed
+- **Alerts Over Time x-axis was wrong for every range** — the chart formatted
+  all ticks as `HH:mm`, producing non-chronological hour labels on 7d/30d.
+  Ticks are now range-aware: `HH:mm` (24h), `Mon HH:mm` (7d), `Aug 04` (30d),
+  with full-precision tooltip timestamps. Backend `/alerts/time-series` now
+  buckets by range (hourly / 4-hourly / daily), aligns buckets to the same
+  grid as the counts, and fills gaps with zeros so the axis is honest and
+  chronological (the previous 7d aggregation dropped all recent alerts).
+- **Public mobile header overlapped the logo** (320–430px) and had no mobile
+  menu — public pages now share a proper SiteHeader with a focus-managed
+  drawer (focus in, Escape closes, focus restore, body scroll lock).
+- **Theme flash on load** — anti-FOUC inline script applies the stored theme
+  class before first paint.
+- **Incident timeline cards clipped at the right edge** (line-clamp
+  `-webkit-box` inflated intrinsic width; fixed with inline-size containment)
+  and timeline severity glyphs rendered as mojibake (`â–²` → ▲/●).
+- **Copy buttons in Get Started failed silently** when the Clipboard API was
+  unavailable — now falls back to a textarea and shows explicit Copied/failed
+  feedback.
+- **Mojibake em-dashes/bullets** across StatsDashboard, TopNav, Settings,
+  Events, SourceManager; **stray clipped percentage label** on the Severity
+  Distribution donut; **raw enum labels** (`bot_detection`) in the Detection
+  Type chart; **light-theme contrast failures** (primary/white 3.81:1 → 5.2:1,
+  severity-high 4.0:1 → 4.94:1, warning 3.18:1 → 4.86:1).
+- **Zero horizontal overflow at 320–1440px** — fixed min-content blowout in
+  the hero grid, event story panels, and dashboard preview (SVG transferred
+  aspect-ratio sizes).
+- **Mobile drawer rendered inside the 56px header** — the header's
+  `backdrop-blur` created a containing block for the fixed overlay; the
+  drawer is now a sibling of the header.
+- Get Started step 2's key-creation curl was missing its closing quote
+  (copy-paste produced a shell syntax error).
+- Scroll-reveal no longer hides content from crawlers/print/no-JS (fallbacks
+  added for reduced motion, print, and `.noscript`).
+
+### Changed
+- **Full landing page redesign around the WATCH → INGEST → DETECT →
+  CORRELATE → RESPOND identity**: two-column hero with an animated
+  observation field (concentric rings, rotating radar sweep, inbound signal
+  streaks, detection blips, telemetry chips, breathing hawk mark), capability
+  signal strip, connected 5-stage pipeline rail, "What happens to a single
+  failed login" event→alert→incident story using real schema field names,
+  interactive detection matrix with the real triggers from
+  `hawkeye/config.py` and the real ATT&CK mappings from the correlation
+  engine, labeled dashboard preview, 5-question FAQ, hawk-branded CTA.
+- **Three-theme system**: Light, Deep Blue (classic), and Pitch Black (true
+  black, neutral gray scale, hairline borders) with a restrained animated
+  transition; `dark:` variants apply to both dark themes.
+- **Get Started redesigned as a five-step onboarding timeline** (Run →
+  Register source → Generate key → Send event → Watch detection) with
+  breadcrumbs, copyable commands, and a SOURCE → API KEY → EVENT →
+  DETECTION → DASHBOARD relationship strip.
+- **Hawkeye motion system**: HawkMark SVG component (animated wings/eye),
+  HawkLoader, observation-field keyframes — all CSS-only, decorative, and
+  disabled under prefers-reduced-motion.
+- Login page now uses the standard geometric hawk mark (was a different PNG
+  glyph); mobile hero shows the hawk centerpiece above the fold.
+
+### Added
+- **Branded 404 page** ("The hawk found nothing here") replacing the silent
+  redirect to `/`.
+- **Per-route titles and meta descriptions** via `useRouteMeta`; OG/Twitter
+  tags, generated OG image, `robots.txt` (dashboard routes disallowed) and
+  `sitemap.xml`.
+- **Skip-to-content links** and `<main>` landmarks on all public pages and
+  the dashboard shell; show-key toggle restored to tab order.
+- Mobile sticky CTA (appears after the hero, hides near the footer).
+- Per-chart loading states on the dashboard so fast charts no longer wait on
+  the slow events-by-source query.
+
+---
+
 ## [2.7.0] - 2026-08-24 - Visual System, Landing Page & Navigation Overhaul
 
 ### Fixed

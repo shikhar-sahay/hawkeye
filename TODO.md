@@ -532,19 +532,24 @@ Each task has:
 | **DASH-POLISH-01/ISSUE-6** | Profile/User Menu | 2026-08-24 |
 | **DASH-POLISH-01/ISSUE-7** | General Visual/UX Polish | 2026-08-24 |
 | **DASH-USABLE-01** | Auth flow, crash fixes, real typecheck, dead-control cleanup, server-side search everywhere, deep links, sources auth lockdown | 2026-08-24 |
+| **UI-REDESIGN-01** | Deep frontend redesign: landing/get-started rebuild, 3 themes, chart x-axis fix (frontend+backend), 404/metadata/a11y, mobile fixes | 2026-08-25 |
+| **VERIFY-01** | Browser verification pass (Playwright + browser-qa + visual-review subagents) | 2026-08-25 |
 
-**Total Completed: 43 tasks**
+**Total Completed: 45 tasks**
 
 ---
 
-## P1 - Manual Browser Verification Pass (recommended next)
+## P2 - Discovered during UI-REDESIGN-01 (optional)
 
-### VERIFY-01: Human click-through of the dashboard 🟢 RECOMMENDED
-- **Why**: The 2026-08-24 sessions verified the app at HTTP/build/runtime-API
-  level; no browser automation was available in that environment.
-- **Checklist**: sign in → visit every page → refresh buttons → time ranges →
-  search + keyboard nav → notifications → profile menu → settings tabs →
-  alert acknowledge/resolve/suppress → source CRUD + API key lifecycle →
-  sign out → re-authenticate. Watch console for uncaught exceptions.
+### DATA-HYGIENE-01: Clean polluted dev database
+- The dev DB contains ~900 test sources ("Test Source", "Source N") from
+  earlier test runs. Inflates "Registered Sources" stat and slows
+  `/sources/event-counts` to ~7s. Consider a cleanup script or reseed.
+
+### STATS-SCOPE-01: Clarify dashboard stat scopes
+- "Active Alerts 0" (per-source scoped stats endpoint) sits next to a
+  "86 critical" badge (global count) on the same card. Decide whether stats
+  endpoints should be global for the dashboard or the cards should be labeled
+  per-source.
 
 **Next Active: T-040 (Chrome MV3 Extension Scaffold)**

@@ -84,6 +84,20 @@ Build a production-ready Web Application Security Monitoring Platform (SIEM-lite
 
 ---
 
+### Milestone 3.6: Public Site Redesign & Theme System — **COMPLETE (2026-08-25)**
+- Full landing redesign around the WATCH → INGEST → DETECT → CORRELATE →
+  RESPOND identity (animated observation-field hero, pipeline rail,
+  event→alert→incident story, detection matrix with real triggers + ATT&CK
+  mappings, labeled dashboard preview, FAQ, branded CTA/footer)
+- Get Started rebuilt as a 5-step onboarding timeline with copyable commands
+- Three-theme system: Light / Deep Blue / Pitch Black (anti-FOUC boot)
+- Branded 404, per-route titles/meta, robots.txt, sitemap, OG image
+- Alerts Over Time x-axis made range-aware (backend bucketing + frontend
+  tick formatting); a11y pass (skip links, landmarks, drawer focus management,
+  contrast fixes); zero horizontal overflow 320–1440px
+
+---
+
 ### Milestone 4: Browser Security Agent
 **Target: TBD (after Milestone 3)**  
 **Status: 🟢 IN PROGRESS — 0% (T-040: Chrome MV3 Extension Scaffold starting)**
