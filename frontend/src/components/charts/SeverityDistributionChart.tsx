@@ -8,6 +8,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import type { TooltipProps } from "recharts";
 
 const SEVERITY_COLORS: Record<string, string> = {
   critical: "hsl(var(--destructive))",
@@ -52,18 +53,20 @@ export default function SeverityDistributionChart({
   error = null,
   showLegend = true,
 }: SeverityDistributionChartProps) {
-  const customTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number; name: string }> }) => {
+  const customTooltip = ({ active, payload }: TooltipProps<number, string>) => {
     if (active && payload && payload.length > 0) {
       const entry = payload[0];
+      const name = String(entry.name ?? "");
+      const value = Number(entry.value ?? 0);
       const total = data.reduce((sum, d) => sum + d.value, 0);
-      const percentage = total > 0 ? ((entry.value / total) * 100).toFixed(1) : "0";
+      const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : "0";
       return (
         <div className="bg-background p-3 border rounded-lg shadow-lg">
-          <p className="font-medium text-sm" style={{ color: SEVERITY_COLORS[entry.name] }}>
-            {SEVERITY_LABELS[entry.name] || entry.name}
+          <p className="font-medium text-sm" style={{ color: SEVERITY_COLORS[name] }}>
+            {SEVERITY_LABELS[name] || name}
           </p>
           <p className="text-sm text-muted-foreground">
-            {entry.value} alerts ({percentage}%)
+            {value} alerts ({percentage}%)
           </p>
         </div>
       );

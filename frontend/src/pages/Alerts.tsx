@@ -17,9 +17,8 @@ import {
   Filter,
   RefreshCw,
   AlertTriangle,
-  ChevronDown,
 } from "lucide-react";
-import { cn, getSeverityBadgeVariant } from "@/lib/utils";
+import { cn, getSeverityBadgeVariant, getStatusBadgeVariant } from "@/lib/utils";
 import type { Alert, AlertListParams } from "@/types";
 import { useWebSocketContext, useWebSocketMessage } from "@/context/WebSocketContext";
 import type { AlertPayload } from "@/context/WebSocketContext";
@@ -36,11 +35,26 @@ export function AlertsPage() {
     limit: 50,
     offset: 0,
   });
+  const [searchInput, setSearchInput] = React.useState("");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
+  const [selectedAlert, setSelectedAlert] = React.useState<Alert | null>(null);
 
   // WebSocket state for live alerts
   const [liveAlerts, setLiveAlerts] = React.useState<AlertPayload[]>([]);
+
+  // Debounce search input into the actual query used for server-side filtering
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Reset pagination whenever server-side filters change
+  React.useEffect(() => {
+    setFilters((prev) => ({ ...prev, search: searchQuery || undefined, offset: 0 }));
+  }, [searchQuery]);
 
   // Shared WebSocket context for connection status and subscriptions
   const {
@@ -112,43 +126,26 @@ export function AlertsPage() {
     return [...liveAlertsConverted, ...restAlerts];
   }, [alertsResponse?.alerts, liveAlerts]);
 
-  // Apply client-side filtering for search
-  const filteredAlerts = React.useMemo(() => {
-    if (!searchQuery.trim()) return combinedAlerts;
-
-    const query = searchQuery.toLowerCase();
-    return combinedAlerts.filter(
-      (alert) =>
-        alert.title.toLowerCase().includes(query) ||
-        alert.description.toLowerCase().includes(query) ||
-        alert.detection_type.toLowerCase().includes(query) ||
-        String(alert.id).includes(query) ||
-        alert.mitre_tactics.some((tactic: string) => tactic.toLowerCase().includes(query)) ||
-        alert.mitre_techniques.some((technique: string) => technique.toLowerCase().includes(query))
-    );
-  }, [combinedAlerts, searchQuery]);
-
   // Handle filter changes
   const handleFilterChange = (key: keyof AlertListParams, value: string | number | undefined) => {
     setFilters((prev) => ({ ...prev, [key]: value, offset: 0 }));
   };
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  };
-
   const clearFilters = () => {
     setFilters({ limit: 50, offset: 0 });
+    setSearchInput("");
     setSearchQuery("");
   };
 
   const hasActiveFilters =
-    filters.severity || filters.status || filters.detection_type || filters.start_time || filters.end_time;
+    filters.severity || filters.status || filters.detection_type || filters.search;
 
-  // Load more alerts (pagination)
-  const loadMore = () => {
-    setFilters((prev) => ({ ...prev, offset: (prev.offset ?? 0) + (prev.limit ?? 50) }));
-  };
+  // Pagination over server-side results
+  const pageSize = filters.limit ?? 50;
+  const offset = filters.offset ?? 0;
+  const total = alertsResponse?.total ?? 0;
+  const canPrev = offset > 0;
+  const canNext = offset + pageSize < total;
 
   return (
     <>
@@ -181,8 +178,8 @@ export function AlertsPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search alerts by title, description, MITRE tags..."
-                value={searchQuery}
-                onChange={handleSearch}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -254,7 +251,7 @@ export function AlertsPage() {
         {/* Real-time Alert Feed (left column - wider on desktop) */}
         <div className="lg:col-span-2">
           <AlertFeed
-            alerts={filteredAlerts.map((alert) => ({
+            alerts={combinedAlerts.map((alert) => ({
               id: alert.id,
               source_id: alert.source_id,
               detection_type: alert.detection_type,
@@ -276,8 +273,26 @@ export function AlertsPage() {
               apiClient.getAlert(alert.id).then((fullAlert) => {
                 setSelectedAlert(fullAlert);
               }).catch(() => {
-                // Fallback to basic alert data
-                setSelectedAlert(alert);
+                // Fallback to basic feed data converted to Alert shape
+                setSelectedAlert({
+                  id: alert.id,
+                  source_id: alert.source_id,
+                  event_id: alert.id,
+                  detection_type: alert.detection_type,
+                  title: alert.title,
+                  description: alert.description,
+                  severity: alert.severity,
+                  confidence: alert.confidence,
+                  status: alert.status,
+                  evidence: alert.evidence,
+                  mitre_tactics: alert.mitre_tactics,
+                  mitre_techniques: alert.mitre_techniques,
+                  created_at: alert.created_at,
+                  updated_at: alert.updated_at,
+                  acknowledged_at: null,
+                  acknowledged_by: null,
+                  resolved_at: null,
+                });
               });
             }}
           />
@@ -289,7 +304,7 @@ export function AlertsPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Alert List</CardTitle>
-                <Badge variant="secondary">{filteredAlerts.length}</Badge>
+                <Badge variant="secondary">{total}</Badge>
               </div>
               <CardDescription>Click an alert to view details</CardDescription>
             </CardHeader>
@@ -311,7 +326,7 @@ export function AlertsPage() {
                     Retry
                   </Button>
                 </div>
-              ) : filteredAlerts.length === 0 ? (
+              ) : combinedAlerts.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground">
                   <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No alerts found</p>
@@ -322,15 +337,15 @@ export function AlertsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-8"></TableHead>
                         <TableHead>Severity</TableHead>
                         <TableHead>Title</TableHead>
                         <TableHead className="hidden md:table-cell">Type</TableHead>
+                        <TableHead className="hidden lg:table-cell">Status</TableHead>
                         <TableHead className="hidden lg:table-cell">Time</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredAlerts.map((alert) => (
+                      {combinedAlerts.map((alert) => (
                         <TableRow
                           key={alert.id}
                           className="cursor-pointer hover:bg-muted/50 transition-colors"
@@ -342,23 +357,15 @@ export function AlertsPage() {
                             });
                           }}
                         >
-                          <TableCell className="p-3">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 p-0"
-                              onClick={(e) => e.stopPropagation()}
-                              aria-label="Expand alert"
-                            >
-                              <ChevronDown className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
                           <TableCell>
                             <Badge variant={getSeverityBadgeVariant(alert.severity)}>{alert.severity}</Badge>
                           </TableCell>
                           <TableCell className="max-w-[200px] truncate font-medium">{alert.title}</TableCell>
                           <TableCell className="hidden md:table-cell font-mono text-xs">
                             {alert.detection_type}
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell">
+                            <Badge variant={getStatusBadgeVariant(alert.status)}>{alert.status}</Badge>
                           </TableCell>
                           <TableCell className="hidden lg:table-cell font-mono text-xs text-muted-foreground">
                             {new Date(alert.created_at).toLocaleTimeString()}
@@ -370,12 +377,30 @@ export function AlertsPage() {
                 </div>
               )}
 
-              {/* Load More */}
-              {(alertsResponse?.total ?? 0) > (filters.offset || 0) + (filters.limit || 50) && !isLoading && (
-                <div className="p-4 border-t">
-                  <Button variant="outline" className="w-full" onClick={loadMore} disabled={isLoading}>
-                    Load More ({filteredAlerts.length} of {alertsResponse?.total})
-                  </Button>
+              {/* Pagination */}
+              {total > 0 && (
+                <div className="flex items-center justify-between p-4 border-t">
+                  <span className="text-xs text-muted-foreground">
+                    Showing {Math.min(offset + 1, total)}–{Math.min(offset + pageSize, total)} of {total}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setFilters((prev) => ({ ...prev, offset: Math.max(0, (prev.offset ?? 0) - pageSize) }))}
+                      disabled={!canPrev || isFetching}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setFilters((prev) => ({ ...prev, offset: (prev.offset ?? 0) + pageSize }))}
+                      disabled={!canNext || isFetching}
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>

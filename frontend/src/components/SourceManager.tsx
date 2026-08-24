@@ -342,7 +342,7 @@ export function SourceManager() {
             </div>
 
             <div className="flex flex-wrap gap-2" style={{ display: isFilterOpen ? "flex" : "none" }}>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | "active" | "inactive")}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>

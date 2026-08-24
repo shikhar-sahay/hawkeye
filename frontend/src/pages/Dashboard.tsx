@@ -6,7 +6,7 @@ import { PageContainer } from "@/components/ui";
 export function DashboardPage() {
   return (
     <PageContainer title="Dashboard" description="Overview of your security posture">
-      <StatsDashboard timeRange="24h" refreshInterval={60000} />
+      <StatsDashboard initialTimeRange="24h" refreshInterval={60000} />
     </PageContainer>
   );
 }

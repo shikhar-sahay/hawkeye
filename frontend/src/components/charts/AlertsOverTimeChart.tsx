@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import type { TooltipProps } from "recharts";
 import { format } from "date-fns";
 
 interface AlertsOverTimeChartProps {
@@ -49,7 +50,7 @@ export default function AlertsOverTimeChart({
     shortTime: format(new Date(point.timestamp), "HH:mm"),
   }));
 
-  const customTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string }>; label?: string }) => {
+  const customTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
     if (active && payload && payload.length > 0) {
       return (
         <div className="bg-background p-3 border rounded-lg shadow-lg">

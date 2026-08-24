@@ -10,6 +10,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import type { TooltipProps } from "recharts";
 
 interface SourceDataPoint {
   name: string;
@@ -45,9 +46,9 @@ export default function EventsBySourceChart({
   maxSources = 10,
   stacked = true,
 }: EventsBySourceChartProps) {
-  const customTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string; payload: SourceDataPoint }> }) => {
+  const customTooltip = ({ active, payload }: TooltipProps<number, string>) => {
     if (active && payload && payload.length > 0) {
-      const sourceData = payload[0].payload;
+      const sourceData = payload[0].payload as unknown as SourceDataPoint;
       return (
         <div className="bg-background p-3 border rounded-lg shadow-lg">
           <p className="font-medium text-sm">{sourceData.name}</p>

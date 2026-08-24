@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import type { TooltipProps } from "recharts";
 
 const DETECTION_TYPE_COLORS: Record<string, string> = {
   brute_force: "hsl(var(--destructive))",
@@ -67,13 +68,13 @@ export default function DetectionTypeChart({
   layout = "vertical",
   maxBars = 10,
 }: DetectionTypeChartProps) {
-  const customTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string }> }) => {
+  const customTooltip = ({ active, payload }: TooltipProps<number, string>) => {
     if (active && payload && payload.length > 0) {
       const entry = payload[0];
       return (
         <div className="bg-background p-3 border rounded-lg shadow-lg">
           <p className="font-medium text-sm" style={{ color: entry.color }}>
-            {DETECTION_TYPE_LABELS[entry.name] || entry.name}
+            {DETECTION_TYPE_LABELS[String(entry.name)] || entry.name}
           </p>
           <p className="text-sm text-muted-foreground">{entry.value} alerts</p>
         </div>

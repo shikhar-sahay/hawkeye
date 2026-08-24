@@ -9,6 +9,8 @@ interface StatCardProps {
   value: string | number;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   color?: string;
+  /** Secondary line shown under the main value */
+  subtitle?: string;
   trend?: {
     value: string;
     label: string;
@@ -24,6 +26,7 @@ export function StatCard({
   value,
   icon: Icon,
   color = "text-primary",
+  subtitle,
   trend,
   badge,
   description,
@@ -37,6 +40,7 @@ export function StatCard({
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
+        {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
         {badge && <div className="mt-1">{badge}</div>}
         {trend && (
           <div

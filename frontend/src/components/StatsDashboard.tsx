@@ -130,29 +130,26 @@ export function StatsDashboard({ initialTimeRange = "24h", refreshInterval = 600
         <StatCard
           title="Total Events"
           value={dashboardStats?.events_24h !== undefined ? formatNumber(dashboardStats.events_24h || 0) : "—"}
-          subtitle="Last 24 hours"
+          subtitle="All events on record"
           icon={Activity}
-          trend={dashboardStats?.events_24h && dashboardStats.events_24h > 0 ? "up" : "neutral"}
         />
         <StatCard
           title="Active Alerts"
           value={alertStats ? formatNumber((alertStats.by_status?.new || 0) + (alertStats.by_status?.processing || 0)) : "—"}
-          subtitle={alertStats ? `${alertStats.by_status?.new || 0} new, ${alertStats.by_status?.processing || 0} processing` : "Loading..."}
+          subtitle={alertStats ? `${alertStats.by_status?.new || 0} new, ${alertStats.by_status?.processing || 0} processing` : undefined}
           icon={AlertTriangle}
-          trend={alertStats && (alertStats.by_status?.new || 0) > 10 ? "up" : "neutral"}
-          badge={alertStats && (alertStats.by_status?.new || 0) > 0 ? <Badge variant="destructive">{alertStats.by_status?.new || 0} critical</Badge> : null}
+          badge={alertStats && (alertStats.by_severity?.critical || 0) > 0 ? <Badge variant="destructive">{alertStats.by_severity?.critical || 0} critical</Badge> : null}
         />
         <StatCard
           title="Active Incidents"
           value={incidentStats ? formatNumber((incidentStats.by_status?.open || 0) + (incidentStats.by_status?.investigating || 0)) : "—"}
-          subtitle={incidentStats ? `${incidentStats.by_status?.open || 0} open, ${incidentStats.by_status?.investigating || 0} investigating` : "Loading..."}
+          subtitle={incidentStats ? `${incidentStats.by_status?.open || 0} open, ${incidentStats.by_status?.investigating || 0} investigating` : undefined}
           icon={AlertCircle}
-          trend={incidentStats && (incidentStats.by_status?.open || 0) > 5 ? "up" : "neutral"}
         />
         <StatCard
           title="Registered Sources"
           value={dashboardStats?.sources ? formatNumber(dashboardStats.sources.total) : "—"}
-          subtitle={dashboardStats?.sources ? `${dashboardStats.sources.active} active, ${dashboardStats.sources.inactive} inactive` : "Loading..."}
+          subtitle={dashboardStats?.sources ? `${dashboardStats.sources.active} active, ${dashboardStats.sources.inactive} inactive` : undefined}
           icon={Server}
         />
         <StatCard
@@ -162,7 +159,6 @@ export function StatsDashboard({ initialTimeRange = "24h", refreshInterval = 600
             : "—"}
           subtitle="Alerts per event"
           icon={Gauge}
-          trend="neutral"
         />
         <StatCard
           title="Avg Confidence"
@@ -239,10 +235,10 @@ export function StatsDashboard({ initialTimeRange = "24h", refreshInterval = 600
               <React.Suspense fallback={<div className="h-full w-full flex items-center justify-center"><Skeleton className="h-[280px] w-full" /></div>}>
                 <SeverityDistributionChart
                   data={alertStats ? [
-                    { name: "critical", value: alertStats.by_severity?.critical || 0, fill: "hsl(var(--destructive))" },
-                    { name: "high", value: alertStats.by_severity?.high || 0, fill: "hsl(var(--warning))" },
-                    { name: "medium", value: alertStats.by_severity?.medium || 0, fill: "hsl(var(--accent))" },
-                    { name: "low", value: alertStats.by_severity?.low || 0, fill: "hsl(var(--primary))" },
+                    { name: "critical", value: alertStats.by_severity?.critical || 0 },
+                    { name: "high", value: alertStats.by_severity?.high || 0 },
+                    { name: "medium", value: alertStats.by_severity?.medium || 0 },
+                    { name: "low", value: alertStats.by_severity?.low || 0 },
                   ] : []}
                   isLoading={isLoading}
                 />

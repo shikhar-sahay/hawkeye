@@ -10,6 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import type { TooltipProps } from "recharts";
 
 interface MITREDataPoint {
   name: string;
@@ -77,13 +78,13 @@ export default function MITRECoverageChart({
     impact: "#10b981",
   };
 
-  const customTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string }> }) => {
+  const customTooltip = ({ active, payload }: TooltipProps<number, string>) => {
     if (active && payload && payload.length > 0) {
       const entry = payload[0];
       return (
         <div className="bg-background p-3 border rounded-lg shadow-lg">
           <p className="font-medium text-sm" style={{ color: entry.color }}>
-            {TACTIC_LABELS[entry.name] || entry.name}
+            {TACTIC_LABELS[String(entry.name)] || entry.name}
           </p>
           <p className="text-sm text-muted-foreground">
             Count: <span className="font-mono font-medium">{entry.value}</span>

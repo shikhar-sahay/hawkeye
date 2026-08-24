@@ -12,7 +12,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
@@ -29,7 +29,7 @@ import {
   MapPin,
   AlertCircle,
 } from "lucide-react";
-import { formatDate, formatRelativeTime, getSeverityBadgeVariant, getStatusBadgeVariant, getDetectionTypeLabel, getMitreTacticLabel } from "@/lib/utils";
+import { formatDate, formatRelativeTime, getSeverityBadgeVariant, getStatusBadgeVariant, getDetectionTypeLabel, getMitreTacticLabel, cn } from "@/lib/utils";
 import { apiClient } from "@/api/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/api/client";

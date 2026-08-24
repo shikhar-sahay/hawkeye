@@ -111,7 +111,7 @@ export function SettingsPage() {
       localStorage.setItem("hawkeye_sidebar_collapsed", String(sidebarCollapsed));
 
       // Apply theme
-      setTheme(theme);
+      if (theme) setTheme(theme);
 
       toast({ title: "Settings saved", description: "Your preferences have been updated." });
     } catch (error) {
