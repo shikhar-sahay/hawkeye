@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -241,7 +241,7 @@ export function EventsPage() {
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Live Events</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Live Events</h1>
             <p className="text-muted-foreground">Real-time event stream from all sources</p>
           </div>
           <div className="flex items-center gap-2">
@@ -402,7 +402,7 @@ export function EventsPage() {
             </div>
             <CardDescription>
               {eventsResponse !== undefined
-                ? `Showing page ${Math.floor(offset / pageSize) + 1} of ${Math.max(1, Math.ceil(total / pageSize))} — click a row for details`
+                ? `Showing page ${Math.floor(offset / pageSize) + 1} of ${Math.max(1, Math.ceil(total / pageSize))} â€” click a row for details`
                 : "Loading..."}
             </CardDescription>
           </CardHeader>
@@ -491,7 +491,7 @@ export function EventsPage() {
                 {total > 0 && (
                   <div className="flex items-center justify-between p-4 border-t">
                     <span className="text-xs text-muted-foreground">
-                      Showing {Math.min(offset + 1, total)}–{Math.min(offset + pageSize, total)} of {total} events (newest first)
+                      Showing {Math.min(offset + 1, total)}â€“{Math.min(offset + pageSize, total)} of {total} events (newest first)
                     </span>
                     <div className="flex items-center gap-2">
                       <Button

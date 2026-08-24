@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,14 +61,14 @@ function TimelineItem({ incident, index, total, isExpanded, onToggle, onClick }:
           className={cn(
             "absolute left-4 top-3 w-4 h-4 rounded-full border-3 border-background z-10 flex items-center justify-center transition-all duration-200",
             isCritical && "bg-destructive border-destructive animate-pulse",
-            isHigh && "bg-orange-500 border-orange-500",
-            !isCritical && !isHigh && incident.severity === "medium" && "bg-yellow-500 border-yellow-500",
-            !isCritical && !isHigh && incident.severity === "low" && "bg-blue-500 border-blue-500",
+            isHigh && "bg-severity-high border-severity-high",
+            !isCritical && !isHigh && incident.severity === "medium" && "bg-severity-medium border-severity-medium",
+            !isCritical && !isHigh && incident.severity === "low" && "bg-severity-low border-severity-low",
             isExpanded && "scale-125"
           )}
         >
           <span className="text-[10px] font-bold text-white" style={{ lineHeight: 1 }}>
-            {incident.severity === "critical" ? "!" : incident.severity === "high" ? "▲" : "●"}
+            {incident.severity === "critical" ? "!" : incident.severity === "high" ? "â–²" : "â—"}
           </span>
         </div>
 

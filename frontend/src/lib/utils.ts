@@ -21,18 +21,23 @@ export function formatRelativeTime(date: Date | string): string {
   return formatDistanceToNow(d, { addSuffix: true })
 }
 
+/**
+ * Semantic severity palette. Values reference CSS custom properties so light
+ * and dark themes each get a legible variant. Distinguishable by hue AND
+ * lightness, never by hue alone (accessibility).
+ */
 export function getSeverityColor(severity: string): string {
   switch (severity?.toLowerCase()) {
     case 'critical':
-      return 'text-destructive bg-destructive/10 border-destructive/20'
+      return 'text-severity-critical bg-severity-critical/10 border-severity-critical/30'
     case 'high':
-      return 'text-orange-600 bg-orange-100 border-orange-200 dark:text-orange-400 dark:bg-orange-900/30 dark:border-orange-800'
+      return 'text-severity-high bg-severity-high/10 border-severity-high/30'
     case 'medium':
-      return 'text-yellow-600 bg-yellow-100 border-yellow-200 dark:text-yellow-400 dark:bg-yellow-900/30 dark:border-yellow-800'
+      return 'text-severity-medium bg-severity-medium/10 border-severity-medium/30'
     case 'low':
-      return 'text-blue-600 bg-blue-100 border-blue-200 dark:text-blue-400 dark:bg-blue-900/30 dark:border-blue-800'
+      return 'text-severity-low bg-severity-low/10 border-severity-low/30'
     case 'info':
-      return 'text-sky-600 bg-sky-100 border-sky-200 dark:text-sky-400 dark:bg-sky-900/30 dark:border-sky-800'
+      return 'text-info bg-info/10 border-info/30'
     default:
       return 'text-muted-foreground bg-muted border-border'
   }
@@ -40,16 +45,24 @@ export function getSeverityColor(severity: string): string {
 
 export function getStatusColor(status: string): string {
   switch (status?.toLowerCase()) {
+    // Alert processing statuses
+    case 'new':
+      return 'text-severity-critical bg-severity-critical/10 border-severity-critical/30'
+    case 'processing':
+      return 'text-warning bg-warning/10 border-warning/30'
+    case 'correlated':
+      return 'text-info bg-info/10 border-info/30'
+    case 'dismissed':
+      return 'text-muted-foreground bg-muted border-border'
+    // Incident lifecycle statuses
     case 'open':
       return 'text-destructive bg-destructive/10 border-destructive/20'
-    case 'acknowledged':
-      return 'text-orange-600 bg-orange-100 border-orange-200 dark:text-orange-400 dark:bg-orange-900/30 dark:border-orange-800'
     case 'investigating':
-      return 'text-blue-600 bg-blue-100 border-blue-200 dark:text-blue-400 dark:bg-blue-900/30 dark:border-blue-800'
+      return 'text-info bg-info/10 border-info/30'
+    case 'contained':
+      return 'text-warning bg-warning/10 border-warning/30'
     case 'resolved':
-      return 'text-green-600 bg-green-100 border-green-200 dark:text-green-400 dark:bg-green-900/30 dark:border-green-800'
-    case 'suppressed':
-      return 'text-muted-foreground bg-muted border-border'
+      return 'text-success bg-success/10 border-success/30'
     default:
       return 'text-muted-foreground bg-muted border-border'
   }

@@ -1,6 +1,8 @@
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 
 import { AppLayout } from "@/components/layout/AppLayout";
+import { LandingPage } from "@/pages/Landing";
+import { GetStartedPage } from "@/pages/GetStarted";
 import { LoginPage } from "@/pages/Login";
 import { DashboardPage } from "@/pages/Dashboard";
 import { EventsPage } from "@/pages/Events";
@@ -31,10 +33,15 @@ function RequireAuth() {
 function App() {
   return (
     <Routes>
+      {/* Public */}
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/get-started" element={<GetStartedPage />} />
+
+      {/* Dashboard (requires a source API key) */}
       <Route element={<RequireAuth />}>
         <Route element={<AppLayout />}>
-          <Route index element={<DashboardPage />} />
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="events" element={<EventsPage />} />
           <Route path="alerts" element={<AlertsPage />} />
           <Route path="incidents" element={<IncidentsPage />} />
@@ -42,6 +49,7 @@ function App() {
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Route>
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

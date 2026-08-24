@@ -548,10 +548,10 @@ function AlertCard({ alert }: { alert: Alert }) {
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0 pt-0.5">
           <span className={cn("h-5 w-5 rounded-full", {
-            "bg-destructive": alert.severity === "critical",
-            "bg-orange-500": alert.severity === "high",
-            "bg-yellow-500": alert.severity === "medium",
-            "bg-blue-500": alert.severity === "low",
+            "bg-severity-critical": alert.severity === "critical",
+            "bg-severity-high": alert.severity === "high",
+            "bg-severity-medium": alert.severity === "medium",
+            "bg-severity-low": alert.severity === "low",
           })} />
         </div>
         <div className="flex-1 min-w-0">

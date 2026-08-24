@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -170,7 +170,7 @@ export function AlertsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Alerts</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Alerts</h1>
           <p className="text-muted-foreground">
             Manage and investigate security alerts from all sources
           </p>
@@ -395,7 +395,7 @@ export function AlertsPage() {
               {total > 0 && (
                 <div className="flex items-center justify-between p-4 border-t">
                   <span className="text-xs text-muted-foreground">
-                    Showing {Math.min(offset + 1, total)}–{Math.min(offset + pageSize, total)} of {total}
+                    Showing {Math.min(offset + 1, total)}â€“{Math.min(offset + pageSize, total)} of {total}
                   </span>
                   <div className="flex items-center gap-2">
                     <Button

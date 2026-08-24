@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTheme } from "next-themes";
 import {
   Bell,
@@ -34,7 +34,6 @@ import {
 import { ConnectionStatusInline } from "@/components/ConnectionStatusCard";
 import { useConnectionStatusWithInit, useWebSocketMessage, useWebSocketContext } from "@/context/WebSocketContext";
 import { Logo } from "@/components/ui/logo";
-import hawkeyeLogo from "@/assets/hawkeyelogo.png";
 import type { AlertPayload, IncidentPayload } from "@/context/WebSocketContext";
 import { apiClient } from "@/api/client";
 import { clearStoredApiKey } from "@/auth";
@@ -197,7 +196,7 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
           type: "alert" as const,
           id: a.id,
           title: a.title,
-          subtitle: `${a.detection_type} • ${a.severity}`,
+          subtitle: `${a.detection_type} â€¢ ${a.severity}`,
           severity: a.severity,
           url: `/alerts?alert=${a.id}`,
         })),
@@ -205,7 +204,7 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
           type: "incident" as const,
           id: i.id,
           title: i.title,
-          subtitle: `${i.status} • ${i.severity} • ${i.alert_count} alerts`,
+          subtitle: `${i.status} â€¢ ${i.severity} â€¢ ${i.alert_count} alerts`,
           severity: i.severity,
           url: `/incidents?incident=${i.id}`,
         })),
@@ -300,13 +299,13 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
   const getSeverityColor = (severity?: "critical" | "high" | "medium" | "low") => {
     switch (severity) {
       case "critical":
-        return "text-destructive bg-destructive/10";
+        return "text-severity-critical bg-severity-critical/10";
       case "high":
-        return "text-orange-500 bg-orange-500/10";
+        return "text-severity-high bg-severity-high/10";
       case "medium":
-        return "text-yellow-500 bg-yellow-500/10";
+        return "text-severity-medium bg-severity-medium/10";
       case "low":
-        return "text-blue-500 bg-blue-500/10";
+        return "text-severity-low bg-severity-low/10";
       default:
         return "text-muted-foreground bg-muted";
     }
@@ -342,32 +341,31 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
   return (
     <header
       className={cn(
-        "fixed top-0 z-30 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-200",
-        sidebarCollapsed ? "left-16 right-0" : "left-64 right-0"
+        "fixed top-0 z-30 h-14 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70 transition-[left] duration-200",
+        "left-0",
+        sidebarCollapsed ? "lg:left-16" : "lg:left-60"
       )}
       role="banner"
     >
       <div className="flex h-full items-center justify-between gap-4 px-4 sm:px-6">
-        {/* Left section: Logo when sidebar collapsed, mobile menu button */}
-        <div className="flex items-center gap-4 min-w-0">
-          {/* Mobile menu button */}
+        {/* Left section: mobile menu + brand on small screens (the sidebar
+            owns branding at lg+; never render two logos side by side) */}
+        <div className="flex items-center gap-3 min-w-0">
           <Button
             variant="ghost"
             size="icon"
             className="lg:hidden flex-shrink-0"
             onClick={onMenuClick}
-            aria-label="Toggle menu"
+            aria-label="Open navigation menu"
           >
             <Menu className="h-5 w-5" />
           </Button>
 
-          {/* Logo when sidebar collapsed */}
-          {sidebarCollapsed && (
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <Logo size={24} />
-              <span className="text-lg font-bold tracking-tight text-foreground">Hawkeye</span>
-            </div>
-          )}
+          {/* Brand shown only while the persistent sidebar is hidden */}
+          <NavLink to="/dashboard" className="lg:hidden flex items-center gap-2 flex-shrink-0">
+            <Logo size={22} />
+            <span className="text-base font-semibold tracking-tight text-foreground">Hawkeye</span>
+          </NavLink>
         </div>
 
         {/* Center section: Search - prominent and centered */}
@@ -541,24 +539,28 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* User menu with Hawkeye logo avatar */}
+          {/* Session menu: the app authenticates per API key, so this is an
+              account/session menu rather than a user profile */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
-                <Avatar className="h-9 w-9 overflow-hidden">
-                  <img
-                    src={hawkeyeLogo}
-                    alt="Hawkeye"
-                    className="h-full w-full object-cover"
-                  />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded-full"
+                aria-label="Session menu"
+              >
+                <Avatar className="h-8 w-8 overflow-hidden border border-border bg-accent">
+                  <AvatarFallback>
+                    <User className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">Security Admin</p>
-                  <p className="text-xs text-muted-foreground">admin@hawkeye.local</p>
+                  <p className="text-sm font-medium">Session</p>
+                  <p className="text-xs text-muted-foreground">Authenticated via API key</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { useSearchParams } from "react-router-dom";
@@ -158,7 +158,7 @@ export function SettingsPage() {
     <div className="space-y-6 max-w-4xl">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-muted-foreground">
           Configure your Hawkeye dashboard preferences
         </p>
@@ -560,7 +560,7 @@ export function SettingsPage() {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
-                    <p>Not yet available — placeholder for future GitHub repo</p>
+                    <p>Not yet available â€” placeholder for future GitHub repo</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -584,7 +584,7 @@ export function SettingsPage() {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
-                    <p>Not yet available — placeholder for future security policy</p>
+                    <p>Not yet available â€” placeholder for future security policy</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -608,7 +608,7 @@ export function SettingsPage() {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
-                    <p>Not yet available — placeholder for future documentation site</p>
+                    <p>Not yet available â€” placeholder for future documentation site</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

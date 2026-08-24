@@ -13,12 +13,15 @@ import {
 } from "recharts";
 import type { TooltipProps } from "recharts";
 
+// Categorical palette mapped to semantic theme tokens so both themes get
+// legible, consistent colors. Surface tokens (secondary/accent) are not used
+// for data series.
 const DETECTION_TYPE_COLORS: Record<string, string> = {
-  brute_force: "hsl(var(--destructive))",
-  credential_stuffing: "hsl(var(--warning))",
-  enumeration: "hsl(var(--secondary))",
-  bot: "hsl(var(--info))",
-  sensitive_action: "hsl(var(--accent))",
+  brute_force: "hsl(var(--severity-critical))",
+  credential_stuffing: "hsl(var(--severity-high))",
+  enumeration: "hsl(var(--warning))",
+  bot: "hsl(var(--severity-low))",
+  sensitive_action: "hsl(var(--success))",
   session_hijacking: "hsl(var(--primary))",
   api_abuse: "hsl(var(--muted-foreground))",
 };

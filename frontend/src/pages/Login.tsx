@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Key, Loader2, ShieldCheck, AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ArrowLeft, Eye, EyeOff, KeyRound, Loader2, ShieldCheck, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
@@ -15,13 +15,13 @@ import { setStoredApiKey, hasUserApiKey, clearStoredApiKey } from "@/auth";
  * LoginPage - API key sign-in for the Hawkeye dashboard.
  *
  * Hawkeye authenticates sources with API keys rather than usernames and
- * passwords. A dashboard user signs in with one of their source's active
- * API keys (created on the Sources page / via the backend API).
+ * passwords. A dashboard user signs in with an active source API key
+ * (created on the Sources page or via the backend API on a fresh install).
  */
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation() as { state?: { from?: string; message?: string } };
-  const from = location.state?.from || "/";
+  const from = location.state?.from || "/dashboard";
 
   // Already signed in on this browser - go straight to the app
   React.useEffect(() => {
@@ -75,85 +75,129 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-6">
-        <div className="flex flex-col items-center gap-2 text-center">
-          <Logo size={48} />
-          <h1 className="text-3xl font-bold tracking-tight">Hawkeye</h1>
-          <p className="text-muted-foreground text-sm">
-            Sign in to your security monitoring dashboard
-          </p>
+    <div className="relative flex min-h-screen flex-col bg-background">
+      {/* Faint grid backdrop, consistent with the landing hero */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            "linear-gradient(hsl(var(--border) / 0.5) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border) / 0.5) 1px, transparent 1px)",
+          backgroundSize: "56px 56px",
+          maskImage: "radial-gradient(ellipse 80% 60% at 50% 35%, black 30%, transparent 75%)",
+          WebkitMaskImage: "radial-gradient(ellipse 80% 60% at 50% 35%, black 30%, transparent 75%)",
+        }}
+      />
+
+      {/* Top bar */}
+      <header className="relative z-10 border-b border-border/60">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
+          <Link to="/" className="flex items-center gap-2" aria-label="Back to Hawkeye home">
+            <Logo size={24} />
+            <span className="text-base font-semibold tracking-tight">Hawkeye</span>
+          </Link>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back to overview
+          </Link>
         </div>
+      </header>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5" />
-              Sign In
-            </CardTitle>
-            <CardDescription>
-              Hawkeye uses source API keys for authentication. Create one on the
-              Sources page of a registered source, then paste it below.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSignIn} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="login-api-key">API Key</Label>
-                <div className="relative">
-                  <Key className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                  <Input
-                    id="login-api-key"
-                    type={showKey ? "text" : "password"}
-                    placeholder="hawk_..."
-                    value={apiKeyInput}
-                    onChange={(e) => {
-                      setApiKeyInput(e.target.value);
-                      setError(null);
-                    }}
-                    className="pl-10 pr-10"
-                    autoComplete="off"
-                    autoFocus
-                    disabled={isSigningIn}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7"
-                    onClick={() => setShowKey(!showKey)}
-                    aria-label={showKey ? "Hide API key" : "Show API key"}
-                    tabIndex={-1}
-                  >
-                    {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
-                {error && (
-                  <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive" role="alert">
-                    <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
-                    <span>{error}</span>
-                  </div>
-                )}
-              </div>
-
-              <Button type="submit" className="w-full" disabled={isSigningIn || !apiKeyInput.trim()}>
-                {isSigningIn ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  "Sign In"
-                )}
-              </Button>
-            </form>
-
-            <p className="mt-4 text-xs text-muted-foreground">
-              Your API key is stored only in this browser (localStorage) and sent as
-              an X-API-Key header with every request. Sign out at any time to remove it.
+      <div className="relative z-10 flex flex-1 items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-5 animate-fade-up">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold tracking-tight">Sign in to your dashboard</h1>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Use an active source API key to continue
             </p>
-          </CardContent>
-        </Card>
+          </div>
+
+          <Card className="shadow-card">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ShieldCheck className="h-4 w-4 text-primary" aria-hidden="true" />
+                API key authentication
+              </CardTitle>
+              <CardDescription>
+                Keys are issued per monitored source. No password involved.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSignIn} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="login-api-key">API key</Label>
+                  <div className="relative">
+                    <KeyRound
+                      className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                    <Input
+                      id="login-api-key"
+                      type={showKey ? "text" : "password"}
+                      placeholder="hawk_..."
+                      value={apiKeyInput}
+                      onChange={(e) => {
+                        setApiKeyInput(e.target.value);
+                        setError(null);
+                      }}
+                      className="pl-10 pr-10"
+                      autoComplete="off"
+                      autoFocus
+                      disabled={isSigningIn}
+                      aria-invalid={Boolean(error)}
+                      aria-describedby={error ? "login-error" : undefined}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1.5 top-1/2 h-7 w-7 -translate-y-1/2"
+                      onClick={() => setShowKey(!showKey)}
+                      aria-label={showKey ? "Hide API key" : "Show API key"}
+                      tabIndex={-1}
+                    >
+                      {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  {error && (
+                    <div
+                      id="login-error"
+                      role="alert"
+                      className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-2.5 text-sm text-destructive"
+                    >
+                      <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                      <span>{error}</span>
+                    </div>
+                  )}
+                </div>
+
+                <Button type="submit" className="w-full" disabled={isSigningIn || !apiKeyInput.trim()}>
+                  {isSigningIn ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying key...
+                    </>
+                  ) : (
+                    "Sign in"
+                  )}
+                </Button>
+              </form>
+
+              <p className="mt-4 border-t pt-3 text-xs leading-relaxed text-muted-foreground">
+                The key is stored only in this browser and sent as an{" "}
+                <code className="font-mono">X-API-Key</code> header with each request.
+                Need one? Follow the{" "}
+                <Link to="/get-started" className="font-medium text-primary hover:underline">
+                  get started guide
+                </Link>
+                .
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

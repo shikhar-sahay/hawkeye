@@ -177,7 +177,7 @@ export function IncidentsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Incidents</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Incidents</h1>
           <p className="text-muted-foreground">
             Investigate and manage correlated security incidents
           </p>

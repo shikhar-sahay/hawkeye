@@ -10,11 +10,13 @@ import {
 } from "recharts";
 import type { TooltipProps } from "recharts";
 
+// Semantic severity palette from the theme tokens. Each theme (light/dark)
+// provides legible values, so charts stay correct when the mode switches.
 const SEVERITY_COLORS: Record<string, string> = {
-  critical: "hsl(var(--destructive))",
-  high: "hsl(var(--warning))",
-  medium: "hsl(var(--secondary))",
-  low: "hsl(var(--info))",
+  critical: "hsl(var(--severity-critical))",
+  high: "hsl(var(--severity-high))",
+  medium: "hsl(var(--severity-medium))",
+  low: "hsl(var(--severity-low))",
 };
 
 const SEVERITY_LABELS: Record<string, string> = {
@@ -117,20 +119,31 @@ export default function SeverityDistributionChart({
           data={chartData}
           cx="50%"
           cy="50%"
-          innerRadius={60}
-          outerRadius={90}
+          innerRadius={58}
+          outerRadius={88}
           paddingAngle={2}
           dataKey="value"
           nameKey="name"
-          label={({ percent }) => (
+          // Percentage callouts sit outside the ring in muted text so they
+          // stay legible over both light and dark surfaces.
+          label={({ percent }) =>
             total > 0 && percent > 0.05 ? (
-              <span className="font-mono text-xs">{`${(percent * 100).toFixed(0)}%`}</span>
+              <text
+                x={0}
+                y={0}
+                textAnchor="middle"
+                dominantBaseline="central"
+                className="fill-muted-foreground font-mono"
+                fontSize={11}
+              >
+                {(percent * 100).toFixed(0)}%
+              </text>
             ) : null
-          )}
-          labelLine={false}
+          }
+          labelLine={{ stroke: "hsl(var(--border))" }}
         >
           {chartData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.fill} />
+            <Cell key={`cell-${index}`} fill={entry.fill} stroke="none" />
           ))}
         </Pie>
         <Tooltip content={customTooltip} />
@@ -141,7 +154,11 @@ export default function SeverityDistributionChart({
             verticalAlign="middle"
             iconType="circle"
             iconSize={8}
-            formatter={(name) => SEVERITY_LABELS[name] || name}
+            formatter={(name) => (
+              <span className="text-2xs font-medium text-foreground/90">
+                {SEVERITY_LABELS[name] || name}
+              </span>
+            )}
           />
         )}
       </PieChart>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
@@ -47,11 +47,11 @@ function SeverityIcon({ severity, className }: { severity: string; className?: s
     case "critical":
       return <AlertTriangle className={cn("text-destructive", className)} />;
     case "high":
-      return <Shield className={cn("text-orange-500", className)} />;
+      return <Shield className={cn("text-severity-high", className)} />;
     case "medium":
-      return <Shield className={cn("text-yellow-500", className)} />;
+      return <Shield className={cn("text-severity-medium", className)} />;
     case "low":
-      return <Shield className={cn("text-blue-500", className)} />;
+      return <Shield className={cn("text-severity-low", className)} />;
     default:
       return <Shield className={cn("text-muted-foreground", className)} />;
   }
