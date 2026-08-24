@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -34,6 +35,7 @@ import {
   Server,
   Monitor,
   Wifi,
+  WifiOff,
   Info,
   Database,
   Shield,
@@ -46,57 +48,79 @@ import {
 import { useTheme } from "next-themes";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { apiClient } from "@/api/client";
+import { clearStoredApiKey } from "@/auth";
+import { useWebSocketContext, useConnectionStatusWithInit } from "@/context/WebSocketContext";
 
 const APP_VERSION = "2.0.0";
 const BUILD_DATE = "2026-07-27";
 
+const VALID_TABS = ["general", "api", "websocket", "about"] as const;
+type SettingsTab = (typeof VALID_TABS)[number];
+
 export function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const wsStatus = useConnectionStatusWithInit();
+  const ws = useWebSocketContext();
+
+  // Active tab from URL (?tab=), falling back to general.
+  // TopNav links here with ?tab=profile (mapped to general) and ?tab=api.
+  const requestedTab = (searchParams.get("tab") ?? "").toLowerCase();
+  const activeTab: SettingsTab = VALID_TABS.includes(requestedTab as SettingsTab)
+    ? (requestedTab as SettingsTab)
+    : requestedTab === "profile"
+      ? "general"
+      : "general";
+
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("tab", value);
+    setSearchParams(params, { replace: true });
+  };
 
   // Local state
-  const [apiEndpoint, setApiEndpoint] = React.useState("");
   const [storedApiKey, setStoredApiKey] = React.useState("");
   const [showApiKey, setShowApiKey] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [isTestingConnection, setIsTestingConnection] = React.useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
   const [autoRefreshInterval, setAutoRefreshInterval] = React.useState(60);
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
 
   // Load settings from localStorage on mount
   React.useEffect(() => {
-    const savedEndpoint = localStorage.getItem("hawkeye_api_endpoint");
-    const savedKey = localStorage.getItem("hawkeye_api_key");
+    const savedKey = localStorage.getItem("hawkeye_api_key") ?? "";
     const savedNotifications = localStorage.getItem("hawkeye_notifications");
     const savedRefresh = localStorage.getItem("hawkeye_auto_refresh");
     const savedSidebar = localStorage.getItem("hawkeye_sidebar_collapsed");
 
-    if (savedEndpoint) setApiEndpoint(savedEndpoint);
-    if (savedKey) setStoredApiKey(savedKey);
+    setStoredApiKey(savedKey);
     if (savedNotifications !== null) setNotificationsEnabled(savedNotifications === "true");
-    if (savedRefresh) setAutoRefreshInterval(parseInt(savedRefresh, 10));
+    if (savedRefresh !== null && !Number.isNaN(parseInt(savedRefresh, 10))) {
+      setAutoRefreshInterval(parseInt(savedRefresh, 10));
+    }
     if (savedSidebar !== null) setSidebarCollapsed(savedSidebar === "true");
   }, []);
 
-  // Test API connection
-  const testConnection = async () => {
-    if (!apiEndpoint.trim()) {
-      toast({ title: "No endpoint", description: "Please enter an API endpoint first.", variant: "destructive" });
-      return;
-    }
-
-    setIsSaving(true);
+  // Test API connection (REST reachability + auth + WebSocket state)
+  const runConnectionTest = async () => {
+    setIsTestingConnection(true);
     try {
-      const response = await fetch(`${apiEndpoint.replace(/\/$/, "")}/health`);
-      if (response.ok) {
-        toast({ title: "Connection successful", description: "API endpoint is reachable." });
-      } else {
-        toast({ title: "Connection failed", description: `HTTP ${response.status}`, variant: "destructive" });
-      }
+      await apiClient.getSources(1, 0);
+      toast({
+        title: "API connection OK",
+        description: `Backend reachable and authenticated. WebSocket: ${wsStatus}.`,
+      });
     } catch (error) {
-      toast({ title: "Connection failed", description: (error as Error).message, variant: "destructive" });
+      toast({
+        title: "API connection failed",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
     } finally {
-      setIsSaving(false);
+      setIsTestingConnection(false);
     }
   };
 
@@ -104,14 +128,15 @@ export function SettingsPage() {
   const saveSettings = () => {
     setIsSaving(true);
     try {
-      localStorage.setItem("hawkeye_api_endpoint", apiEndpoint);
-      localStorage.setItem("hawkeye_api_key", storedApiKey);
+      // Apply a changed API key (takes effect for new REST calls; the
+      // WebSocket reconnects when it next re-establishes)
+      const currentKey = localStorage.getItem("hawkeye_api_key") ?? "";
+      if (storedApiKey.trim() && storedApiKey !== currentKey) {
+        localStorage.setItem("hawkeye_api_key", storedApiKey.trim());
+      }
       localStorage.setItem("hawkeye_notifications", String(notificationsEnabled));
       localStorage.setItem("hawkeye_auto_refresh", String(autoRefreshInterval));
       localStorage.setItem("hawkeye_sidebar_collapsed", String(sidebarCollapsed));
-
-      // Apply theme
-      if (theme) setTheme(theme);
 
       toast({ title: "Settings saved", description: "Your preferences have been updated." });
     } catch (error) {
@@ -129,13 +154,6 @@ export function SettingsPage() {
     }
   };
 
-  // Clear API key
-  const clearApiKey = () => {
-    setStoredApiKey("");
-    localStorage.removeItem("hawkeye_api_key");
-    toast({ title: "Cleared", description: "Stored API key has been removed." });
-  };
-
   return (
     <div className="space-y-6 max-w-4xl">
       {/* Page Header */}
@@ -146,7 +164,7 @@ export function SettingsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="general" className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="general">
             <Monitor className="h-4 w-4 mr-2" />
@@ -259,9 +277,9 @@ export function SettingsPage() {
                   <p className="text-sm text-muted-foreground">Remove all cached data, settings, and stored keys</p>
                 </div>
                 <Button variant="destructive" onClick={() => {
-                  if (confirm("This will clear ALL local data including API keys. Are you sure?")) {
+                  if (confirm("This will clear ALL local data including your API key. Are you sure?")) {
                     localStorage.clear();
-                    toast({ title: "Data cleared", description: "All local data has been removed. Please refresh the page." });
+                    window.location.href = "/login";
                   }
                 }}>
                   Clear Data
@@ -275,29 +293,27 @@ export function SettingsPage() {
         <TabsContent value="api" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>API Endpoint</CardTitle>
-              <CardDescription>Configure the backend API endpoint</CardDescription>
+              <CardTitle>API Connection</CardTitle>
+              <CardDescription>
+                The dashboard talks to the Hawkeye backend on the same origin
+                (<code className="font-mono text-xs">/api/v1</code>). In development,
+                the Vite dev server proxies requests to the backend.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="api-endpoint">API Base URL</Label>
-                <Input
-                  id="api-endpoint"
-                  placeholder="https://api.hawkeye.example.com/api/v1"
-                  value={apiEndpoint}
-                  onChange={(e) => setApiEndpoint(e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  The base URL for the Hawkeye REST API. Include the version path (e.g., /api/v1).
-                </p>
-              </div>
               <div className="flex gap-2">
-                <Button onClick={testConnection} disabled={isSaving || !apiEndpoint.trim()}>
-                  <Loader2 className="h-4 w-4 mr-2" />
-                  Test Connection
-                </Button>
-                <Button variant="outline" onClick={() => setApiEndpoint(window.location.origin + "/api/v1")}>
-                  Use Current Origin
+                <Button onClick={runConnectionTest} disabled={isTestingConnection}>
+                  {isTestingConnection ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Testing...
+                    </>
+                  ) : (
+                    <>
+                      <Server className="h-4 w-4 mr-2" />
+                      Test API Connection
+                    </>
+                  )}
                 </Button>
               </div>
             </CardContent>
@@ -306,7 +322,7 @@ export function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Stored API Key</CardTitle>
-              <CardDescription>Store an API key for authenticated requests</CardDescription>
+              <CardDescription>API key used to authenticate this browser</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -315,7 +331,7 @@ export function SettingsPage() {
                   <Input
                     id="api-key"
                     type={showApiKey ? "text" : "password"}
-                    placeholder="Enter your API key (starts with hk_)"
+                    placeholder="Enter your API key (starts with hawk_)"
                     value={storedApiKey}
                     onChange={(e) => setStoredApiKey(e.target.value)}
                     className="pr-10"
@@ -340,8 +356,16 @@ export function SettingsPage() {
                   <Key className="h-4 w-4 mr-2" />
                   Copy Key
                 </Button>
-                <Button variant="destructive" onClick={clearApiKey} disabled={!storedApiKey}>
-                  Clear Key
+                <Button
+                  variant="destructive"
+                  disabled={!storedApiKey}
+                  onClick={() => {
+                    clearStoredApiKey();
+                    setStoredApiKey("");
+                    toast({ title: "Signed out", description: "API key removed from this browser." });
+                  }}
+                >
+                  Remove Key & Sign Out
                 </Button>
               </div>
             </CardContent>
@@ -358,22 +382,35 @@ export function SettingsPage() {
             <CardContent className="space-y-6">
               <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
                 <div className="flex-shrink-0 w-12 h-12 rounded-full bg-background flex items-center justify-center">
-                  <Wifi className="h-6 w-6 text-muted-foreground" />
+                  {wsStatus === "connected" ? (
+                    <Wifi className="h-6 w-6 text-green-500" />
+                  ) : (
+                    <WifiOff className="h-6 w-6 text-muted-foreground" />
+                  )}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">Connection Status</span>
-                    <span className="font-mono text-sm text-muted-foreground">
-                      Configure API key to connect
-                    </span>
+                    <Badge
+                      variant={wsStatus === "connected" ? "default" : wsStatus === "error" ? "destructive" : "secondary"}
+                      className="capitalize"
+                    >
+                      {wsStatus}
+                    </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
                     WebSocket connection for real-time alerts and incidents
                   </p>
                 </div>
-                <Button variant="outline" size="sm" disabled>
-                  Connect
-                </Button>
+                {wsStatus === "connected" ? (
+                  <Button variant="outline" size="sm" onClick={ws.disconnect}>
+                    Disconnect
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" onClick={ws.reconnect}>
+                    Connect
+                  </Button>
+                )}
               </div>
 
               <Separator />
@@ -405,7 +442,7 @@ export function SettingsPage() {
                     <span className="font-medium">Authentication</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {storedApiKey ? "API Key configured" : "No API key stored"}
+                    {storedApiKey || localStorage.getItem("hawkeye_api_key") ? "API Key configured" : "No API key stored"}
                   </p>
                 </div>
 
@@ -415,7 +452,7 @@ export function SettingsPage() {
                     <span className="font-medium">Subscriptions</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Alerts, Incidents
+                    Alerts, Incidents, Events
                   </p>
                 </div>
               </div>
@@ -425,22 +462,30 @@ export function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Connection Diagnostics</CardTitle>
-              <CardDescription>Debug WebSocket connection issues</CardDescription>
+              <CardDescription>Check REST and real-time connectivity</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                <Button variant="outline" className="justify-start gap-2">
-                  <Wifi className="h-4 w-4" />
+                <Button variant="outline" className="justify-start gap-2" onClick={runConnectionTest} disabled={isTestingConnection}>
+                  {isTestingConnection ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Wifi className="h-4 w-4" />
+                  )}
                   Run Connection Test
                 </Button>
-                <Button variant="outline" className="justify-start gap-2">
-                  <GitBranch className="h-4 w-4" />
-                  View Connection Logs
-                </Button>
+                {wsStatus === "connected" ? (
+                  <Button variant="outline" className="justify-start gap-2" onClick={ws.reconnect}>
+                    <GitBranch className="h-4 w-4" />
+                    Force Reconnect
+                  </Button>
+                ) : (
+                  <Button variant="outline" className="justify-start gap-2" onClick={ws.reconnect}>
+                    <GitBranch className="h-4 w-4" />
+                    Reconnect Now
+                  </Button>
+                )}
               </div>
-              <p className="text-sm text-muted-foreground">
-                Connection diagnostics will be available in a future update.
-              </p>
             </CardContent>
           </Card>
         </TabsContent>
