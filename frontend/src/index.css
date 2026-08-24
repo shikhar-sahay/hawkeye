@@ -222,6 +222,18 @@
      right edge signals that content continues. */
   .code-scroll {
     position: relative;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .code-scroll::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 20px;
+    background: linear-gradient(to left, hsl(var(--card) / 0.9), transparent);
+    pointer-events: none;
   }
   .code-scroll::-webkit-scrollbar {
     height: 6px;
@@ -229,10 +241,6 @@
   .code-scroll::-webkit-scrollbar-thumb {
     background: hsl(var(--border));
     border-radius: 6px;
-  }
-  .code-scroll {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--border)) transparent;
   }
 
   .text-balance {

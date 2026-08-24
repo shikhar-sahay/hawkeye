@@ -64,10 +64,12 @@ export function PipelineFlow() {
         </Reveal>
 
         <ol className="relative mt-12 grid gap-6 md:grid-cols-5 md:gap-3">
-          {/* Connecting rail (horizontal on md+) */}
+          {/* Connecting rail (horizontal on md+): runs from the first node to
+              the last node's column, not the full container width */}
           <div
             aria-hidden="true"
-            className="absolute left-0 right-0 top-5 hidden border-t border-dashed border-border md:block"
+            className="absolute left-5 top-5 hidden border-t border-dashed border-primary/30 md:block"
+            style={{ right: "calc(20% - 0.25rem)" }}
           />
           {STAGES.map((stage, i) => (
             <Reveal key={stage.key} delay={i * 90}>

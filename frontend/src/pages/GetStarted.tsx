@@ -136,7 +136,7 @@ export function GetStartedPage() {
           {/* Timeline rail */}
           <div
             aria-hidden="true"
-            className="absolute bottom-4 left-[19px] top-4 w-px border-l border-dashed border-border"
+            className="absolute bottom-4 left-[19px] top-4 w-px border-l border-dashed border-primary/30"
           />
           {steps.map((step, i) => (
             <li key={step.key} className="relative pl-14">

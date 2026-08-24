@@ -17,8 +17,8 @@ const alertJson = `{
   "severity": "high",
   "confidence": 0.87,
   "title": "Brute force from 203.0.113.7",
-  "description": "5 failed logins for 3 usernames
-     within 4.2 minutes",
+  "description": "5 failed logins
+     in 4.2 minutes",
   "mitre_techniques": ["T1110.001"]
 }`;
 

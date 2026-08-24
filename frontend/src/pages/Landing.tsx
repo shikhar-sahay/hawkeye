@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { ObservationField } from "@/components/brand/ObservationField";
+import { HawkMark } from "@/components/brand/HawkMark";
 import { PipelineFlow } from "@/components/site/PipelineFlow";
 import { EventStory } from "@/components/site/EventStory";
 import { DetectionMatrix } from "@/components/site/DetectionMatrix";
@@ -73,14 +74,15 @@ export function LandingPage() {
           }}
         />
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
+          {/* Mobile order: copy → hawk → code. Desktop: copy+code | hawk. */}
           <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-6">
             <div className="min-w-0">
-              <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
-                <span className="relative flex h-2 w-2">
+              <div className="animate-fade-up inline-flex max-w-full items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
+                <span className="relative flex h-2 w-2 flex-none">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-success opacity-60 animate-pulse-dot" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+                  <span className="relative inline-flex h-2 w-2 flex-none rounded-full bg-success" />
                 </span>
-                Self-hosted · your telemetry stays on your infrastructure
+                <span className="min-w-0">Self-hosted<span className="hidden sm:inline"> · your telemetry stays on your infrastructure</span></span>
               </div>
 
               <h1
@@ -114,30 +116,30 @@ export function LandingPage() {
                   <Link to="/login">Sign in to dashboard</Link>
                 </Button>
               </div>
-
-              {/* Ingest example: the actual first integration step */}
-              <Reveal delay={200} className="mt-10 max-w-xl">
-                <div className="overflow-hidden rounded-lg border bg-card shadow-card">
-                  <div className="flex items-center justify-between border-b bg-muted/50 px-4 py-2.5">
-                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                      <Terminal className="h-3.5 w-3.5" aria-hidden="true" />
-                      Send your first event
-                    </div>
-                    <span className="font-mono text-2xs text-muted-foreground">
-                      POST /api/v1/events
-                    </span>
-                  </div>
-                  <pre className="code-scroll overflow-x-auto p-4 text-xs leading-relaxed text-foreground/90">
-                    <code>{ingestSnippet}</code>
-                  </pre>
-                </div>
-              </Reveal>
             </div>
 
             {/* The hawk, watching the telemetry around it */}
-            <div className="animate-fade-in relative mx-auto w-full max-w-[420px] min-w-0 sm:max-w-[520px] lg:max-w-none">
+            <div className="animate-fade-in relative mx-auto w-full max-w-[300px] min-w-0 sm:max-w-[420px] lg:max-w-none">
               <ObservationField />
             </div>
+
+            {/* Ingest example: the actual first integration step */}
+            <Reveal delay={200} className="min-w-0 max-w-xl lg:col-start-1">
+              <div className="overflow-hidden rounded-lg border bg-card shadow-card">
+                <div className="flex items-center justify-between border-b bg-muted/50 px-4 py-2.5">
+                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                    <Terminal className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+                    Send your first event
+                  </div>
+                  <span className="hidden min-[420px]:inline font-mono text-2xs text-muted-foreground">
+                    POST /api/v1/events
+                  </span>
+                </div>
+                <pre className="code-scroll overflow-x-auto p-4 text-xs leading-relaxed text-foreground/90">
+                  <code>{ingestSnippet}</code>
+                </pre>
+              </div>
+            </Reveal>
           </div>
         </div>
       </section>
@@ -175,7 +177,10 @@ export function LandingPage() {
         />
         <div className="relative mx-auto max-w-2xl px-4 text-center sm:px-6">
           <Reveal>
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border bg-card shadow-card">
+              <HawkMark size={36} animated />
+            </div>
+            <h2 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">
               Start watching in minutes
             </h2>
             <p className="mx-auto mt-3 max-w-md text-muted-foreground">

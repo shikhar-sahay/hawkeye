@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 
@@ -118,52 +118,60 @@ export function DetectionMatrix() {
                 {ENGINES.map((engine, i) => {
                   const isOpen = openIdx === i;
                   return (
-                    <tr
-                      key={engine.name}
-                      className={`border-b align-top transition-colors last:border-0 ${
-                        isOpen ? "bg-accent/50" : "hover:bg-muted/40"
-                      }`}
-                    >
-                      <td className="px-4 py-3 sm:px-5">
-                        <button
-                          type="button"
-                          onClick={() => setOpenIdx(isOpen ? null : i)}
-                          aria-expanded={isOpen}
-                          className="flex min-h-[36px] items-center gap-1.5 text-left font-medium hover:text-primary"
-                        >
-                          <ChevronDown
-                            className={`h-3.5 w-3.5 flex-none text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`}
-                            aria-hidden="true"
-                          />
-                          {engine.name}
-                        </button>
-                        {/* Mobile: watches-for lives under the name */}
-                        <p className="mt-1 max-w-[16rem] text-xs text-muted-foreground md:hidden">
-                          {engine.watches}
-                        </p>
-                        {isOpen && (
-                          <p className="mt-2 max-w-md text-xs leading-relaxed text-muted-foreground">
-                            {engine.detail}
+                    <Fragment key={engine.name}>
+                      <tr
+                        className={`border-b align-top transition-colors ${
+                          isOpen ? "bg-accent/50" : "hover:bg-muted/40"
+                        }`}
+                      >
+                        <td className="px-4 py-3 sm:px-5">
+                          <button
+                            type="button"
+                            onClick={() => setOpenIdx(isOpen ? null : i)}
+                            aria-expanded={isOpen}
+                            aria-controls={`engine-detail-${i}`}
+                            className="flex min-h-[36px] items-center gap-1.5 text-left font-medium hover:text-primary"
+                          >
+                            <ChevronDown
+                              className={`h-3.5 w-3.5 flex-none text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`}
+                              aria-hidden="true"
+                            />
+                            {engine.name}
+                          </button>
+                          {/* Mobile: watches-for lives under the name */}
+                          <p className="mt-1 max-w-[16rem] text-xs text-muted-foreground md:hidden">
+                            {engine.watches}
                           </p>
-                        )}
-                      </td>
-                      <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
-                        {engine.watches}
-                      </td>
-                      <td className="hidden px-4 py-3 md:table-cell">
-                        <span className="rounded border bg-muted/60 px-1.5 py-0.5 font-mono text-2xs text-muted-foreground">
-                          {engine.trigger}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 sm:px-5">
-                        <div className="flex flex-col gap-1">
-                          <span className="font-mono text-xs text-foreground/80">
-                            {engine.techniques.join(" · ")}
+                        </td>
+                        <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
+                          {engine.watches}
+                        </td>
+                        <td className="hidden px-4 py-3 md:table-cell">
+                          <span className="whitespace-nowrap rounded border bg-muted/60 px-1.5 py-0.5 font-mono text-2xs text-muted-foreground">
+                            {engine.trigger}
                           </span>
-                          <span className="text-2xs text-muted-foreground">{engine.tactic}</span>
-                        </div>
-                      </td>
-                    </tr>
+                        </td>
+                        <td className="px-4 py-3 sm:px-5">
+                          <div className="flex flex-col gap-1">
+                            <span className="whitespace-nowrap font-mono text-xs text-foreground/80">
+                              {engine.techniques.join(" · ")}
+                            </span>
+                            <span className="text-2xs text-muted-foreground">{engine.tactic}</span>
+                          </div>
+                        </td>
+                      </tr>
+                      {/* Expanded detail spans the full row so columns never shift */}
+                      {isOpen && (
+                        <tr id={`engine-detail-${i}`} className="border-b bg-accent/30">
+                          <td colSpan={4} className="px-4 py-3 sm:px-5">
+                            <p className="max-w-3xl text-xs leading-relaxed text-muted-foreground">
+                              <span className="font-medium text-foreground">{engine.name}:</span>{" "}
+                              {engine.detail}
+                            </p>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   );
                 })}
               </tbody>

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Logo } from "@/components/ui/logo";
+import { HawkMark } from "@/components/brand/HawkMark";
 import { apiClient, ApiError } from "@/api/client";
 import { setStoredApiKey, hasUserApiKey, clearStoredApiKey } from "@/auth";
 import { useRouteMeta } from "@/hooks/useRouteMeta";
@@ -98,7 +98,7 @@ export function LoginPage() {
       <header className="relative z-10 border-b border-border/60">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2" aria-label="Back to Hawkeye home">
-            <Logo size={24} />
+            <HawkMark size={24} />
             <span className="text-base font-semibold tracking-tight">Hawkeye</span>
           </Link>
           <Link
