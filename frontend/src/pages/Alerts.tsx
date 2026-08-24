@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import type { AlertPayload } from "@/context/WebSocketContext";
  */
 export function AlertsPage() {
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Filter state
   const [filters, setFilters] = React.useState<AlertListParams>({
@@ -55,6 +57,24 @@ export function AlertsPage() {
   React.useEffect(() => {
     setFilters((prev) => ({ ...prev, search: searchQuery || undefined, offset: 0 }));
   }, [searchQuery]);
+
+  // Deep link: /alerts?alert=ID opens the detail dialog (search, notifications)
+  const deepLinkAlertId = searchParams.get("alert");
+  React.useEffect(() => {
+    if (!deepLinkAlertId) return;
+    const id = Number(deepLinkAlertId);
+    if (!Number.isFinite(id)) return;
+    apiClient.getAlert(id).then(setSelectedAlert).catch(() => setSelectedAlert(null));
+  }, [deepLinkAlertId]);
+
+  const closeDetail = () => {
+    setSelectedAlert(null);
+    if (searchParams.get("alert")) {
+      const params = new URLSearchParams(searchParams);
+      params.delete("alert");
+      setSearchParams(params, { replace: true });
+    }
+  };
 
   // Shared WebSocket context for connection status and subscriptions
   const {
@@ -424,7 +444,7 @@ export function AlertsPage() {
       alert={selectedAlert}
       open={!!selectedAlert}
       onOpenChange={(open) => {
-        if (!open) setSelectedAlert(null);
+        if (!open) closeDetail();
       }}
     />
   </>

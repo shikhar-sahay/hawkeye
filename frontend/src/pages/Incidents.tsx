@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ import type { IncidentPayload } from "@/context/WebSocketContext";
  */
 export function IncidentsPage() {
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Filter state
   const [filters, setFilters] = React.useState<IncidentListParams>({
@@ -48,6 +50,24 @@ export function IncidentsPage() {
   // WebSocket state for live incidents
   const [liveIncidents, setLiveIncidents] = React.useState<IncidentPayload[]>([]);
   const [selectedIncident, setSelectedIncident] = React.useState<Incident | null>(null);
+
+  // Deep link: /incidents?incident=ID opens the detail dialog
+  const deepLinkIncidentId = searchParams.get("incident");
+  React.useEffect(() => {
+    if (!deepLinkIncidentId) return;
+    const id = Number(deepLinkIncidentId);
+    if (!Number.isFinite(id)) return;
+    apiClient.getIncident(id).then(setSelectedIncident).catch(() => setSelectedIncident(null));
+  }, [deepLinkIncidentId]);
+
+  const closeDetail = () => {
+    setSelectedIncident(null);
+    if (searchParams.get("incident")) {
+      const params = new URLSearchParams(searchParams);
+      params.delete("incident");
+      setSearchParams(params, { replace: true });
+    }
+  };
 
   // Shared WebSocket context for connection status and subscriptions
   const {
@@ -382,7 +402,7 @@ export function IncidentsPage() {
       incident={selectedIncident}
       open={!!selectedIncident}
       onOpenChange={(open) => {
-        if (!open) setSelectedIncident(null);
+        if (!open) closeDetail();
       }}
     />
   </>

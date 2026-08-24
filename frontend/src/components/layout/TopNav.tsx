@@ -83,39 +83,53 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
   // Store recent notifications from WebSocket
   const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
 
+  // Respect the "Enable Notifications" setting (localStorage, default on)
+  const notificationsEnabledRef = React.useRef<boolean>(
+    typeof window === "undefined" ? true : localStorage.getItem("hawkeye_notifications") !== "false"
+  );
+  React.useEffect(() => {
+    const sync = () => {
+      notificationsEnabledRef.current = localStorage.getItem("hawkeye_notifications") !== "false";
+    };
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, []);
+
   // Subscribe to WebSocket messages for real-time notifications
   useWebSocketMessage(["alert", "incident"], (message) => {
+    if (!notificationsEnabledRef.current) return;
+    const pushNotification = (n: NotificationItem) => {
+      setNotifications((prev) =>
+        prev.some((p) => p.id === n.id)
+          ? prev // already notified about this entity
+          : [n, ...prev].slice(0, 10)
+      );
+    };
     if (message.type === "alert" && message.data) {
       const alert = message.data as AlertPayload;
       if (alert.severity === "critical" || alert.severity === "high") {
-        setNotifications((prev) => [
-          {
-            id: `alert-${alert.id}-${Date.now()}`,
-            type: "alert",
-            title: alert.title,
-            description: alert.description,
-            severity: alert.severity,
-            timestamp: alert.created_at,
-            url: `/alerts/${alert.id}`,
-          },
-          ...prev.slice(0, 9), // Keep max 10 notifications
-        ]);
+        pushNotification({
+          id: `alert-${alert.id}`,
+          type: "alert",
+          title: alert.title,
+          description: alert.description,
+          severity: alert.severity,
+          timestamp: alert.created_at,
+          url: `/alerts?alert=${alert.id}`,
+        });
       }
     } else if (message.type === "incident" && message.data) {
       const incident = message.data as IncidentPayload;
       if (incident.severity === "critical" || incident.severity === "high") {
-        setNotifications((prev) => [
-          {
-            id: `incident-${incident.id}-${Date.now()}`,
-            type: "incident",
-            title: incident.title,
-            description: incident.description,
-            severity: incident.severity,
-            timestamp: incident.created_at,
-            url: `/incidents/${incident.id}`,
-          },
-          ...prev.slice(0, 9),
-        ]);
+        pushNotification({
+          id: `incident-${incident.id}`,
+          type: "incident",
+          title: incident.title,
+          description: incident.description,
+          severity: incident.severity,
+          timestamp: incident.created_at,
+          url: `/incidents?incident=${incident.id}`,
+        });
       }
     }
   });
@@ -177,7 +191,7 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
           title: `${e.category}: ${e.event_type}`,
           subtitle: `IP: ${e.ip || "N/A"} | ${e.route || "N/A"}`,
           severity: e.severity,
-          url: `/events/${e.id}`,
+          url: `/events?event=${e.id}`,
         })),
         ...alertsRes.alerts.map((a) => ({
           type: "alert" as const,
@@ -185,7 +199,7 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
           title: a.title,
           subtitle: `${a.detection_type} • ${a.severity}`,
           severity: a.severity,
-          url: `/alerts/${a.id}`,
+          url: `/alerts?alert=${a.id}`,
         })),
         ...incidentsRes.incidents.map((i) => ({
           type: "incident" as const,
@@ -193,14 +207,14 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
           title: i.title,
           subtitle: `${i.status} • ${i.severity} • ${i.alert_count} alerts`,
           severity: i.severity,
-          url: `/incidents/${i.id}`,
+          url: `/incidents?incident=${i.id}`,
         })),
         ...sourcesRes.map((s) => ({
           type: "source" as const,
           id: s.id,
           title: s.name,
           subtitle: s.description || "No description",
-          url: `/sources/${s.id}`,
+          url: `/sources?source=${s.id}`,
         })),
       ];
 

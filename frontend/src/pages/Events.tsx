@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { cn, getSeverityBadgeVariant, formatTimestamp } from "@/lib/utils";
 import { ConnectionStatusCard } from "@/components/ConnectionStatusCard";
+import { EventDetail } from "@/components/EventDetail";
 import { apiClient, queryKeys } from "@/api/client";
 import { useWebSocketContext, useWebSocketMessage } from "@/context/WebSocketContext";
 import type { NormalizedEvent, EventListParams } from "@/types";
@@ -44,16 +45,29 @@ export function EventsPage() {
     offset: 0,
     search: "",
   });
-  const [searchQuery, setSearchQuery] = React.useState(() => searchParams.get("search") || "");
+  const [searchInput, setSearchInput] = React.useState(() => searchParams.get("search") || "");
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
+  const [selectedEvent, setSelectedEvent] = React.useState<NormalizedEvent | null>(null);
 
   // WebSocket state for live events
   const [liveEvents, setLiveEvents] = React.useState<NormalizedEvent[]>([]);
 
-  // Sync searchQuery with filters for API calls
+  // Debounce search input into the actual query used for server-side filtering
   React.useEffect(() => {
-    setFilters(prev => ({ ...prev, search: searchQuery.trim() || undefined, offset: 0 }));
-  }, [searchQuery]);
+    const timer = setTimeout(() => {
+      setFilters((prev) => ({ ...prev, search: searchInput.trim() || undefined, offset: 0 }));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Sync URL search param with input when it changes externally (e.g. global search)
+  React.useEffect(() => {
+    const urlSearch = searchParams.get("search") || "";
+    if (urlSearch !== searchInput) {
+      setSearchInput(urlSearch);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Fetch initial events via TanStack Query
   const {
@@ -82,8 +96,10 @@ export function EventsPage() {
   // Subscribe to real-time events via shared WebSocket
   useWebSocketMessage("event", (message) => {
     const event = message.data as NormalizedEvent;
-    // Prepend new event to live events
-    setLiveEvents((prev) => [event, ...prev.slice(0, 99)]); // Keep max 100 live events
+    // Prepend new event to live events, avoiding duplicates
+    setLiveEvents((prev) =>
+      prev.some((e) => e.id === event.id) ? prev : [event, ...prev].slice(0, 100)
+    );
     // Invalidate query to refresh if needed
     queryClient.invalidateQueries({ queryKey: queryKeys.events.all });
   });
@@ -98,43 +114,40 @@ export function EventsPage() {
     queryClient.invalidateQueries({ queryKey: queryKeys.incidents.all });
   });
 
-  // Combine REST API events with WebSocket live events
-  // WebSocket events are prepended since they're newer
+  // Combine REST API events with WebSocket live events, deduplicated by id
+  // (live events that have since been fetched from the API are dropped)
   const combinedEvents = React.useMemo(() => {
     const apiEvents = eventsResponse?.events || [];
-    return [...liveEvents, ...apiEvents];
+    if (liveEvents.length === 0) return apiEvents;
+    const apiIds = new Set(apiEvents.map((e) => e.id));
+    const fresh = liveEvents.filter((e) => !apiIds.has(e.id));
+    return [...fresh, ...apiEvents];
   }, [eventsResponse?.events, liveEvents]);
 
-  // Sync search query with URL params
-  React.useEffect(() => {
-    const currentSearch = searchParams.get("search") || "";
-    if (currentSearch !== searchQuery) {
-      setSearchQuery(currentSearch);
-    }
-  }, [searchParams, searchQuery]);
-
+  // Keep URL search param in sync (replace history to avoid extra entries)
   React.useEffect(() => {
     const params = new URLSearchParams(searchParams);
-    if (searchQuery.trim()) {
-      params.set("search", searchQuery.trim());
-    } else {
+    const currentQ = searchInput.trim();
+    if (currentQ) {
+      if (params.get("search") !== currentQ) {
+        params.set("search", currentQ);
+        setSearchParams(params, { replace: true });
+      }
+    } else if (params.has("search")) {
       params.delete("search");
+      setSearchParams(params, { replace: true });
     }
-    setSearchParams(params, { replace: true });
-  }, [searchQuery, searchParams, setSearchParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
 
   // Handle filter changes
   const handleFilterChange = (key: keyof EventListParams, value: string | number | undefined) => {
     setFilters((prev) => ({ ...prev, [key]: value, offset: 0 }));
   };
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  };
-
   const clearFilters = () => {
     setFilters({ limit: 50, offset: 0, search: undefined });
-    setSearchQuery("");
+    setSearchInput("");
   };
 
   // Export events to CSV
@@ -187,7 +200,7 @@ export function EventsPage() {
   };
 
   const hasActiveFilters =
-    searchQuery ||
+    searchInput.trim() ||
     filters.category ||
     filters.event_type ||
     filters.severity ||
@@ -195,13 +208,31 @@ export function EventsPage() {
     filters.ip ||
     filters.route ||
     filters.method ||
-    filters.status_code ||
-    filters.start_time ||
-    filters.end_time;
+    filters.status_code;
 
-  // Load more events (pagination)
-  const loadMore = () => {
-    setFilters((prev) => ({ ...prev, offset: (prev.offset ?? 0) + (prev.limit ?? 50) }));
+  // Server-side pagination
+  const pageSize = filters.limit ?? 50;
+  const offset = filters.offset ?? 0;
+  const total = eventsResponse?.total ?? 0;
+  const canPrev = offset > 0;
+  const canNext = offset + pageSize < total;
+
+  // Deep link: /events?event=ID opens the detail dialog
+  const deepLinkEventId = searchParams.get("event");
+  React.useEffect(() => {
+    if (!deepLinkEventId) return;
+    const id = Number(deepLinkEventId);
+    if (!Number.isFinite(id)) return;
+    apiClient.getEvent(id).then(setSelectedEvent).catch(() => setSelectedEvent(null));
+  }, [deepLinkEventId]);
+
+  const closeDetail = () => {
+    setSelectedEvent(null);
+    if (searchParams.get("event")) {
+      const params = new URLSearchParams(searchParams);
+      params.delete("event");
+      setSearchParams(params, { replace: true });
+    }
   };
 
   return (
@@ -214,7 +245,14 @@ export function EventsPage() {
             <p className="text-muted-foreground">Real-time event stream from all sources</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-2" onClick={handleExport} disabled={combinedEvents.length === 0}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={handleExport}
+              disabled={combinedEvents.length === 0}
+              title="Export the currently loaded events to CSV"
+            >
               <Download className="h-4 w-4" />
               Export
             </Button>
@@ -244,8 +282,8 @@ export function EventsPage() {
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search events by category, type, user, IP, route..."
-                  value={searchQuery}
-                  onChange={handleSearch}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   className="pl-10"
                 />
               </div>
@@ -364,7 +402,7 @@ export function EventsPage() {
             </div>
             <CardDescription>
               {eventsResponse !== undefined
-                ? `Showing ${combinedEvents.length} of ${eventsResponse.total} events`
+                ? `Showing page ${Math.floor(offset / pageSize) + 1} of ${Math.max(1, Math.ceil(total / pageSize))} — click a row for details`
                 : "Loading..."}
             </CardDescription>
           </CardHeader>
@@ -391,7 +429,7 @@ export function EventsPage() {
                 <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No events found</p>
                 <p className="text-sm mt-1">
-                  {hasActiveFilters || searchQuery
+                  {hasActiveFilters
                     ? "Try adjusting your filters or search query"
                     : "Ingest events via API to see them here"}
                 </p>
@@ -414,7 +452,11 @@ export function EventsPage() {
                   </TableHeader>
                   <TableBody>
                     {combinedEvents.map((event) => (
-                      <TableRow key={event.id} className="hover:bg-muted/50 transition-colors">
+                      <TableRow
+                        key={event.id}
+                        className="hover:bg-muted/50 transition-colors cursor-pointer"
+                        onClick={() => setSelectedEvent(event)}
+                      >
                         <TableCell className="font-mono text-sm whitespace-nowrap">
                           {formatTimestamp(event.timestamp)}
                         </TableCell>
@@ -445,23 +487,45 @@ export function EventsPage() {
                   </TableBody>
                 </Table>
 
-                {/* Load More Pagination */}
-                {(eventsResponse?.total ?? 0) > (filters.offset || 0) + (filters.limit || 50) && !isLoading && (
-                  <div className="p-4 border-t">
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={loadMore}
-                      disabled={isLoading}
-                    >
-                      Load More ({combinedEvents.length} of {eventsResponse?.total})
-                    </Button>
+                {/* Pagination */}
+                {total > 0 && (
+                  <div className="flex items-center justify-between p-4 border-t">
+                    <span className="text-xs text-muted-foreground">
+                      Showing {Math.min(offset + 1, total)}–{Math.min(offset + pageSize, total)} of {total} events (newest first)
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFilters((prev) => ({ ...prev, offset: Math.max(0, (prev.offset ?? 0) - pageSize) }))}
+                        disabled={!canPrev || isFetching}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFilters((prev) => ({ ...prev, offset: (prev.offset ?? 0) + pageSize }))}
+                        disabled={!canNext || isFetching}
+                      >
+                        Next
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
             )}
           </CardContent>
         </Card>
+
+        {/* Event Detail Dialog */}
+        <EventDetail
+          event={selectedEvent}
+          open={!!selectedEvent}
+          onOpenChange={(open) => {
+            if (!open) closeDetail();
+          }}
+        />
 
         {/* Connection Status Indicator (bottom) */}
         <ConnectionStatusCard
