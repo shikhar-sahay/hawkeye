@@ -74,7 +74,7 @@ export function LandingPage() {
         />
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
           <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-6">
-            <div>
+            <div className="min-w-0">
               <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-success opacity-60 animate-pulse-dot" />
@@ -135,7 +135,7 @@ export function LandingPage() {
             </div>
 
             {/* The hawk, watching the telemetry around it */}
-            <div className="animate-fade-in relative mx-auto w-full max-w-[420px] sm:max-w-[520px] lg:max-w-none">
+            <div className="animate-fade-in relative mx-auto w-full max-w-[420px] min-w-0 sm:max-w-[520px] lg:max-w-none">
               <ObservationField />
             </div>
           </div>

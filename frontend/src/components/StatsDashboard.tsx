@@ -240,7 +240,7 @@ export function StatsDashboard({ initialTimeRange = "24h", refreshInterval = 600
                     { name: "medium", value: alertStats.by_severity?.medium || 0 },
                     { name: "low", value: alertStats.by_severity?.low || 0 },
                   ] : []}
-                  isLoading={isLoading}
+                  isLoading={alertStatsLoading}
                 />
               </React.Suspense>
             </div>
@@ -265,7 +265,7 @@ export function StatsDashboard({ initialTimeRange = "24h", refreshInterval = 600
                     name,
                     value,
                   })) : []}
-                  isLoading={isLoading}
+                  isLoading={alertStatsLoading}
                   layout="horizontal"
                 />
               </React.Suspense>
@@ -328,7 +328,7 @@ export function StatsDashboard({ initialTimeRange = "24h", refreshInterval = 600
             <RecentActivityPanel
               alertStats={alertStats}
               incidentStats={incidentStats}
-              isLoading={isLoading}
+              isLoading={alertStatsLoading || incidentStatsLoading}
             />
           </CardContent>
         </Card>

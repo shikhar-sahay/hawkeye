@@ -34,7 +34,7 @@ export function DashboardPreview() {
     <section className="border-t py-20 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.2fr]">
-          <Reveal>
+          <Reveal className="min-w-0">
             <p className="font-mono text-xs uppercase tracking-[0.2em] text-primary">
               The dashboard
             </p>
@@ -73,7 +73,7 @@ export function DashboardPreview() {
             </div>
           </Reveal>
 
-          <Reveal delay={120}>
+          <Reveal delay={120} className="min-w-0">
             <div className="relative">
               {/* Stylized dashboard frame */}
               <div className="overflow-hidden rounded-xl border bg-card shadow-card-hover">
@@ -102,18 +102,21 @@ export function DashboardPreview() {
                     <p className="font-mono text-2xs uppercase tracking-wider text-muted-foreground">
                       Alerts over time
                     </p>
-                    <svg viewBox="0 0 520 110" className="mt-2 h-28 w-full" aria-hidden="true">
-                      {[28, 56, 84].map((y) => (
-                        <line key={y} x1="0" y1={y} x2="520" y2={y} stroke="hsl(var(--chart-grid))" strokeWidth="1" />
-                      ))}
-                      <path d={AREA_PATH} fill="hsl(var(--primary) / 0.15)" />
-                      <path
-                        d="M0,86 C30,80 45,62 70,58 C95,54 110,66 135,60 C160,54 175,30 200,26 C225,22 240,44 265,48 C290,52 305,38 330,30 C355,22 370,10 395,14 C420,18 435,40 460,44 C480,47 495,42 520,34"
-                        fill="none"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth="2"
-                      />
-                    </svg>
+                    <div className="relative mt-2 h-28">
+                      <svg viewBox="0 0 520 110" preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden="true">
+                        {[28, 56, 84].map((y) => (
+                          <line key={y} x1="0" y1={y} x2="520" y2={y} stroke="hsl(var(--chart-grid))" strokeWidth="1" />
+                        ))}
+                        <path d={AREA_PATH} fill="hsl(var(--primary) / 0.15)" />
+                        <path
+                          d="M0,86 C30,80 45,62 70,58 C95,54 110,66 135,60 C160,54 175,30 200,26 C225,22 240,44 265,48 C290,52 305,38 330,30 C355,22 370,10 395,14 C420,18 435,40 460,44 C480,47 495,42 520,34"
+                          fill="none"
+                          stroke="hsl(var(--primary))"
+                          strokeWidth="2"
+                          vectorEffect="non-scaling-stroke"
+                        />
+                      </svg>
+                    </div>
                   </div>
 
                   {/* Stat chips */}

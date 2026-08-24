@@ -49,55 +49,58 @@ export function SiteHeader() {
   const navHref = (link: (typeof NAV_LINKS)[number]) => (onLanding ? link.href : link.hash);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-40 border-b border-border/70 bg-background/90 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-4 sm:px-6">
-        <Link
-          to="/"
-          className="flex min-h-[44px] items-center gap-2"
-          aria-label="Hawkeye home"
-        >
-          <HawkMark size={24} />
-          <span className="text-base font-semibold tracking-tight">Hawkeye</span>
-        </Link>
-
-        <nav className="hidden items-center gap-1 text-sm text-muted-foreground md:flex" aria-label="Site">
-          {NAV_LINKS.map((link) => (
-            <a
-              key={link.href}
-              href={navHref(link)}
-              className="rounded-md px-3 py-2 transition-colors hover:bg-accent hover:text-foreground"
-            >
-              {link.label}
-            </a>
-          ))}
-        </nav>
-
-        <div className="flex items-center gap-1.5">
-          <ThemeToggle />
-          <Button variant="ghost" size="sm" className="hidden min-h-[36px] sm:inline-flex" asChild>
-            <Link to="/login">Sign in</Link>
-          </Button>
-          <Button size="sm" className="hidden min-h-[36px] sm:inline-flex" asChild>
-            <Link to="/get-started">
-              Get started
-              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-            </Link>
-          </Button>
-          <Button
-            ref={menuButtonRef}
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={() => setOpen(true)}
-            aria-label="Open menu"
-            aria-expanded={open}
+    <>
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-border/70 bg-background/90 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-4 sm:px-6">
+          <Link
+            to="/"
+            className="flex min-h-[44px] items-center gap-2"
+            aria-label="Hawkeye home"
           >
-            <Menu className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
+            <HawkMark size={24} />
+            <span className="text-base font-semibold tracking-tight">Hawkeye</span>
+          </Link>
 
-      {/* Mobile drawer */}
+          <nav className="hidden items-center gap-1 text-sm text-muted-foreground md:flex" aria-label="Site">
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.href}
+                href={navHref(link)}
+                className="rounded-md px-3 py-2 transition-colors hover:bg-accent hover:text-foreground"
+              >
+                {link.label}
+              </a>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-1.5">
+            <ThemeToggle />
+            <Button variant="ghost" size="sm" className="hidden min-h-[36px] sm:inline-flex" asChild>
+              <Link to="/login">Sign in</Link>
+            </Button>
+            <Button size="sm" className="hidden min-h-[36px] sm:inline-flex" asChild>
+              <Link to="/get-started">
+                Get started
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              </Link>
+            </Button>
+            <Button
+              ref={menuButtonRef}
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={open}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile drawer — a sibling of the header: the header's backdrop-blur
+          would otherwise become the containing block for this fixed overlay. */}
       <div
         className={cn(
           "fixed inset-0 z-50 md:hidden",
@@ -160,6 +163,6 @@ export function SiteHeader() {
           </nav>
         </div>
       </div>
-    </header>
+    </>
   );
 }

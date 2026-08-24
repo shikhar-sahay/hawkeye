@@ -58,7 +58,7 @@ export function EventStory() {
 
         <div className="mt-12 grid gap-4 lg:grid-cols-[1fr_auto_1fr_auto_1fr] lg:items-stretch">
           {/* Raw event */}
-          <Reveal>
+          <Reveal className="min-w-0">
             <div className="flex h-full flex-col overflow-hidden rounded-lg border bg-card shadow-card">
               <div className="border-b bg-muted/50 px-4 py-2 font-mono text-2xs uppercase tracking-wider text-muted-foreground">
                 1 · Raw event
@@ -78,7 +78,7 @@ export function EventStory() {
           </div>
 
           {/* Detection + alert */}
-          <Reveal delay={100}>
+          <Reveal delay={100} className="min-w-0">
             <div className="flex h-full flex-col overflow-hidden rounded-lg border bg-card shadow-card">
               <div className="border-b bg-muted/50 px-4 py-2 font-mono text-2xs uppercase tracking-wider text-muted-foreground">
                 2 · Detection → Alert
@@ -111,7 +111,7 @@ export function EventStory() {
           </div>
 
           {/* Correlated incident */}
-          <Reveal delay={200}>
+          <Reveal delay={200} className="min-w-0">
             <div className="flex h-full flex-col overflow-hidden rounded-lg border border-severity-high/40 bg-card shadow-card">
               <div className="flex items-center justify-between border-b bg-muted/50 px-4 py-2">
                 <span className="font-mono text-2xs uppercase tracking-wider text-muted-foreground">
