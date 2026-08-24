@@ -198,6 +198,7 @@ export function AlertFeed({
 
   // Track seen alert IDs to detect new ones
   const seenAlertIdsRef = React.useRef<Set<number>>(new Set());
+  const initializedRef = React.useRef(false);
 
   // Track which alerts are "new" (received in last 5 seconds) by their unique ID
   const [newAlertIds, setNewAlertIds] = React.useState<Set<number>>(new Set());
@@ -205,6 +206,13 @@ export function AlertFeed({
   // Detect new alerts when displayAlerts changes
   React.useEffect(() => {
     if (displayAlerts.length === 0) return;
+
+    // On initial population, mark everything as seen without highlighting
+    if (!initializedRef.current) {
+      displayAlerts.forEach((alert) => seenAlertIdsRef.current.add(alert.id));
+      initializedRef.current = true;
+      return;
+    }
 
     // Find new alerts (IDs not previously seen)
     const newIds: number[] = [];
