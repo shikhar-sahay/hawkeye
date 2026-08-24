@@ -175,7 +175,7 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
         apiClient.getEvents({ search: query, limit: 5 }),
         apiClient.getAlerts({ search: query, limit: 5 }),
         apiClient.getIncidents({ search: query, limit: 5 }),
-        apiClient.getSources(20, 0).then((res) =>
+        apiClient.getSources({ limit: 200, offset: 0 }).then((res) =>
           res.sources.filter(
             (s) =>
               s.name.toLowerCase().includes(query.toLowerCase()) ||
