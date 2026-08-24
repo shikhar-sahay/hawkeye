@@ -264,6 +264,7 @@ export function IncidentsPage() {
         {/* Real-time Incident Timeline (left column - wider on desktop) */}
         <div className="lg:col-span-2">
           <IncidentTimeline
+            isLoading={isLoading && incidentsResponse === undefined}
             incidents={combinedIncidents}
             connectionStatus={wsConnectionStatus}
             onIncidentClick={(incident) => {

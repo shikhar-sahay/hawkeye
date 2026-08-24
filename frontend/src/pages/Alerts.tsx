@@ -268,6 +268,7 @@ export function AlertsPage() {
         {/* Real-time Alert Feed (left column - wider on desktop) */}
         <div className="lg:col-span-2">
           <AlertFeed
+            isLoading={isLoading && alertsResponse === undefined}
             alerts={combinedAlerts.map((alert) => ({
               id: alert.id,
               source_id: alert.source_id,

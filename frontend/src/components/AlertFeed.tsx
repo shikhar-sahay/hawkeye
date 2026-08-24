@@ -20,6 +20,8 @@ interface AlertFeedProps {
   showConnectionStatus?: boolean;
   /** Current WebSocket connection status */
   connectionStatus?: "connecting" | "connected" | "disconnected" | "reconnecting" | "error";
+  /** Show skeleton instead of empty state while the initial load is in flight */
+  isLoading?: boolean;
   /** Class name for the container */
   className?: string;
 }
@@ -192,6 +194,7 @@ export function AlertFeed({
   maxAlerts = 0,
   showConnectionStatus = true,
   connectionStatus = "disconnected",
+  isLoading = false,
   className,
 }: AlertFeedProps) {
   const displayAlerts = maxAlerts > 0 ? alerts.slice(0, maxAlerts) : alerts;
@@ -247,9 +250,7 @@ export function AlertFeed({
         <CardHeader>
           <CardTitle>Live Alert Feed</CardTitle>
         </CardHeader>
-        <CardContent>
-          <EmptyState />
-        </CardContent>
+        <CardContent>{isLoading ? <LoadingSkeleton /> : <EmptyState />}</CardContent>
       </Card>
     );
   }

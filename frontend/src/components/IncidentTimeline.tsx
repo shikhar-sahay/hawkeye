@@ -32,6 +32,8 @@ interface IncidentTimelineProps {
   showConnectionStatus?: boolean;
   /** Current WebSocket connection status */
   connectionStatus?: "connecting" | "connected" | "disconnected" | "reconnecting" | "error";
+  /** Show skeleton instead of empty state while the initial load is in flight */
+  isLoading?: boolean;
   /** Class name for the container */
   className?: string;
 }
@@ -283,6 +285,7 @@ export function IncidentTimeline({
   maxIncidents = 0,
   showConnectionStatus = true,
   connectionStatus = "disconnected",
+  isLoading = false,
   className,
 }: IncidentTimelineProps) {
   const [expandedIds, setExpandedIds] = React.useState<Set<number>>(new Set());
@@ -309,9 +312,7 @@ export function IncidentTimeline({
             Incident Timeline
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <EmptyState />
-        </CardContent>
+        <CardContent>{isLoading ? <LoadingSkeleton /> : <EmptyState />}</CardContent>
       </Card>
     );
   }
