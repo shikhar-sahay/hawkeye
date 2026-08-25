@@ -168,21 +168,21 @@ export function SettingsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
           <TabsTrigger value="general">
-            <Monitor className="h-4 w-4 mr-2" />
+            <Monitor className="h-4 w-4 sm:mr-2" />
             General
           </TabsTrigger>
           <TabsTrigger value="api">
-            <Server className="h-4 w-4 mr-2" />
-            API Connection
+            <Server className="h-4 w-4 sm:mr-2" />
+            API
           </TabsTrigger>
           <TabsTrigger value="websocket">
-            <Wifi className="h-4 w-4 mr-2" />
+            <Wifi className="h-4 w-4 sm:mr-2" />
             WebSocket
           </TabsTrigger>
           <TabsTrigger value="about">
-            <Info className="h-4 w-4 mr-2" />
+            <Info className="h-4 w-4 sm:mr-2" />
             About
           </TabsTrigger>
         </TabsList>

@@ -140,7 +140,9 @@ export function ConnectionStatusInline({
   return (
     <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted text-xs font-medium", isConnected && "text-success")}>
       <config.icon className={cn("h-3.5 w-3.5", config.color, isConnecting && "animate-pulse")} aria-hidden="true" />
-      <span>{config.label}</span>
+      {/* Label hidden on very small screens; the icon + tooltip carry status */}
+      <span className="hidden sm:inline">{config.label}</span>
+      <span className="sr-only sm:hidden">{config.label}</span>
       {!isConnected && onReconnect && (
         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onReconnect} aria-label="Reconnect">
           <RotateCcw className="h-3.5 w-3.5" />
