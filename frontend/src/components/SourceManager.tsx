@@ -546,11 +546,11 @@ export function SourceManager() {
                 </Table>
               </div>
               {sourcesResponse && sourcesResponse.total > pageSize ? (
-                <div className="flex items-center justify-between p-4 border-t">
+                <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-t">
                   <span className="text-sm text-muted-foreground">
                     Showing {page * pageSize + 1} to {Math.min((page + 1) * pageSize, sourcesResponse.total)} of {sourcesResponse.total} sources
                   </span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"

@@ -266,7 +266,7 @@ export function AlertsPage() {
       </Card>
 
       {/* Alert Feed & Table */}
-      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Real-time Alert Feed (left column - wider on desktop) */}
         <div className="lg:col-span-2">
           <AlertFeed

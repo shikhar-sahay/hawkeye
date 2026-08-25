@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { useSearchParams } from "react-router-dom";
@@ -195,7 +195,7 @@ export function SettingsPage() {
               <CardDescription>Customize how the dashboard looks</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <Label>Theme</Label>
                   <p className="text-sm text-muted-foreground">Choose your preferred color scheme</p>
@@ -216,7 +216,7 @@ export function SettingsPage() {
 
               <Separator />
 
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <Label>Sidebar State</Label>
                   <p className="text-sm text-muted-foreground">Remember sidebar collapsed state</p>
@@ -235,7 +235,7 @@ export function SettingsPage() {
               <CardDescription>Configure notification preferences</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <Label>Enable Notifications</Label>
                   <p className="text-sm text-muted-foreground">Show toast notifications for alerts and updates</p>
@@ -248,7 +248,7 @@ export function SettingsPage() {
 
               <Separator />
 
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <Label>Auto Refresh Interval</Label>
                   <p className="text-sm text-muted-foreground">How often to refresh data automatically (seconds)</p>
@@ -276,7 +276,7 @@ export function SettingsPage() {
               <CardDescription>Manage local data storage</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <Label>Clear All Local Data</Label>
                   <p className="text-sm text-muted-foreground">Remove all cached data, settings, and stored keys</p>
@@ -550,7 +550,7 @@ export function SettingsPage() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
-                      className="flex items-center justify-between p-3 bg-muted/30 rounded-lg text-muted-foreground cursor-not-allowed"
+                      className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 bg-muted/30 rounded-lg text-muted-foreground cursor-not-allowed"
                       disabled
                       aria-disabled="true"
                     >
@@ -574,7 +574,7 @@ export function SettingsPage() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
-                      className="flex items-center justify-between p-3 bg-muted/30 rounded-lg text-muted-foreground cursor-not-allowed"
+                      className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 bg-muted/30 rounded-lg text-muted-foreground cursor-not-allowed"
                       disabled
                       aria-disabled="true"
                     >
@@ -598,7 +598,7 @@ export function SettingsPage() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
-                      className="flex items-center justify-between p-3 bg-muted/30 rounded-lg text-muted-foreground cursor-not-allowed"
+                      className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 bg-muted/30 rounded-lg text-muted-foreground cursor-not-allowed"
                       disabled
                       aria-disabled="true"
                     >
@@ -626,7 +626,7 @@ export function SettingsPage() {
               <CardDescription>These sections will be implemented in future milestones</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg opacity-60">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 bg-muted/30 rounded-lg opacity-60">
                 <div className="flex items-center gap-3">
                   <Database className="h-5 w-5 text-muted-foreground" />
                   <div>
@@ -637,7 +637,7 @@ export function SettingsPage() {
                 <Badge variant="secondary">Planned</Badge>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg opacity-60">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 bg-muted/30 rounded-lg opacity-60">
                 <div className="flex items-center gap-3">
                   <Bell className="h-5 w-5 text-muted-foreground" />
                   <div>
@@ -648,7 +648,7 @@ export function SettingsPage() {
                 <Badge variant="secondary">Planned</Badge>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg opacity-60">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 bg-muted/30 rounded-lg opacity-60">
                 <div className="flex items-center gap-3">
                   <Shield className="h-5 w-5 text-muted-foreground" />
                   <div>
@@ -659,7 +659,7 @@ export function SettingsPage() {
                 <Badge variant="secondary">Planned</Badge>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg opacity-60">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 bg-muted/30 rounded-lg opacity-60">
                 <div className="flex items-center gap-3">
                   <GitBranch className="h-5 w-5 text-muted-foreground" />
                   <div>
