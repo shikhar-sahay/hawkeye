@@ -32,7 +32,7 @@ const AREA_PATH =
 export function DashboardPreview() {
   return (
     <section className="border-t py-20 sm:py-24">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.2fr]">
           <Reveal className="min-w-0">
             <p className="font-mono text-xs uppercase tracking-[0.2em] text-primary">

@@ -10,7 +10,7 @@ import { Logo } from "@/components/ui/logo";
 export function SiteFooter() {
   return (
     <footer className="border-t bg-card/40 py-12">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 md:grid-cols-4">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 md:grid-cols-4">
         <div className="md:col-span-2">
           <div className="flex items-center gap-2">
             <Logo size={22} />
@@ -71,7 +71,7 @@ export function SiteFooter() {
           </ul>
         </div>
       </div>
-      <div className="mx-auto mt-10 flex max-w-6xl flex-wrap items-center justify-between gap-2 border-t px-4 pt-6 text-xs text-muted-foreground sm:px-6">
+      <div className="mx-auto mt-10 flex max-w-7xl flex-wrap items-center justify-between gap-2 border-t px-4 pt-6 text-xs text-muted-foreground sm:px-6">
         <span>Hawkeye is released under the MIT license.</span>
         <span className="font-mono">watch → ingest → detect → correlate → respond</span>
       </div>

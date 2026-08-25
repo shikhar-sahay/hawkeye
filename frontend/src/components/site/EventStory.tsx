@@ -42,7 +42,7 @@ const incidentJson = `{
 export function EventStory() {
   return (
     <section className="border-t bg-card/40 py-20 sm:py-24">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <Reveal>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-primary">
             Telemetry → findings
@@ -50,7 +50,7 @@ export function EventStory() {
           <h2 className="mt-2 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
             What happens to a single failed login
           </h2>
-          <p className="mt-3 max-w-2xl text-muted-foreground">
+          <p className="mt-3 max-w-2xl text-base text-muted-foreground sm:text-lg">
             Follow one event through the pipeline. Field names below are the
             real ones: this is the actual shape of Hawkeye's data, not a mockup.
           </p>

@@ -112,9 +112,9 @@ export function ObservationField({ className }: ObservationFieldProps) {
 
       {/* The hawk at the center of the field */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-        <div className="relative flex h-36 w-36 items-center justify-center rounded-full border border-border bg-card/80 backdrop-blur-sm sm:h-44 sm:w-44">
+        <div className="relative flex h-44 w-44 items-center justify-center rounded-full border border-border bg-card/80 backdrop-blur-sm sm:h-56 sm:w-56">
           <div className="of-halo absolute inset-0 rounded-full border border-primary/40" />
-          <Logo size={96} animated />
+          <Logo size={112} animated />
         </div>
       </div>
 

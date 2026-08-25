@@ -73,11 +73,11 @@ export function LandingPage() {
               "radial-gradient(ellipse 90% 75% at 55% 30%, black 30%, transparent 80%)",
           }}
         />
-        <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
           {/* Mobile order: copy → hawk → code. Desktop: copy+code | hawk. */}
-          <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-6">
+          <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-8">
             <div className="min-w-0">
-              <div className="animate-fade-up inline-flex max-w-full items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
+              <div className="animate-fade-up inline-flex max-w-full items-center gap-2.5 rounded-full border bg-card px-3.5 py-1.5 text-[13px] font-medium text-muted-foreground">
                 <span className="relative flex h-2 w-2 flex-none">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-success opacity-60 animate-pulse-dot" />
                   <span className="relative inline-flex h-2 w-2 flex-none rounded-full bg-success" />
@@ -86,14 +86,14 @@ export function LandingPage() {
               </div>
 
               <h1
-                className="animate-fade-up mt-5 text-4xl font-bold leading-tight tracking-tight sm:text-5xl"
+                className="animate-fade-up mt-6 text-4xl font-bold leading-[1.08] tracking-tight sm:text-6xl lg:text-[4.25rem]"
                 style={{ animationDelay: "80ms" }}
               >
                 Know when your web app is under attack.
               </h1>
 
               <p
-                className="animate-fade-up mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground"
+                className="animate-fade-up mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl"
                 style={{ animationDelay: "160ms" }}
               >
                 Hawkeye watches the security events your application already
@@ -103,7 +103,7 @@ export function LandingPage() {
               </p>
 
               <div
-                className="animate-fade-up mt-8 flex flex-wrap items-center gap-3"
+                className="animate-fade-up mt-9 flex flex-wrap items-center gap-4"
                 style={{ animationDelay: "240ms" }}
               >
                 <Button size="lg" asChild>
@@ -119,15 +119,15 @@ export function LandingPage() {
             </div>
 
             {/* The hawk, watching the telemetry around it */}
-            <div className="animate-fade-in relative mx-auto w-full max-w-[300px] min-w-0 sm:max-w-[420px] lg:max-w-none">
+            <div className="animate-fade-in relative mx-auto w-full max-w-[360px] min-w-0 sm:max-w-[480px] lg:max-w-none">
               <ObservationField />
             </div>
 
             {/* Ingest example: the actual first integration step */}
-            <Reveal delay={200} className="min-w-0 max-w-xl lg:col-start-1">
+            <Reveal delay={200} className="min-w-0 max-w-2xl lg:col-start-1">
               <div className="overflow-hidden rounded-lg border bg-card shadow-card">
                 <div className="flex items-center justify-between border-b bg-muted/50 px-4 py-2.5">
-                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground sm:text-[13px]">
                     <Terminal className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
                     Send your first event
                   </div>
@@ -135,7 +135,7 @@ export function LandingPage() {
                     POST /api/v1/events
                   </span>
                 </div>
-                <pre className="code-scroll overflow-x-auto p-4 text-xs leading-relaxed text-foreground/90">
+                <pre className="code-scroll overflow-x-auto p-4 text-[13px] leading-relaxed text-foreground/90">
                   <code>{ingestSnippet}</code>
                 </pre>
               </div>
@@ -146,7 +146,7 @@ export function LandingPage() {
 
       {/* Signal strip: real capability facts, mono voice */}
       <div className="border-y bg-card/40">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 py-3 font-mono text-2xs uppercase tracking-wider text-muted-foreground sm:px-6">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 py-3 font-mono text-2xs uppercase tracking-wider text-muted-foreground sm:px-6">
           <span>7 detection engines</span>
           <span aria-hidden="true" className="hidden sm:inline">·</span>
           <span>MITRE ATT&CK native</span>

@@ -85,7 +85,7 @@ export function DetectionMatrix() {
 
   return (
     <section id="detection" className="border-t py-20 scroll-mt-14 sm:py-24">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <Reveal>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-primary">
             Detection
@@ -93,11 +93,11 @@ export function DetectionMatrix() {
           <h2 className="mt-2 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
             Seven engines, mapped to ATT&CK
           </h2>
-          <p className="mt-3 max-w-2xl text-muted-foreground">
-            These are Hawkeye's actual detection mechanisms with their default
-            triggers. Every alert carries the technique IDs that fired, so
-            triage starts with context instead of a raw log line.
-          </p>
+            <p className="mt-3 max-w-2xl text-base text-muted-foreground sm:text-lg">
+              These are Hawkeye's actual detection mechanisms with their default
+              triggers. Every alert carries the technique IDs that fired, so
+              triage starts with context instead of a raw log line.
+            </p>
         </Reveal>
 
         <Reveal delay={100}>
