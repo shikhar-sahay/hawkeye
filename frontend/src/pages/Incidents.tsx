@@ -343,7 +343,14 @@ export function IncidentsPage() {
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7 p-0"
-                              onClick={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                apiClient.getIncident(incident.id).then((fullIncident) => {
+                                  setSelectedIncident(fullIncident);
+                                }).catch(() => {
+                                  setSelectedIncident(incident);
+                                });
+                              }}
                               aria-label="Expand incident"
                             >
                               <ChevronDown className="h-4 w-4" />

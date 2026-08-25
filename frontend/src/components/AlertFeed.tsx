@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -8,6 +9,7 @@ import { AlertTriangle, Clock, Shield, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AlertPayload } from "@/context/WebSocketContext";
 import { formatRelativeTime } from "@/lib/utils";
+import { apiClient } from "@/api/client";
 
 interface AlertFeedProps {
   /** Array of alerts to display */
@@ -66,9 +68,11 @@ export interface AlertItemProps {
   alert: AlertPayload;
   isNew?: boolean;
   onClick?: () => void;
+  /** Resolved source name (falls back to the raw source id) */
+  sourceName?: string;
 }
 
-function AlertItem({ alert, isNew, onClick }: AlertItemProps) {
+function AlertItem({ alert, isNew, onClick, sourceName }: AlertItemProps) {
   return (
     <div
       className={cn(
@@ -137,7 +141,7 @@ function AlertItem({ alert, isNew, onClick }: AlertItemProps) {
             {/* Expandable details */}
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span className="font-mono">Alert ID: {alert.id}</span>
-              <span>Source: {alert.source_id}</span>
+              <span>Source: {sourceName ?? `#${alert.source_id}`}</span>
               {alert.confidence !== undefined && (
                 <span>Confidence: {Math.round(alert.confidence * 100)}%</span>
               )}
@@ -198,6 +202,19 @@ export function AlertFeed({
   className,
 }: AlertFeedProps) {
   const displayAlerts = maxAlerts > 0 ? alerts.slice(0, maxAlerts) : alerts;
+
+  // Resolve source names from the shared (cached) event-counts query so the
+  // feed can show "Web Application" instead of a raw source id
+  const { data: sourceEventCounts } = useQuery({
+    queryKey: ["sources", "event-counts"],
+    queryFn: () => apiClient.getSourceEventCounts(),
+    staleTime: 30000,
+  });
+  const sourceNameById = React.useMemo(() => {
+    const map = new Map<number, string>();
+    sourceEventCounts?.forEach((s) => map.set(s.source_id, s.source_name));
+    return map;
+  }, [sourceEventCounts]);
 
   // Track seen alert IDs to detect new ones
   const seenAlertIdsRef = React.useRef<Set<number>>(new Set());
@@ -289,6 +306,7 @@ export function AlertFeed({
                 alert={alert}
                 isNew={newAlertIds.has(alert.id)}
                 onClick={() => onAlertClick?.(alert)}
+                sourceName={sourceNameById.get(alert.source_id)}
               />
             ))}
           </div>

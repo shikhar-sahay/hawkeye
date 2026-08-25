@@ -246,7 +246,7 @@ export function EventsPage() {
             <h1 className="text-2xl font-semibold tracking-tight">Live Events</h1>
             <p className="text-muted-foreground">Real-time event stream from all sources</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               size="sm"

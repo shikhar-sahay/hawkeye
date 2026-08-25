@@ -111,38 +111,32 @@ async def get_source_event_counts(
 ) -> list[SourceEventCountsResponse]:
     """Get aggregated event, alert, and incident counts for all sources."""
     # Get all sources
-    sources_stmt = select(ApplicationSource)
+    sources_stmt = select(ApplicationSource).order_by(ApplicationSource.id)
     sources_result = await session.exec(sources_stmt)
     sources = list(sources_result.all())
 
-    # Get counts for each source
-    result = []
-    for source in sources:
-        # Event count
-        event_stmt = select(func.count(NormalizedEvent.id)).where(NormalizedEvent.source_id == source.id)
-        event_result = await session.exec(event_stmt)
-        event_count = event_result.one()
+    # Aggregate counts per source with a single GROUP BY query per table
+    # instead of one COUNT query per source per table (N+1).
+    async def _counts_per_source(model) -> dict[int, int]:
+        stmt = select(model.source_id, func.count(model.id)).group_by(model.source_id)
+        rows = await session.exec(stmt)
+        return {row[0]: row[1] for row in rows.all()}
 
-        # Alert count
-        alert_stmt = select(func.count(Alert.id)).where(Alert.source_id == source.id)
-        alert_result = await session.exec(alert_stmt)
-        alert_count = alert_result.one()
+    event_counts = await _counts_per_source(NormalizedEvent)
+    alert_counts = await _counts_per_source(Alert)
+    incident_counts = await _counts_per_source(Incident)
 
-        # Incident count
-        incident_stmt = select(func.count(Incident.id)).where(Incident.source_id == source.id)
-        incident_result = await session.exec(incident_stmt)
-        incident_count = incident_result.one()
-
-        result.append(SourceEventCountsResponse(
+    return [
+        SourceEventCountsResponse(
             source_id=source.id,
             source_name=source.name,
-            event_count=event_count,
-            alert_count=alert_count,
-            incident_count=incident_count,
+            event_count=event_counts.get(source.id, 0),
+            alert_count=alert_counts.get(source.id, 0),
+            incident_count=incident_counts.get(source.id, 0),
             is_active=source.is_active,
-        ))
-
-    return result
+        )
+        for source in sources
+    ]
 
 
 @router.get(

@@ -134,8 +134,18 @@ export function StatsDashboard({ initialTimeRange = "24h", refreshInterval = 600
         />
         <StatCard
           title="Active Alerts"
-          value={alertStats ? formatNumber((alertStats.by_status?.new || 0) + (alertStats.by_status?.processing || 0)) : "..."}
-          subtitle={alertStats ? `${alertStats.by_status?.new || 0} new, ${alertStats.by_status?.processing || 0} processing` : undefined}
+          value={alertStats
+            ? formatNumber(
+                (alertStats.by_status?.new || 0) +
+                  (alertStats.by_status?.processing || 0) +
+                  (alertStats.by_status?.correlated || 0)
+              )
+            : "..."}
+          subtitle={
+            alertStats
+              ? `${alertStats.by_status?.new || 0} new, ${alertStats.by_status?.processing || 0} processing, ${alertStats.by_status?.correlated || 0} correlated`
+              : undefined
+          }
           icon={AlertTriangle}
           badge={alertStats && (alertStats.by_severity?.critical || 0) > 0 ? <Badge variant="destructive">{alertStats.by_severity?.critical || 0} critical</Badge> : null}
         />        <StatCard
@@ -167,9 +177,9 @@ export function StatsDashboard({ initialTimeRange = "24h", refreshInterval = 600
           icon={Target}
         />
         <StatCard
-          title="Resolved Alerts"
-          value={alertStats ? formatNumber(alertStats.by_status?.resolved || 0) : "..."}
-          subtitle={`${formatNumber(alertStats?.by_status?.suppressed || 0)} suppressed`}
+          title="Dismissed Alerts"
+          value={alertStats ? formatNumber(alertStats.by_status?.dismissed || 0) : "..."}
+          subtitle="Closed as not actionable"
           icon={TrendingUp}
         />
       </div>
