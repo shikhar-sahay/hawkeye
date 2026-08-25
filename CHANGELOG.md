@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.8.1] - 2026-08-25 - FE Polish: Canonical Logo, Landing Scale, Pipeline Signal
+
+### Changed
+- **Canonical logo everywhere** — the geometric HawkMark SVG was removed;
+  `frontend/public/hawkeyelogo.png` is now the single Hawkeye mark, used in
+  the landing header/hero/CTA, observation field, footer, Get Started, 404,
+  login, dashboard sidebar/topnav, and the loader. Competing assets deleted
+  (favicon.svg, icons.svg); the favicon and the regenerated OG image now use
+  the canonical mark. Breathing animation adapted to the raster logo.
+- **Landing scale** — hero headline up to 68px, larger body copy, badge,
+  CTAs, code block, and a substantially larger observation field; pipeline
+  stages use 48px icon nodes with text-lg titles; landing sections widened
+  to max-w-7xl with the header content aligned to the same grid. Dashboard
+  untouched.
+- **Pipeline travelling ping** — a small cyan telemetry signal loops along
+  the WATCH → RESPOND connector (8s), pulsing each stage node on arrival;
+  a vertical variant follows the stacked mobile layout. Fully disabled under
+  prefers-reduced-motion (static rails remain).
+
+### Fixed
+- Header content container now matches the landing grid exactly (verified:
+  header inner edges equal hero container edges at every width); header
+  background/border span the full viewport with no horizontal overflow.
+- Zero U+2014 em dashes in frontend content, comments, robots.txt, and
+  metadata (36+ occurrences replaced with context-appropriate punctuation;
+  dashboard stat placeholders now use "...").
+- Reduced-motion: travelling ping explicitly hidden (previously froze
+  mid-animation after the global override).
+
+---
+
 ## [2.8.0] - 2026-08-25 - Deep Frontend Redesign: Hawkeye Identity, Three Themes, Chart Fixes
 
 ### Fixed
