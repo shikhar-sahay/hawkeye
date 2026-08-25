@@ -445,6 +445,14 @@
     12% { opacity: 0; transform: scale(1.8); }
     100% { opacity: 0; transform: scale(1.8); }
   }
+  /* Reduced motion: no travelling signal; the static pipeline stays fully
+     readable (rails and stage content are untouched). */
+  @media (prefers-reduced-motion: reduce) {
+    .pipeline-ping,
+    .pipeline-node-ping {
+      display: none;
+    }
+  }
 
   /* Scroll reveal helper: elements start hidden and reveal when the
      .is-visible class is added by the IntersectionObserver hook.
