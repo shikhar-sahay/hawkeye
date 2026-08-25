@@ -67,8 +67,12 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
   const [showSearchResults, setShowSearchResults] = React.useState(false);
   const [searchResults, setSearchResults] = React.useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = React.useState(false);
+  const [searchError, setSearchError] = React.useState(false);
   const [selectedResultIndex, setSelectedResultIndex] = React.useState(-1);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = React.useState(false);
   const debounceTimerRef = React.useRef<ReturnType<typeof setTimeout>>();
+  const searchRequestIdRef = React.useRef(0);
+  const listboxRef = React.useRef<HTMLDivElement | null>(null);
 
   const navigate = useNavigate();
 
@@ -140,12 +144,17 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
     };
   }, [subscribe, unsubscribe]);
 
-  // Handle search - navigate to Events page with search query
+  // Handle search - Enter selects the highlighted suggestion, otherwise
+  // submits a full search on the Events page
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && searchQuery.trim()) {
-      navigate(`/events?search=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery("");
-      setShowSearchResults(false);
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (selectedResultIndex >= 0 && searchResults[selectedResultIndex]) {
+        handleResultSelect(searchResults[selectedResultIndex]);
+      } else if (searchQuery.trim()) {
+        navigate(`/events?search=${encodeURIComponent(searchQuery.trim())}`);
+        resetSearch();
+      }
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       setSelectedResultIndex((prev) => Math.min(prev + 1, searchResults.length - 1));
@@ -155,26 +164,32 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
     } else if (e.key === "Escape") {
       setShowSearchResults(false);
       setSelectedResultIndex(-1);
+      e.currentTarget.blur();
     }
   };
 
-  // Debounced search function
+  // Keep the keyboard-highlighted option visible in the dropdown
+  React.useEffect(() => {
+    if (selectedResultIndex < 0 || !listboxRef.current) return;
+    const active = listboxRef.current.querySelector<HTMLElement>(`[data-result-index="${selectedResultIndex}"]`);
+    active?.scrollIntoView({ block: "nearest" });
+  }, [selectedResultIndex]);
+
+  // Debounced search across events, alerts, incidents and sources.
+  // Guarded by a request id so a slow earlier response can never
+  // overwrite results for a newer query.
   const performSearch = React.useCallback(async (query: string) => {
+    const requestId = ++searchRequestIdRef.current;
     setIsSearching(true);
+    setSearchError(false);
     try {
-      // Search across events, alerts, incidents, and sources in parallel
       const [eventsRes, alertsRes, incidentsRes, sourcesRes] = await Promise.all([
-        apiClient.getEvents({ search: query, limit: 5 }),
-        apiClient.getAlerts({ search: query, limit: 5 }),
-        apiClient.getIncidents({ search: query, limit: 5 }),
-        apiClient.getSources({ limit: 200, offset: 0 }).then((res) =>
-          res.sources.filter(
-            (s) =>
-              s.name.toLowerCase().includes(query.toLowerCase()) ||
-              s.description?.toLowerCase().includes(query.toLowerCase())
-          )
-        ),
+        apiClient.getEvents({ search: query, limit: 4 }),
+        apiClient.getAlerts({ search: query, limit: 4 }),
+        apiClient.getIncidents({ search: query, limit: 4 }),
+        apiClient.getSources({ search: query, limit: 4 }),
       ]);
+      if (requestId !== searchRequestIdRef.current) return;
 
       const results: SearchResult[] = [
         ...eventsRes.events.map((e) => ({
@@ -197,11 +212,14 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
           type: "incident" as const,
           id: i.id,
           title: i.title,
-          subtitle: `${i.status} • ${i.severity} • ${i.alert_count} alerts`,
+          subtitle:
+            typeof i.alert_count === "number"
+              ? `${i.status} • ${i.severity} • ${i.alert_count} alerts`
+              : `${i.status} • ${i.severity}`,
           severity: i.severity,
           url: `/incidents?incident=${i.id}`,
         })),
-        ...sourcesRes.map((s) => ({
+        ...sourcesRes.sources.map((s) => ({
           type: "source" as const,
           id: s.id,
           title: s.name,
@@ -210,13 +228,27 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
         })),
       ];
 
-      setSearchResults(results.slice(0, 10)); // Limit to 10 results
+      setSearchResults(results.slice(0, 12));
     } catch (error) {
+      if (requestId !== searchRequestIdRef.current) return;
       console.error("Search failed:", error);
+      setSearchError(true);
       setSearchResults([]);
     } finally {
-      setIsSearching(false);
+      if (requestId === searchRequestIdRef.current) {
+        setIsSearching(false);
+      }
     }
+  }, []);
+
+  // Reset the whole search UI (input, dropdown, highlight)
+  const resetSearch = React.useCallback(() => {
+    setSearchQuery("");
+    setShowSearchResults(false);
+    setSearchResults([]);
+    setSelectedResultIndex(-1);
+    setSearchError(false);
+    setIsMobileSearchOpen(false);
   }, []);
 
   // Handle search input change with debounced search
@@ -224,6 +256,7 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
     (value: string) => {
       setSearchQuery(value);
       setSelectedResultIndex(-1);
+      setSearchError(false);
 
       // Clear existing debounce timer
       if (debounceTimerRef.current) {
@@ -246,17 +279,14 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
   // Handle search result selection
   const handleResultSelect = (result: SearchResult) => {
     navigate(result.url);
-    setSearchQuery("");
-    setShowSearchResults(false);
-    setSelectedResultIndex(-1);
+    resetSearch();
   };
 
   // Handle search button click
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
       navigate(`/events?search=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery("");
-      setShowSearchResults(false);
+      resetSearch();
     }
   };
 
@@ -331,6 +361,117 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
     return `${diffDays}d ago`;
   };
 
+  // Highlight the matched substring inside a suggestion label
+  const HighlightMatch = ({ text }: { text: string }) => {
+    const query = searchQuery.trim();
+    const idx = query ? text.toLowerCase().indexOf(query.toLowerCase()) : -1;
+    if (idx === -1) return <>{text}</>;
+    return (
+      <>
+        {text.slice(0, idx)}
+        <mark className="bg-transparent text-primary font-semibold">
+          {text.slice(idx, idx + query.length)}
+        </mark>
+        {text.slice(idx + query.length)}
+      </>
+    );
+  };
+
+  // Shared search field used by both the desktop header row and the
+  // mobile expanded panel so state/behavior stay identical.
+  const renderSearchField = (variant: "desktop" | "mobile") => (
+    <div
+      className={cn("relative min-w-0", variant === "desktop" ? "flex-1 max-w-2xl mx-8 hidden sm:block" : "flex-1")}
+      data-search-container
+    >
+      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+      <Input
+        placeholder="Search alerts, incidents, events, sources..."
+        value={searchQuery}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearchChange(e.target.value)}
+        onKeyDown={handleSearch}
+        onFocus={() => searchQuery.trim().length >= 2 && setShowSearchResults(true)}
+        className="pl-10 pr-10 h-10 text-sm"
+        aria-label="Search"
+        aria-autocomplete="list"
+        aria-controls="search-results"
+        aria-expanded={showSearchResults}
+        role="combobox"
+        autoFocus={variant === "mobile"}
+      />
+      {isSearching && (
+        <Loader2 className="absolute right-10 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" aria-hidden="true" />
+      )}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute right-2 top-1/2 -translate-y-1/2"
+        onClick={handleSearchSubmit}
+        aria-label="Submit search"
+      >
+        <Search className="h-4 w-4 text-muted-foreground" />
+      </Button>
+
+      {/* Search Results Dropdown */}
+      {showSearchResults && searchResults.length > 0 && (
+        <div
+          id="search-results"
+          ref={listboxRef}
+          className="absolute top-full left-0 right-0 mt-2 z-50 bg-popover border rounded-lg shadow-lg overflow-hidden max-h-96 overflow-y-auto"
+          role="listbox"
+          aria-label="Search suggestions"
+        >
+          {searchResults.map((result, index) => (
+            <button
+              key={`${result.type}-${result.id}`}
+              type="button"
+              role="option"
+              data-result-index={index}
+              aria-selected={index === selectedResultIndex}
+              onClick={() => handleResultSelect(result)}
+              onMouseEnter={() => setSelectedResultIndex(index)}
+              className={cn(
+                "w-full px-4 py-3 text-left hover:bg-accent transition-colors flex items-center gap-3",
+                index === selectedResultIndex && "bg-accent"
+              )}
+            >
+              <div className={cn("flex-shrink-0 p-1.5 rounded", getSeverityColor(result.severity))}>
+                {getTypeIcon(result.type)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate">
+                  <HighlightMatch text={result.title} />
+                </p>
+                <p className="text-xs text-muted-foreground truncate">{result.subtitle}</p>
+              </div>
+              <span
+                className={cn(
+                  "px-2 py-0.5 text-xs font-medium rounded capitalize flex-shrink-0",
+                  result.severity ? getSeverityColor(result.severity) : "bg-muted text-muted-foreground"
+                )}
+              >
+                {result.type}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {showSearchResults && !isSearching && searchQuery.trim().length >= 2 && searchResults.length === 0 && (
+        <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-popover border rounded-lg shadow-lg p-4 text-center" role="status">
+          {searchError ? (
+            <>
+              <p className="text-sm text-destructive">Search failed</p>
+              <p className="text-xs text-muted-foreground mt-1">Check your connection and try again</p>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">No results found for "{searchQuery}"</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <header
       className={cn(
@@ -362,84 +503,22 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
         </div>
 
         {/* Center section: Search - prominent and centered */}
-        <div className="relative flex-1 max-w-2xl mx-8 hidden sm:block min-w-0" data-search-container>
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <Input
-            placeholder="Search alerts, incidents, events, sources..."
-            value={searchQuery}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearchChange(e.target.value)}
-            onKeyDown={handleSearch}
-            onFocus={() => searchQuery.trim().length >= 2 && setShowSearchResults(true)}
-            className="pl-10 pr-10 h-10 text-sm"
-            aria-label="Search"
-            aria-autocomplete="list"
-            aria-controls="search-results"
-            aria-expanded={showSearchResults && searchResults.length > 0}
-          />
-          {isSearching && (
-            <Loader2 className="absolute right-10 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-2 top-1/2 -translate-y-1/2"
-            onClick={handleSearchSubmit}
-            aria-label="Submit search"
-          >
-            <Search className="h-4 w-4 text-muted-foreground" />
-          </Button>
-
-          {/* Search Results Dropdown */}
-          {showSearchResults && searchResults.length > 0 && (
-            <div
-              id="search-results"
-              className="absolute top-full left-0 right-0 mt-2 z-50 bg-popover border rounded-lg shadow-lg overflow-hidden max-h-96 overflow-y-auto"
-              role="listbox"
-            >
-              {searchResults.map((result, index) => (
-                <button
-                  key={`${result.type}-${result.id}`}
-                  type="button"
-                  role="option"
-                  aria-selected={index === selectedResultIndex}
-                  onClick={() => handleResultSelect(result)}
-                  onMouseEnter={() => setSelectedResultIndex(index)}
-                  className={cn(
-                    "w-full px-4 py-3 text-left hover:bg-accent transition-colors flex items-center gap-3",
-                    index === selectedResultIndex && "bg-accent"
-                  )}
-                >
-                  <div className={cn("flex-shrink-0 p-1.5 rounded", getSeverityColor(result.severity))}>
-                    {getTypeIcon(result.type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{result.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{result.subtitle}</p>
-                  </div>
-                  <span
-                    className={cn(
-                      "px-2 py-0.5 text-xs font-medium rounded",
-                      result.severity
-                        ? getSeverityColor(result.severity).replace("bg-", "bg-").replace("text-", "text-")
-                        : "bg-muted text-muted-foreground"
-                    )}
-                  >
-                    {result.type}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {showSearchResults && searchResults.length === 0 && !isSearching && searchQuery.trim().length >= 2 && (
-            <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-popover border rounded-lg shadow-lg p-4 text-center">
-              <p className="text-sm text-muted-foreground">No results found for "{searchQuery}"</p>
-            </div>
-          )}
-        </div>
+        {renderSearchField("desktop")}
 
         {/* Right side actions */}
         <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Mobile search toggle (the inline field is hidden below sm) */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="sm:hidden"
+            onClick={() => setIsMobileSearchOpen((v) => !v)}
+            aria-label={isMobileSearchOpen ? "Close search" : "Open search"}
+            aria-expanded={isMobileSearchOpen}
+          >
+            {isMobileSearchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+          </Button>
+
           {/* Connection status */}
           <ConnectionStatusInline status={wsStatus} />
 
@@ -565,6 +644,15 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Mobile expanded search panel */}
+      {isMobileSearchOpen && (
+        <div className="absolute inset-x-0 top-full border-b bg-background p-3 shadow-lg sm:hidden" data-search-container>
+          <div className="flex items-center gap-2">
+            {renderSearchField("mobile")}
+          </div>
+        </div>
+      )}
     </header>
   );
 }

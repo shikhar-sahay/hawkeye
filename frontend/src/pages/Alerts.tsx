@@ -398,7 +398,7 @@ export function AlertsPage() {
               {total > 0 && (
                 <div className="flex items-center justify-between p-4 border-t">
                   <span className="text-xs text-muted-foreground">
-                    Showing {Math.min(offset + 1, total)}â€“{Math.min(offset + pageSize, total)} of {total}
+                    Showing {Math.min(offset + 1, total)}-{Math.min(offset + pageSize, total)} of {total}
                   </span>
                   <div className="flex items-center gap-2">
                     <Button
