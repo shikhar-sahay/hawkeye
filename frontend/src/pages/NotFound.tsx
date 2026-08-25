@@ -54,7 +54,7 @@ export function NotFoundPage() {
             The hawk found nothing here
           </h1>
           <p className="mx-auto mt-3 max-w-md leading-relaxed text-muted-foreground">
-            This route doesn't exist on this Hawkeye deployment — no events, no
+            This route doesn't exist on this Hawkeye deployment: no events, no
             alerts, no page. Whatever you're looking for may have moved, or the
             URL may have a typo.
           </p>

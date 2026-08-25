@@ -89,7 +89,7 @@ function TimelineItem({ incident, index, total, isExpanded, onToggle, onClick }:
                 {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
               </Button>
 
-              {/* Main content — contain:inline-size keeps truncated/nowrap
+              {/* Main content: contain:inline-size keeps truncated/nowrap
                   children from inflating the card's intrinsic width */}
               <div className="flex-1 min-w-0 [contain:inline-size]">
                 <div className="flex items-start justify-between gap-2 mb-2">

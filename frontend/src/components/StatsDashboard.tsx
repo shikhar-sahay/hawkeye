@@ -128,25 +128,25 @@ export function StatsDashboard({ initialTimeRange = "24h", refreshInterval = 600
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
         <StatCard
           title="Total Events"
-          value={dashboardStats?.events_24h !== undefined ? formatNumber(dashboardStats.events_24h || 0) : "—"}
+          value={dashboardStats?.events_24h !== undefined ? formatNumber(dashboardStats.events_24h || 0) : "..."}
           subtitle="All events on record"
           icon={Activity}
         />
         <StatCard
           title="Active Alerts"
-          value={alertStats ? formatNumber((alertStats.by_status?.new || 0) + (alertStats.by_status?.processing || 0)) : "—"}
+          value={alertStats ? formatNumber((alertStats.by_status?.new || 0) + (alertStats.by_status?.processing || 0)) : "..."}
           subtitle={alertStats ? `${alertStats.by_status?.new || 0} new, ${alertStats.by_status?.processing || 0} processing` : undefined}
           icon={AlertTriangle}
           badge={alertStats && (alertStats.by_severity?.critical || 0) > 0 ? <Badge variant="destructive">{alertStats.by_severity?.critical || 0} critical</Badge> : null}
         />        <StatCard
           title="Active Incidents"
-          value={incidentStats ? formatNumber((incidentStats.by_status?.open || 0) + (incidentStats.by_status?.investigating || 0)) : "—"}
+          value={incidentStats ? formatNumber((incidentStats.by_status?.open || 0) + (incidentStats.by_status?.investigating || 0)) : "..."}
           subtitle={incidentStats ? `${incidentStats.by_status?.open || 0} open, ${incidentStats.by_status?.investigating || 0} investigating` : undefined}
           icon={AlertCircle}
         />
         <StatCard
           title="Registered Sources"
-          value={dashboardStats?.sources ? formatNumber(dashboardStats.sources.total) : "—"}
+          value={dashboardStats?.sources ? formatNumber(dashboardStats.sources.total) : "..."}
           subtitle={dashboardStats?.sources ? `${dashboardStats.sources.active} active, ${dashboardStats.sources.inactive} inactive` : undefined}
           icon={Server}
         />
@@ -154,7 +154,7 @@ export function StatsDashboard({ initialTimeRange = "24h", refreshInterval = 600
           title="Detection Rate"
           value={alertStats && dashboardStats?.events_24h && dashboardStats.events_24h > 0
             ? `${((alertStats.total / dashboardStats.events_24h) * 100).toFixed(1)}%`
-            : "—"}
+            : "..."}
           subtitle="Alerts per event"
           icon={Gauge}
         />
@@ -162,13 +162,13 @@ export function StatsDashboard({ initialTimeRange = "24h", refreshInterval = 600
           title="Avg Confidence"
           value={alertStats && alertStats.avg_confidence !== undefined && alertStats.avg_confidence !== null
             ? `${Math.round(alertStats.avg_confidence * 100)}%`
-            : "—"}
+            : "..."}
           subtitle="Across all detections"
           icon={Target}
         />
         <StatCard
           title="Resolved Alerts"
-          value={alertStats ? formatNumber(alertStats.by_status?.resolved || 0) : "—"}
+          value={alertStats ? formatNumber(alertStats.by_status?.resolved || 0) : "..."}
           subtitle={`${formatNumber(alertStats?.by_status?.suppressed || 0)} suppressed`}
           icon={TrendingUp}
         />

@@ -5,7 +5,7 @@ import { ChevronDown } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 
 /**
- * Detection matrix data — every row reflects the real detectors in
+ * Detection matrix data: every row reflects the real detectors in
  * hawkeye/services/detection/ and their configured thresholds
  * (hawkeye/config.py). ATT&CK IDs match the correlation engine's
  * mappings (hawkeye/services/correlation/engine.py).
@@ -27,7 +27,7 @@ const ENGINES = [
     techniques: ["T1110.004"],
     tactic: "Credential Access",
     detail:
-      "Flags bursts of logins spread across many unique usernames — the signature of replayed breach data — rather than repeated attempts on one account.",
+      "Flags bursts of logins spread across many unique usernames (the signature of replayed breach data) rather than repeated attempts on one account.",
   },
   {
     name: "Enumeration",
@@ -45,7 +45,7 @@ const ENGINES = [
     techniques: ["T1583.006", "T1588.002"],
     tactic: "Resource Development",
     detail:
-      "Scores requests on automation markers — headless browsers, devtools, known tooling — and rate patterns that indicate scripted access rather than users.",
+      "Scores requests on automation markers (headless browsers, devtools, known tooling) and rate patterns that indicate scripted access rather than users.",
   },
   {
     name: "Sensitive Actions",
@@ -54,7 +54,7 @@ const ENGINES = [
     techniques: ["T1005", "T1567"],
     tactic: "Collection",
     detail:
-      "Watches high-value actions — data exports, API key creation, permission changes, account deletion — individually and as clustered sequences.",
+      "Watches high-value actions (data exports, API key creation, permission changes, account deletion) individually and as clustered sequences.",
   },
   {
     name: "Session Hijacking",

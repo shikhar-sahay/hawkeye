@@ -100,7 +100,7 @@ export function SiteHeader() {
         </div>
       </header>
 
-      {/* Mobile drawer — a sibling of the header: the header's backdrop-blur
+      {/* Mobile drawer (a sibling of the header: the header's backdrop-blur
           would otherwise become the containing block for this fixed overlay. */}
       <div
         className={cn(

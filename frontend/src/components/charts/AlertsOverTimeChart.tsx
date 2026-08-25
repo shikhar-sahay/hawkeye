@@ -29,7 +29,7 @@ interface AlertsOverTimeChartProps {
   showLegend?: boolean;
   /** Y-axis label */
   yAxisLabel?: string;
-  /** Requested range in hours — selects the x-axis tick granularity.
+  /** Requested range in hours: selects the x-axis tick granularity.
    *  24h → HH:mm, 7d → day + time, 30d → dates. Inferred from the data
    *  span when omitted. */
   hours?: number;

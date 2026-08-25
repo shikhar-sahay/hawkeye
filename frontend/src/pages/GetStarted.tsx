@@ -33,7 +33,7 @@ uvicorn hawkeye.main:app --port 8000`,
     key: "02",
     title: "Register your source",
     description:
-      "Each application you monitor is a source. The first source can be registered without credentials — open only until one exists.",
+      "Each application you monitor is a source. The first source can be registered without credentials (open only until one exists).",
     code: `curl -X POST http://localhost:8000/api/v1/sources \\
   -H "Content-Type: application/json" \\
   -d '{"name": "production-web", "description": "Public web app"}'`,
@@ -44,19 +44,19 @@ uvicorn hawkeye.main:app --port 8000`,
     key: "03",
     title: "Generate an API key",
     description:
-      "Create the source's first key. It is shown exactly once — this single credential both ingests events and signs in to the dashboard.",
+      "Create the source's first key. It is shown exactly once. This single credential both ingests events and signs in to the dashboard.",
     code: `curl -X POST http://localhost:8000/api/v1/sources/1/api-keys \\
   -H "X-API-Key: <key-from-source-1>" \\
   -H "Content-Type: application/json" \\
   -d '{"name": "dashboard"}'`,
-    meta: "returns { \"key\": \"hawk_...\" } — save it now",
+    meta: 'returns { "key": "hawk_..." }; save it now',
   },
   {
     icon: Send,
     key: "04",
     title: "Send your first event",
     description:
-      "Point your application at ingestion. This login failure is enough — it gets normalized, tagged T1110, and scored by all seven engines.",
+      "Point your application at ingestion. This login failure is enough: it gets normalized, tagged T1110, and scored by all seven engines.",
     code: `curl -X POST http://localhost:8000/api/v1/events \\
   -H "X-API-Key: hawk_..." \\
   -H "Content-Type: application/json" \\
@@ -87,7 +87,7 @@ curl http://localhost:8000/api/v1/events?limit=5 \\
 export function GetStartedPage() {
   useRouteMeta(
     "Get started",
-    "Run Hawkeye, register a source, generate an API key, send your first event, and watch detection fire — five commands from zero to a live dashboard."
+    "Run Hawkeye, register a source, generate an API key, send your first event, and watch detection fire. Five commands from zero to a live dashboard."
   );
   return (
     <div className="min-h-screen bg-background">

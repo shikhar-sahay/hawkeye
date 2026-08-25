@@ -13,7 +13,7 @@ const FAQS = [
   },
   {
     q: "How do events get into Hawkeye?",
-    a: "Your application POSTs events to /api/v1/events — one at a time or in batches of up to 1,000 — authenticated with the API key of the source the events belong to. Events are normalized and ATT&CK-tagged at ingestion, then run through all detection engines.",
+    a: "Your application POSTs events to /api/v1/events, one at a time or in batches of up to 1,000, authenticated with the API key of the source the events belong to. Events are normalized and ATT&CK-tagged at ingestion, then run through all detection engines.",
   },
   {
     q: "How does authentication work?",
@@ -21,7 +21,7 @@ const FAQS = [
   },
   {
     q: "Where is my telemetry stored?",
-    a: "Entirely in your infrastructure. Hawkeye runs on SQLite for evaluation and PostgreSQL for production. No events, alerts, or incidents ever leave your deployment — the dashboard talks to your own backend.",
+    a: "Entirely in your infrastructure. Hawkeye runs on SQLite for evaluation and PostgreSQL for production. No events, alerts, or incidents ever leave your deployment; the dashboard talks to your own backend.",
   },
 ];
 

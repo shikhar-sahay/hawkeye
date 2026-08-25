@@ -1,4 +1,4 @@
-# Hawkeye — robots.txt
+# Hawkeye robots.txt
 # Public marketing/docs pages may be indexed. The dashboard is a private,
 # authenticated application surface and must not be indexed.
 

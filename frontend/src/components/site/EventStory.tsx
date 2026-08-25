@@ -52,7 +52,7 @@ export function EventStory() {
           </h2>
           <p className="mt-3 max-w-2xl text-muted-foreground">
             Follow one event through the pipeline. Field names below are the
-            real ones — this is the actual shape of Hawkeye's data, not a mockup.
+            real ones: this is the actual shape of Hawkeye's data, not a mockup.
           </p>
         </Reveal>
 

@@ -8,7 +8,7 @@ const STAGES = [
     icon: Eye,
     key: "WATCH",
     title: "Watch",
-    detail: "Your application emits security events — logins, requests, session activity.",
+    detail: "Your application emits security events: logins, requests, session activity.",
     tag: "your app",
   },
   {
@@ -58,7 +58,7 @@ export function PipelineFlow() {
           </h2>
           <p className="mt-3 max-w-2xl text-muted-foreground">
             This is the actual path every event takes through Hawkeye. No queue
-            of unprocessed logs — ingestion, detection, and correlation happen
+            of unprocessed logs: ingestion, detection, and correlation happen
             per event, as it arrives.
           </p>
         </Reveal>

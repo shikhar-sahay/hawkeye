@@ -18,7 +18,7 @@ export function SiteFooter() {
           </div>
           <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
             Self-hosted security monitoring for web applications. Ingest events,
-            detect attacks, correlate incidents — your telemetry stays in your
+            detect attacks, correlate incidents; your telemetry stays in your
             infrastructure.
           </p>
           <p className="mt-4 font-mono text-2xs text-muted-foreground">

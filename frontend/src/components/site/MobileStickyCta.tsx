@@ -33,7 +33,7 @@ export function MobileStickyCta() {
     >
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">
-          Self-hosted monitoring<span className="sr-only"> — get started</span>
+          Self-hosted monitoring. Get started<span className="sr-only"> after scrolling</span>
         </p>
         <Link
           to="/get-started"

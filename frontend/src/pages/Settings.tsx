@@ -565,7 +565,7 @@ export function SettingsPage() {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
-                    <p>Not yet available — placeholder for future GitHub repo</p>
+                    <p>Not yet available (placeholder for future GitHub repo)</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -589,7 +589,7 @@ export function SettingsPage() {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
-                    <p>Not yet available — placeholder for future security policy</p>
+                    <p>Not yet available (placeholder for future security policy)</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -613,7 +613,7 @@ export function SettingsPage() {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
-                    <p>Not yet available — placeholder for future documentation site</p>
+                    <p>Not yet available (placeholder for future documentation site)</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
