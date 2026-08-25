@@ -6,7 +6,7 @@ import { ArrowRight, Home, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
-import { HawkMark } from "@/components/brand/HawkMark";
+import { Logo } from "@/components/ui/logo";
 import { useRouteMeta } from "@/hooks/useRouteMeta";
 
 /**
@@ -45,7 +45,7 @@ export function NotFoundPage() {
         />
         <div className="animate-fade-up relative max-w-lg text-center">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border bg-card shadow-card">
-            <HawkMark size={44} animated />
+            <Logo size={44} animated />
           </div>
           <p className="mt-6 font-mono text-xs uppercase tracking-[0.25em] text-muted-foreground">
             Observation log · 404

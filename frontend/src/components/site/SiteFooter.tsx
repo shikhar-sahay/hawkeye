@@ -2,7 +2,7 @@
 
 import { Link } from "react-router-dom";
 import { ExternalLink } from "lucide-react";
-import { HawkMark } from "@/components/brand/HawkMark";
+import { Logo } from "@/components/ui/logo";
 
 /**
  * SiteFooter - shared public-site footer.
@@ -13,7 +13,7 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 md:grid-cols-4">
         <div className="md:col-span-2">
           <div className="flex items-center gap-2">
-            <HawkMark size={22} />
+            <Logo size={22} />
             <span className="font-semibold tracking-tight">Hawkeye</span>
           </div>
           <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">

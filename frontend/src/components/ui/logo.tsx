@@ -4,28 +4,33 @@ import { cn } from "@/lib/utils";
 
 interface LogoProps {
   className?: string;
+  /** Rendered size in px (square asset) */
   size?: number;
+  /** Enables the subtle idle breathing animation */
+  animated?: boolean;
 }
 
 /**
- * Hawkeye Logo Component
- * Renders the Hawkeye logo from PNG asset
+ * Logo - the single canonical Hawkeye mark (frontend/public/hawkeyelogo.png).
+ * All Hawkeye branding across the site must use this component; do not
+ * introduce alternate hawk graphics.
  */
-export function Logo({ className, size = 32 }: LogoProps) {
+export function Logo({ className, size = 32, animated = false }: LogoProps) {
   return (
     <img
       src="/hawkeyelogo.png"
-      alt="Hawkeye"
-      className={cn("text-primary", className)}
+      alt=""
       width={size}
       height={size}
+      className={cn("select-none", animated && "logo-animated", className)}
       aria-hidden="true"
+      draggable={false}
     />
   );
 }
 
 /**
- * Logo with text for header/sidebar
+ * Logo with wordmark for header/sidebar branding
  */
 export function LogoWithText({ className, size = 32 }: LogoProps) {
   return (

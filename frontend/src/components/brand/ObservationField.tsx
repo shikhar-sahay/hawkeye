@@ -1,6 +1,6 @@
 "use client";
 
-import { HawkMark } from "@/components/brand/HawkMark";
+import { Logo } from "@/components/ui/logo";
 import { cn } from "@/lib/utils";
 
 interface ObservationFieldProps {
@@ -114,7 +114,7 @@ export function ObservationField({ className }: ObservationFieldProps) {
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
         <div className="relative flex h-36 w-36 items-center justify-center rounded-full border border-border bg-card/80 backdrop-blur-sm sm:h-44 sm:w-44">
           <div className="of-halo absolute inset-0 rounded-full border border-primary/40" />
-          <HawkMark size={88} animated className="sm:h-24 sm:w-24" />
+          <Logo size={96} animated />
         </div>
       </div>
 

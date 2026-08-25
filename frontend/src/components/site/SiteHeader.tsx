@@ -4,7 +4,7 @@ import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { HawkMark } from "@/components/brand/HawkMark";
+import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 
@@ -58,7 +58,7 @@ export function SiteHeader() {
             className="flex min-h-[44px] items-center gap-2"
             aria-label="Hawkeye home"
           >
-            <HawkMark size={24} />
+            <Logo size={24} />
             <span className="text-base font-semibold tracking-tight">Hawkeye</span>
           </Link>
 
@@ -127,7 +127,7 @@ export function SiteHeader() {
         >
           <div className="flex h-14 items-center justify-between border-b px-4">
             <span className="flex items-center gap-2 text-base font-semibold tracking-tight">
-              <HawkMark size={20} />
+              <Logo size={20} />
               Hawkeye
             </span>
             <Button

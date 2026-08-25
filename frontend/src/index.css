@@ -308,21 +308,13 @@
      the prefers-reduced-motion override at the top of this file.
      ------------------------------------------------------------------ */
 
-  /* The hawk breathes; its eye pulses. */
+  /* The canonical brand mark breathes gently when animated. */
   @keyframes hawk-breathe {
     0%, 100% { transform: translateY(0) scale(1); }
     50% { transform: translateY(-2px) scale(1.015); }
   }
-  @keyframes hawk-eye {
-    0%, 100% { opacity: 1; }
-    45% { opacity: 0.55; }
-    60% { opacity: 1; }
-  }
-  .hawk-mark-animated {
+  .logo-animated {
     animation: hawk-breathe 5s ease-in-out infinite;
-  }
-  .hawk-mark-animated .hawk-eye {
-    animation: hawk-eye 5s ease-in-out infinite;
   }
 
   /* Radar sweep: one rotation per 9s, linear, around the field center. */

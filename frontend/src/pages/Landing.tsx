@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { ObservationField } from "@/components/brand/ObservationField";
-import { HawkMark } from "@/components/brand/HawkMark";
+import { Logo } from "@/components/ui/logo";
 import { PipelineFlow } from "@/components/site/PipelineFlow";
 import { EventStory } from "@/components/site/EventStory";
 import { DetectionMatrix } from "@/components/site/DetectionMatrix";
@@ -178,7 +178,7 @@ export function LandingPage() {
         <div className="relative mx-auto max-w-2xl px-4 text-center sm:px-6">
           <Reveal>
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border bg-card shadow-card">
-              <HawkMark size={36} animated />
+              <Logo size={36} animated />
             </div>
             <h2 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">
               Start watching in minutes
