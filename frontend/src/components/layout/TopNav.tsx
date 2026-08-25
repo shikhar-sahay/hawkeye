@@ -14,12 +14,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useTheme } from "next-themes";
 import {
   Bell,
   Search,
-  Moon,
-  Sun,
   LogOut,
   Menu,
   User,
@@ -34,6 +31,7 @@ import {
 import { ConnectionStatusInline } from "@/components/ConnectionStatusCard";
 import { useConnectionStatusWithInit, useWebSocketMessage, useWebSocketContext } from "@/context/WebSocketContext";
 import { Logo } from "@/components/ui/logo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import type { AlertPayload, IncidentPayload } from "@/context/WebSocketContext";
 import { apiClient } from "@/api/client";
 import { clearStoredApiKey } from "@/auth";
@@ -72,8 +70,9 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
   const [selectedResultIndex, setSelectedResultIndex] = React.useState(-1);
   const debounceTimerRef = React.useRef<ReturnType<typeof setTimeout>>();
 
-  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
+
+  // Theme switching uses the shared three-theme dropdown (<ThemeToggle />).
 
   // Get connection status from shared WebSocket context
   const wsStatus = useConnectionStatusWithInit();
@@ -140,12 +139,6 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
       unsubscribe(["alerts", "incidents"]);
     };
   }, [subscribe, unsubscribe]);
-
-  const toggleDarkMode = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
-
-  const isDark = theme === "dark";
 
   // Handle search - navigate to Events page with search query
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -341,7 +334,7 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
   return (
     <header
       className={cn(
-        "fixed top-0 z-30 h-14 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70 transition-[left] duration-200",
+        "fixed top-0 right-0 z-30 h-14 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70 transition-[left] duration-200",
         "left-0",
         sidebarCollapsed ? "lg:left-16" : "lg:left-60"
       )}
@@ -450,17 +443,8 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
           {/* Connection status */}
           <ConnectionStatusInline status={wsStatus} />
 
-          {/* Theme toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleDarkMode}
-            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          </Button>
+          {/* Theme: shared three-theme dropdown */}
+          <ThemeToggle />
 
           {/* Notifications */}
           <DropdownMenu>

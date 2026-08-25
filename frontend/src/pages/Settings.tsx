@@ -158,7 +158,7 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
@@ -188,7 +188,7 @@ export function SettingsPage() {
         </TabsList>
 
         {/* General Settings */}
-        <TabsContent value="general" className="space-y-6">
+        <TabsContent value="general" className="grid items-start gap-6 xl:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Appearance</CardTitle>
@@ -270,7 +270,7 @@ export function SettingsPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="xl:col-span-2">
             <CardHeader>
               <CardTitle>Data & Privacy</CardTitle>
               <CardDescription>Manage local data storage</CardDescription>
@@ -295,7 +295,7 @@ export function SettingsPage() {
         </TabsContent>
 
         {/* API Connection Settings */}
-        <TabsContent value="api" className="space-y-6">
+        <TabsContent value="api" className="grid items-start gap-6 xl:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>API Connection</CardTitle>
