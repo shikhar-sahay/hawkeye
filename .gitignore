@@ -49,3 +49,13 @@ yarn-debug.log*
 pnpm-debug.log*
 
 openapi.json
+
+# Local QA artifacts (screenshots, playwright scripts, stray output)
+.playwright-mcp/
+undefined/
+*-desktop.png
+*-mobile.png
+dash-*.png
+dashboard-*.png
+landing-*.png
+example-*.png

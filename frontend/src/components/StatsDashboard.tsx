@@ -44,7 +44,7 @@ interface StatsDashboardProps {
 export function StatsDashboard({ initialTimeRange = "24h", refreshInterval = 60000 }: StatsDashboardProps) {
   const [timeRange, setTimeRange] = React.useState<"24h" | "7d" | "30d">(initialTimeRange);
   // Fetch dashboard stats
-  const { data: dashboardStats, isLoading: statsLoading, error: statsError } = useQuery({
+  const { data: dashboardStats, error: statsError } = useQuery({
     queryKey: queryKeys.dashboard.stats,
     queryFn: () => apiClient.getDashboardStats(),
     refetchInterval: refreshInterval,
@@ -92,7 +92,6 @@ export function StatsDashboard({ initialTimeRange = "24h", refreshInterval = 600
     staleTime: 30000,
   });
 
-  const isLoading = statsLoading || alertStatsLoading || incidentStatsLoading || sourceEventCountsLoading || alertsOverTimeLoading || mitreCoverageLoading;
   const hasError = statsError || alertStatsError || incidentStatsError || sourceEventCountsError;
 
   // Build source data for events by source chart

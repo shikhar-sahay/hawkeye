@@ -32,6 +32,7 @@ export function SiteHeader() {
   // Lock body scroll + focus management while the drawer is open
   React.useEffect(() => {
     if (!open) return;
+    const menuButton = menuButtonRef.current;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     closeButtonRef.current?.focus();
@@ -42,7 +43,7 @@ export function SiteHeader() {
     return () => {
       document.body.style.overflow = prevOverflow;
       document.removeEventListener("keydown", onKeyDown);
-      menuButtonRef.current?.focus();
+      menuButton?.focus();
     };
   }, [open]);
 
