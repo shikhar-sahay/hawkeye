@@ -178,6 +178,26 @@ WebSocket auth priority: `Authorization: Bearer <key>` header → `X-API-Key` he
   itself never overflows horizontally; dialogs are viewport-constrained and
   scroll internally.
 
+## Deployment
+
+The v2 application deploys as a **split frontend/backend**:
+
+- **Frontend (React SPA)** → **Vercel** (`frontend/vercel.json`; set the
+  project's Root Directory to `frontend`). Configure `VITE_API_BASE_URL` and
+  `VITE_WS_URL` to point at the backend origin.
+- **Backend (FastAPI + WebSocket)** → a persistent single-instance runtime,
+  e.g. **Render** (`render.yaml` blueprint) or any container host
+  (`Dockerfile`). It cannot run on Vercel serverless: `/ws` is a long-lived
+  WebSocket and connection/session state is in-process (single worker
+  required).
+- **Database** → PostgreSQL in production via `DATABASE_URL`
+  (`postgresql+asyncpg://...`); SQLite remains the zero-config dev default.
+
+The legacy Flask v1 app (`legacy-v1/`, formerly deployed as
+`hawkeye-i1bt.onrender.com`) is archived: see `legacy-v1/README.md` and the
+`legacy-v1-flask` git tag. Full audit, environment variables, and the
+step-by-step migration/cutover procedure: **[docs/deployment.md](docs/deployment.md)**.
+
 ## Development Workflow
 
 1. Read `AGENTS.md` (handbook) and `SESSION.md` (current task).

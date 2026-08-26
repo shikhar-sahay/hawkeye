@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.9.2] - 2026-08-26 - Dialog Width Fix, Side-List Layout, Refresh/Search UX, Deployment Prep
+
+### Fixed
+- **Every dialog was silently capped at 512px**: `DialogContent`/`AlertDialogContent`
+  base classes contained both `max-w-lg` and `sm:max-w-lg`; tailwind-merge
+  cannot override the `sm:` variant, so callers' `max-w-2xl/4xl/5xl` never
+  applied (clipped tabs, badges, and content in the alert/incident/event
+  detail dialogs). The duplicate was removed and mobile width made explicit
+  (`w-[calc(100%-2rem)] sm:w-full`).
+- **Event detail preview widened**: `max-w-2xl` → `md:max-w-3xl lg:max-w-4xl`
+  (896px on desktop) with internal scrolling preserved.
+- **Alerts/Incidents side lists were cramped/cropped**: the 620px-min tables
+  sat in a 1fr grid column that shrank to ~213px at 1280-1440 viewports.
+  Grid rebalanced to 3/5 + 2/5 with `min-w-0` guards; secondary columns
+  (type/status/time) now appear at `xl`/`2xl` so rows fit their column;
+  overflow stays contained inside the card.
+- Footer docs link and sitemap/robots no longer reference localhost.
+
+### Added
+- **Dashboard manual Refresh button**: invalidates all dashboard queries
+  (real network refetch, verified 8 requests), spinner while any dashboard
+  query is in flight, disabled while refreshing, success/error toast.
+- **Global search resets on page navigation** (pathname-level effect in
+  TopNav; query-string navigation unaffected).
+- **Deployment preparation** (see `docs/deployment.md`):
+  - `frontend/vercel.json` (Vite SPA rewrites, asset caching) and
+    `frontend/.env.production.example`.
+  - Configurable `VITE_API_BASE_URL` / `VITE_WS_URL` (default same-origin);
+    typed in `vite-env.d.ts`.
+  - `render.yaml` blueprint for the v2 backend (single worker, health check,
+    generated secrets) and a root `Dockerfile` + `.dockerignore`.
+  - `requirements.txt` regenerated for the v2 stack (was legacy Flask pins);
+    stale root `package.json` and duplicate `frontend/vite.config.js` removed.
+  - **Legacy v1 preserved**: annotated tag `legacy-v1-flask` (pushed) plus an
+    in-tree `legacy-v1/README.md` explaining status and recovery. The old
+    Render service is deliberately left untouched until the v2 deployment is
+    verified.
+
+### Verification
+- Backend 36/36 tests; tsc clean; ESLint 0 errors; production build passes.
+- Browser-verified: alert detail 896px with all tabs visible (was 512px,
+  clipped), event detail 896px, incident detail 1024px, side lists visible
+  and readable at 1024-1920 with zero page overflow, dashboard refresh fires
+  8 real requests with spinner + toast, every page's Refresh performs a real
+  fetch, search resets on navigation (sidebar, result click, back/forward),
+  dev flow unchanged with env vars unset.
+
+---
+
 ## [2.9.1] - 2026-08-26 - Fresh-Install Bootstrap and Login Error Fixes
 
 ### Fixed

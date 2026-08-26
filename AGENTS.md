@@ -128,6 +128,8 @@ Hawkeye/
 ├── docs/USER_MANUAL.md    # End-user manual (setup, dashboard, search, troubleshooting)
 ├── legacy-v1/             # ARCHIVED — Old Flask implementation, reference only
 ├── alembic/              # Database migrations (Milestone 6 — NOT STARTED)
+├── render.yaml           # Render blueprint for the v2 backend
+├── Dockerfile            # Backend container image (single worker)
 ├── pyproject.toml        # Build config, dependencies, ruff/mypy/pytest settings
 ├── AGENTS.md             # THIS FILE — Developer handbook
 ├── SESSION.md            # Current session state (single active task)
@@ -271,7 +273,7 @@ SDK Integrations — Flask, FastAPI, Express middleware + framework-agnostic cli
 **Finally (Milestone 6):**
 - Attack Replay engine
 - Production packaging (`pip install hawkeye`)
-- Docker/K8s deployment configs
+- Docker/K8s deployment configs (Dockerfile + render.yaml blueprint exist; Vercel hosts the frontend - see docs/deployment.md)
 - Alembic migrations
 - Comprehensive documentation
 

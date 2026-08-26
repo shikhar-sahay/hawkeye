@@ -535,6 +535,8 @@ Each task has:
 | **UI-REDESIGN-01** | Deep frontend redesign: landing/get-started rebuild, 3 themes, chart x-axis fix (frontend+backend), 404/metadata/a11y, mobile fixes | 2026-08-25 |
 | **VERIFY-01** | Browser verification pass (Playwright + browser-qa + visual-review subagents) | 2026-08-25 |
 | **QA-POLISH-03** | Search hardening + mobile panel, DELETE sources endpoint, event-counts perf, stat semantics, source names, docs/USER_MANUAL.md, LICENSE, DB cleanup | 2026-08-26 |
+| **FIX-AUTH-01** | Fresh-install bootstrap (first API key), actionable login errors when backend down | 2026-08-26 |
+| **DEPLOY-01** | Dialog width cap fix, event detail widened, alerts/incidents side lists, dashboard refresh, search reset on nav, Vercel/Render deploy prep, legacy-v1 tag | 2026-08-26 |
 
 **Total Completed: 45 tasks**
 
@@ -553,5 +555,11 @@ Each task has:
   "86 critical" badge (global count) on the same card. Decide whether stats
   endpoints should be global for the dashboard or the cards should be labeled
   per-source.
+
+### SCALE-WS-01: Redis-backed ConnectionManager before horizontal scaling
+- WebSocket sessions, broadcast fan-out, and reconnection history live in
+  process memory (hawkeye/api/websocket.py). The backend must run as a single
+  instance (render.yaml/Dockerfile pin --workers 1). Before scaling out,
+  externalize ConnectionManager state to Redis pub/sub.
 
 **Next Active: T-040 (Chrome MV3 Extension Scaffold)**
