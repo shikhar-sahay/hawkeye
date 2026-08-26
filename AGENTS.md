@@ -125,7 +125,8 @@ Hawkeye/
 │   ├── test_detection.py
 │   ├── test_ingestion.py
 │   └── test_websocket.py
-├── legacy-v1/            # ARCHIVED — Old Flask implementation, reference only
+├── docs/USER_MANUAL.md    # End-user manual (setup, dashboard, search, troubleshooting)
+├── legacy-v1/             # ARCHIVED — Old Flask implementation, reference only
 ├── alembic/              # Database migrations (Milestone 6 — NOT STARTED)
 ├── pyproject.toml        # Build config, dependencies, ruff/mypy/pytest settings
 ├── AGENTS.md             # THIS FILE — Developer handbook
@@ -192,7 +193,7 @@ Full details in `ROADMAP.md`. Do not duplicate here.
   - Sources page (SourceManager: full CRUD + API key lifecycle + pagination)
   - Settings page (4 tabs: General, API, WebSocket, About)
   - AppLayout with Sidebar+TopNav (theme toggle, connection status, user menu)
-  - TopNav global search: debounced autocomplete across events/alerts/incidents/sources with keyboard navigation
+  - TopNav global search: debounced autocomplete across events/alerts/incidents/sources (server-side search params, match highlighting, loading/error/empty states) with keyboard navigation; mobile search panel below the sm breakpoint
   - TopNav notification bell: real-time high-severity alerts/incidents from shared WebSocket
   - Functional user menu: Profile → Settings, Security Settings → API tab, Sign Out clears API key
   - Routing for all 6 pages
@@ -421,6 +422,10 @@ pytest tests/test_detection.py::TestBruteForceDetector::test_brute_force_thresho
 - `test_detection.py` — DetectionEngine, all 7 detectors, DetectionContext
 - `test_ingestion.py` — IngestionService, NormalizationEngine, schemas
 - `test_websocket.py` — ConnectionManager, WebSocket endpoint, stats, auth, reconnection
+
+**IMPORTANT (Windows/SQLite):** run only ONE uvicorn instance. Two servers on
+port 8000 hold the SQLite file concurrently and pytest hangs indefinitely
+(kill stray python/uvicorn processes if the suite silently never finishes).
 
 ---
 

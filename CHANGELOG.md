@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.9.0] - 2026-08-26 - Search Hardening, Dashboard Fixes, Responsive QA, User Manual
+
+### Added
+- **DELETE /api/v1/sources/{id}** (backend): the Sources page offered deletion
+  but the endpoint did not exist (405). Deletion now permanently removes the
+  source with a full cascade (incident-alert join rows, incidents, alerts,
+  normalized events, raw events, API keys).
+- **Mobile search panel** in the dashboard top bar: the global search was
+  hidden below the `sm` breakpoint; a magnifier toggle now opens a full-width
+  search panel on phones.
+- **docs/USER_MANUAL.md**: complete end-user manual (setup walkthrough from
+  empty database to first alert, dashboard guide, detection lifecycle, search
+  guide, API/WebSocket reference, configuration, troubleshooting, security
+  notes).
+- **scripts/cleanup_test_sources.py**: removes empty QA/test sources
+  (name-pattern + zero-data guarded; `--dry-run` supported).
+- MIT `LICENSE` file (README already claimed MIT).
+
+### Changed
+- **Global search hardening** (`TopNav.tsx`): source suggestions now use the
+  backend `search` param instead of filtering the first 200 sources
+  client-side (correct with large source counts); stale-response race guard
+  so slow earlier queries cannot overwrite newer results; explicit error
+  state (previously indistinguishable from "no results"); matched text
+  highlighted; keyboard selection scrolls into view; Enter opens the
+  highlighted suggestion; incident results no longer render "undefined
+  alerts" when `alert_count` is null.
+- **Stat card semantics** (`StatsDashboard.tsx`): "Active Alerts" now counts
+  new + processing + correlated (previously read as 0 while a critical badge
+  showed 86); the impossible "Resolved/suppressed" card (statuses that do
+  not exist in the backend vocabulary) replaced with "Dismissed Alerts".
+- CORS default now allows the Vite dev origin (:5173) instead of the legacy
+  Flask v1 port (:5000); `.env.example` updated to match.
+
+### Fixed
+- **Performance:** `/sources/event-counts` ran 3 COUNT queries per source
+  (~2,700 sequential queries with 1,000+ sources, ~7 s per dashboard load);
+  now 3 grouped queries total (~73 ms warm).
+- **Data hygiene (DATA-HYGIENE-01):** purged 1,098 empty test sources from
+  the dev database via the new cleanup script; 5 seeded demo sources remain.
+- Incidents table row chevron was a no-op; it now opens the incident detail
+  dialog like the row click.
+- Alert feed showed raw "Source: 3" ids; now resolves source names from the
+  cached event-counts query ("Source: Web Application").
+- Events page header overflowed at 320 px (Export + Refresh + Filters row
+  now wraps).
+- Mojibake en dashes ("â€“") in the Alerts and Events pagination text.
+- `PATCH /sources/{id}/api-keys/{key_id}` was missing the auth dependency;
+  all source/key management endpoints now require a valid API key.
+
+### Verification
+- Backend tests 33/33; frontend tsc, ESLint (0 errors), and production build
+  pass. Browser-verified: search (desktop + 390 px mobile), autocomplete
+  keyboard navigation, deep links, alert detail tabs + status actions,
+  incident detail, source create/delete via UI, settings persistence, theme
+  switching, sidebar collapse/header alignment, sign-out/sign-in flow, and
+  zero page-level horizontal overflow at 320/390/768/1280/1440/1920.
+
+---
+
 ## [2.8.1] - 2026-08-25 - FE Polish: Canonical Logo, Landing Scale, Pipeline Signal
 
 ### Changed

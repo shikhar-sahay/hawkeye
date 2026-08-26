@@ -21,6 +21,9 @@ Verified baseline: backend tests 33/33 passing; frontend build, lint, and TypeSc
 checks passing; all SPA routes and the `/api` + `/ws` dev proxy verified against a
 running backend.
 
+**User documentation:** see [docs/USER_MANUAL.md](docs/USER_MANUAL.md) for a
+complete setup walkthrough, dashboard guide, search guide, and troubleshooting.
+
 ## Architecture
 
 ```
@@ -85,7 +88,8 @@ Hawkeye/
 │       ├── pages/            # Dashboard, Events, Alerts, Incidents, Sources, Settings
 │       └── types/index.ts    # Types matching backend schemas
 ├── browser-agent/            # Chrome MV3 extension scaffold (flat layout)
-├── scripts/seed_demo_data.py # Demo data seeding for local development
+├── scripts/                  # seed_demo_data.py, cleanup_test_sources.py
+├── docs/USER_MANUAL.md       # End-user manual (setup, dashboard, search, troubleshooting)
 ├── tests/                    # Pytest suite (33 tests)
 ├── legacy-v1/                # Archived Flask v1 — reference only, do not modify
 ├── alembic/                  # Empty migration scaffold (Milestone 6)
@@ -108,7 +112,12 @@ pytest tests/ -v                      # 33 tests
 
 SQLite is used by default (`hawkeye.db`, gitignored); PostgreSQL via `DATABASE_URL`
 for production. All settings are environment variables — see `hawkeye/config.py`
-and `.env.example`.
+and `.env.example`. Useful scripts:
+
+```bash
+python scripts/seed_demo_data.py         # populate demo sources + 24h of events
+python scripts/cleanup_test_sources.py   # remove empty QA/test sources (dry-run: --dry-run)
+```
 
 ### Frontend
 
@@ -120,9 +129,10 @@ npm run build    # tsc --noEmit && vite build
 npm run lint
 ```
 
-The frontend expects the backend on port 8000. A demo API key can be configured in
-`frontend/src/api/client.ts` (build-time fallback) or in `localStorage` under
-`hawkeye_api_key`. Use `python ../scripts/seed_demo_data.py` to populate demo data.
+The frontend expects the backend on port 8000. Sign in on the `/login` page with
+any valid source API key (stored in `localStorage` under `hawkeye_api_key`).
+Use `python ../scripts/seed_demo_data.py` to populate demo data; the demo key
+lives only in that script.
 
 ## API Summary
 
@@ -158,9 +168,15 @@ WebSocket auth priority: `Authorization: Bearer <key>` header → `X-API-Key` he
 - **Refresh buttons** use TanStack Query's `isFetching` (not `isLoading`) so they
   correctly show spinner/disabled state during refetches.
 - **Global search** in TopNav queries events/alerts/incidents/sources in parallel
-  using backend `search` query params, with keyboard-navigable autocomplete.
+  using backend `search` query params (250 ms debounce, stale-response guard),
+  with match highlighting, loading/error/empty states, keyboard navigation,
+  and a dedicated mobile search panel below the `sm` breakpoint.
 - **Notification bell** shows high-severity (critical/high) alerts and incidents
   received over the shared WebSocket.
+- **Responsive layout:** the header spans the full main area and tracks the
+  sidebar state; tables scroll inside their own card containers so the page
+  itself never overflows horizontally; dialogs are viewport-constrained and
+  scroll internally.
 
 ## Development Workflow
 
@@ -172,4 +188,4 @@ WebSocket auth priority: `Authorization: Bearer <key>` header → `X-API-Key` he
 
 ## License
 
-MIT — see LICENSE file.
+MIT — see [LICENSE](LICENSE).

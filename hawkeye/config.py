@@ -74,8 +74,14 @@ class Settings(BaseSettings):
     # API Key header
     api_key_header: str = "X-API-Key"
 
-    # CORS
-    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5000", "http://127.0.0.1:5000"])
+    # CORS (Vite dev server default; in dev the frontend also proxies /api
+    # and /ws through the same origin, so CORS rarely applies)
+    cors_origins: list[str] = Field(
+        default_factory=lambda: [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ]
+    )
 
     # API
     api_key_length: int = 32

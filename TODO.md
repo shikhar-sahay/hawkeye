@@ -534,6 +534,7 @@ Each task has:
 | **DASH-USABLE-01** | Auth flow, crash fixes, real typecheck, dead-control cleanup, server-side search everywhere, deep links, sources auth lockdown | 2026-08-24 |
 | **UI-REDESIGN-01** | Deep frontend redesign: landing/get-started rebuild, 3 themes, chart x-axis fix (frontend+backend), 404/metadata/a11y, mobile fixes | 2026-08-25 |
 | **VERIFY-01** | Browser verification pass (Playwright + browser-qa + visual-review subagents) | 2026-08-25 |
+| **QA-POLISH-03** | Search hardening + mobile panel, DELETE sources endpoint, event-counts perf, stat semantics, source names, docs/USER_MANUAL.md, LICENSE, DB cleanup | 2026-08-26 |
 
 **Total Completed: 45 tasks**
 
@@ -541,10 +542,11 @@ Each task has:
 
 ## P2 - Discovered during UI-REDESIGN-01 (optional)
 
-### DATA-HYGIENE-01: Clean polluted dev database
-- The dev DB contains ~900 test sources ("Test Source", "Source N") from
-  earlier test runs. Inflates "Registered Sources" stat and slows
-  `/sources/event-counts` to ~7s. Consider a cleanup script or reseed.
+### DATA-HYGIENE-01: Clean polluted dev database ✅ DONE (2026-08-26)
+- `scripts/cleanup_test_sources.py` added (name-pattern + zero-data guarded,
+  `--dry-run` supported) and executed: 1,098 empty QA sources deleted;
+  the dev DB now holds exactly the 5 seeded demo sources. `/sources/event-counts`
+  also optimized (3 grouped queries, ~73 ms warm vs ~7 s before).
 
 ### STATS-SCOPE-01: Clarify dashboard stat scopes
 - "Active Alerts 0" (per-source scoped stats endpoint) sits next to a

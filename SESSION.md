@@ -1,51 +1,61 @@
 # HawkEye v2 - Session Documentation
 
 ## Session Metadata
-- **Date**: 2026-08-25
-- **Session ID**: 2026-08-25-01 (FE polish: canonical logo, landing scale, pipeline ping)
-- **Branch**: master (all work committed and pushed through 4fe2f36+docs)
+- **Date**: 2026-08-26
+- **Session ID**: 2026-08-26-01 (Search hardening, dashboard fixes, responsive QA, docs)
+- **Branch**: master (all work committed and pushed)
 
 ---
 
 ## Current Active Engineering Task
 
-### Task ID: UI-POLISH-02 — Landing scale, canonical logo, em-dash purge, pipeline ping
+### Task ID: QA-POLISH-03 — Search, dashboard functionality, responsive/layout, docs
 ### Status: **COMPLETE**
 
-**What was done (see CHANGELOG [2.8.1]):**
-1. Checkpoint: leftover lint/typecheck fixes from UI-REDESIGN-01 committed;
-   QA artifacts gitignored.
-2. Canonical branding: HawkMark SVG deleted; `Logo` (hawkeyelogo.png) is the
-   only mark, used in header, hero observation field, CTA, footer, GetStarted,
-   404, login, dashboard sidebar/topnav, HawkLoader. favicon.svg + icons.svg
-   removed; favicon + regenerated OG image use the canonical PNG.
-3. Zero U+2014 em dashes in frontend (36+ replaced with context-appropriate
-   punctuation; stat placeholders "..."; robots.txt cleaned).
-4. Landing scale: hero h1 to 68px, xl body, bigger badge/CTAs/code, larger
-   observation field (h-56 ring, 112px logo), pipeline nodes h-12 with
-   text-lg titles, landing sections max-w-7xl.
-5. Pipeline travelling ping: 8s loop along the rail, node ring pulses synced
-   (2s/segment), vertical variant on mobile, hidden under reduced motion.
-6. Header: full-viewport background/border with inner content aligned exactly
-   to the landing grid (verified: header inner edges == hero edges).
+**What was done (see CHANGELOG [2.9.0]):**
+1. Checkpoint commit of leftover small-screen responsive fixes (2980594).
+2. Global search hardened in `TopNav.tsx`: server-side source search,
+   stale-response guard, error state, match highlighting, keyboard
+   scrollIntoView, Enter-selects-suggestion, mobile search panel.
+3. Backend: implemented missing `DELETE /sources/{id}` (UI offered deletion,
+   API returned 405); added auth to `PATCH .../api-keys/{key_id}`; rewrote
+   `/sources/event-counts` from N+1 (3 queries/source) to 3 grouped queries.
+4. Dashboard: Active Alerts semantics fixed (new+processing+correlated),
+   "Resolved/suppressed" card replaced with "Dismissed Alerts", incident row
+   chevron opens detail, alert feed resolves source names, events header
+   wraps at 320px, mojibake dashes fixed, CORS default moved 5000→5173.
+5. Data hygiene: `scripts/cleanup_test_sources.py` added and run; 1,098 empty
+   QA sources purged (DATA-HYGIENE-01 closed).
+6. Docs: `docs/USER_MANUAL.md` written; README updated (manual link, scripts,
+   search/responsive notes, LICENSE); MIT LICENSE added; CHANGELOG 2.9.0.
 
-**Verification:** tsc clean, lint 0 errors (4 pre-existing fast-refresh
-warnings), build PASS, backend tests 33/33, Playwright sweep: landing at
-320/375/430/768/1024/1280/1440/1600/1920 zero overflow, three themes verified,
-dashboard unaffected (own components; 24h/7d/30d still work), reduced-motion
-ping display:none, zero console errors. Em-dash search: 0. HawkMark search: 0.
+**Verification:**
+- `pytest tests/ -q` → 33/33 pass.
+- `tsc --noEmit -p tsconfig.app.json` clean; `npm run lint` 0 errors
+  (4 pre-existing fast-refresh warnings); `npm run build` PASS.
+- Playwright: search + autocomplete + keyboard nav + deep links (desktop and
+  390px mobile), alert detail tabs + dismiss action (toast + status update),
+  incident detail, source create/delete via UI, settings save persistence,
+  three themes, sidebar collapse/header alignment (240↔64px tracking),
+  sign-out/sign-in, zero page-level horizontal overflow at
+  320/390/768/1280/1440/1920.
 
 ### Next Action
-Return to Milestone 4: T-040 browser agent scaffold (see TODO.md).
+Return to Milestone 4: T-040 browser agent scaffold (fix 8 TS errors in
+`browser-agent/`, build, load unpacked, remove legacy `src/` layout).
 
 ---
 
 ## Notes for next agent
-- Dev servers: frontend :5173, backend :8000 (uvicorn --reload).
+- Dev servers: frontend :5173, backend :8000. Run only ONE uvicorn instance:
+  two instances on :8000 cause SQLite lock contention (symptom: pytest hangs
+  indefinitely). If pytest hangs, check for stray python/uvicorn processes.
 - Demo key `hawk_F5I...` lives ONLY in `scripts/seed_demo_data.py`.
 - Theme storage key `theme` (light | dark | black); inline boot script in
   index.html must stay in sync with ThemeProvider.
-- `.playwright-mcp/*.cjs` are QA scripts; `make_og.py` regenerates the OG
-  image from hawkeyelogo.png.
-- Known non-issues: ~900 polluted test sources in dev DB (see TODO
-  DATA-HYGIENE-01); per-source vs global stat scope (STATS-SCOPE-01).
+- The dev DB now has exactly 5 seeded demo sources (ids 1-5) after cleanup.
+- WebSocket "closed before the connection is established" console warning in
+  dev is a benign StrictMode artifact (CONNECTING socket closed on the
+  double-mount cleanup); not visible in production builds.
+- `.playwright-mcp/*.cml/*.cjs` and root *.png screenshots are QA artifacts
+  (gitignored or to be cleaned before commit).
