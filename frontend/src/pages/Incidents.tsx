@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -262,9 +262,9 @@ export function IncidentsPage() {
       </Card>
 
       {/* Incident Timeline & Table */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         {/* Real-time Incident Timeline (left column - wider on desktop) */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-3 min-w-0">
           <IncidentTimeline
             isLoading={isLoading && incidentsResponse === undefined}
             incidents={combinedIncidents}
@@ -280,7 +280,7 @@ export function IncidentsPage() {
         </div>
 
         {/* Incident Table / List (right column) */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-2 min-w-0">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -321,8 +321,8 @@ export function IncidentsPage() {
                         <TableHead className="w-8"></TableHead>
                         <TableHead>Severity</TableHead>
                         <TableHead>Title</TableHead>
-                        <TableHead className="hidden md:table-cell">Status</TableHead>
-                        <TableHead className="hidden lg:table-cell">Time</TableHead>
+                        <TableHead className="hidden xl:table-cell">Status</TableHead>
+                        <TableHead className="hidden 2xl:table-cell">Time</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -359,11 +359,11 @@ export function IncidentsPage() {
                           <TableCell>
                             <Badge variant={getSeverityBadgeVariant(incident.severity)}>{incident.severity}</Badge>
                           </TableCell>
-                          <TableCell className="max-w-[200px] truncate font-medium">{incident.title}</TableCell>
-                          <TableCell className="hidden md:table-cell">
+                          <TableCell className="max-w-[200px] xl:max-w-[260px] 2xl:max-w-[320px] truncate font-medium">{incident.title}</TableCell>
+                          <TableCell className="hidden xl:table-cell">
                             <Badge variant={getStatusBadgeVariant(incident.status)}>{incident.status}</Badge>
                           </TableCell>
-                          <TableCell className="hidden lg:table-cell font-mono text-xs text-muted-foreground">
+                          <TableCell className="hidden 2xl:table-cell font-mono text-xs text-muted-foreground">
                             {new Date(incident.created_at).toLocaleTimeString()}
                           </TableCell>
                         </TableRow>

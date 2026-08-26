@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -266,9 +266,9 @@ export function AlertsPage() {
       </Card>
 
       {/* Alert Feed & Table */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         {/* Real-time Alert Feed (left column - wider on desktop) */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-3 min-w-0">
           <AlertFeed
             isLoading={isLoading && alertsResponse === undefined}
             alerts={combinedAlerts.map((alert) => ({
@@ -316,7 +316,7 @@ export function AlertsPage() {
         </div>
 
         {/* Alert Table / List (right column) */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-2 min-w-0">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -356,9 +356,9 @@ export function AlertsPage() {
                       <TableRow>
                         <TableHead>Severity</TableHead>
                         <TableHead>Title</TableHead>
-                        <TableHead className="hidden md:table-cell">Type</TableHead>
-                        <TableHead className="hidden lg:table-cell">Status</TableHead>
-                        <TableHead className="hidden lg:table-cell">Time</TableHead>
+                        <TableHead className="hidden 2xl:table-cell">Type</TableHead>
+                        <TableHead className="hidden xl:table-cell">Status</TableHead>
+                        <TableHead className="hidden 2xl:table-cell">Time</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -377,14 +377,14 @@ export function AlertsPage() {
                           <TableCell>
                             <Badge variant={getSeverityBadgeVariant(alert.severity)}>{alert.severity}</Badge>
                           </TableCell>
-                          <TableCell className="max-w-[200px] truncate font-medium">{alert.title}</TableCell>
-                          <TableCell className="hidden md:table-cell font-mono text-xs">
+                          <TableCell className="max-w-[200px] xl:max-w-[260px] 2xl:max-w-[320px] truncate font-medium">{alert.title}</TableCell>
+                          <TableCell className="hidden 2xl:table-cell font-mono text-xs">
                             {alert.detection_type}
                           </TableCell>
-                          <TableCell className="hidden lg:table-cell">
+                          <TableCell className="hidden xl:table-cell">
                             <Badge variant={getStatusBadgeVariant(alert.status)}>{alert.status}</Badge>
                           </TableCell>
-                          <TableCell className="hidden lg:table-cell font-mono text-xs text-muted-foreground">
+                          <TableCell className="hidden 2xl:table-cell font-mono text-xs text-muted-foreground">
                             {new Date(alert.created_at).toLocaleTimeString()}
                           </TableCell>
                         </TableRow>

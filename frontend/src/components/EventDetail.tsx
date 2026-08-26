@@ -53,7 +53,7 @@ export function EventDetail({ event, open, onOpenChange }: EventDetailProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
         {event && (
           <>
             <DialogHeader>
