@@ -126,7 +126,7 @@ async def get_source_event_counts(
 
     # Aggregate counts per source with a single GROUP BY query per table
     # instead of one COUNT query per source per table (N+1).
-    async def _counts_per_source(model) -> dict[int, int]:
+    async def _counts_per_source(model: type) -> dict[int, int]:
         stmt = select(model.source_id, func.count(model.id)).group_by(model.source_id)
         rows = await session.exec(stmt)
         return {row[0]: row[1] for row in rows.all()}
