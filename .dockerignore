@@ -1,0 +1,15 @@
+frontend/
+legacy-v1/
+browser-agent/
+tests/
+scripts/
+docs/
+alembic/
+.playwright-mcp/
+.pytest_cache/
+.ruff_cache/
+hawkeye.egg-info/
+*.db
+*.png
+.env
+.git/

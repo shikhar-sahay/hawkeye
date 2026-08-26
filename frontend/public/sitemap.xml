@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Placeholder sitemap: replace example.com with the production domain
+     once the deployment is final. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>http://localhost:5173/</loc></url>
-  <url><loc>http://localhost:5173/get-started</loc></url>
-  <url><loc>http://localhost:5173/login</loc></url>
+  <url><loc>https://hawkeye-example.vercel.app/</loc></url>
+  <url><loc>https://hawkeye-example.vercel.app/get-started</loc></url>
+  <url><loc>https://hawkeye-example.vercel.app/login</loc></url>
 </urlset>

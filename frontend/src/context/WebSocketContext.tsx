@@ -463,7 +463,10 @@ export function WebSocketProvider({
     try {
       const subscribeParam = Array.from(currentSubscriptionsRef.current).join(",");
       const apiKeyParam = currentApiKey ? `&api_key=${encodeURIComponent(currentApiKey)}` : "";
-      const wsUrl = `/ws?subscribe=${encodeURIComponent(subscribeParam)}${apiKeyParam}`;
+      // Same-origin /ws by default (dev proxy or reverse proxy). In split
+      // deployments set VITE_WS_URL, e.g. wss://hawkeye-backend.onrender.com/ws
+      const wsBase = import.meta.env.VITE_WS_URL ?? "";
+      const wsUrl = `${wsBase}/ws?subscribe=${encodeURIComponent(subscribeParam)}${apiKeyParam}`;
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {

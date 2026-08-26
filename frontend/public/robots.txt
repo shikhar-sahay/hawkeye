@@ -15,4 +15,5 @@ Disallow: /settings
 Disallow: /api/
 Disallow: /ws
 
-Sitemap: http://localhost:5173/sitemap.xml
+# Sitemap: add "Sitemap: https://<your-production-domain>/sitemap.xml" once
+# the production domain is final (sitemap.xml ships with placeholder URLs).

@@ -1,4 +1,21 @@
-Flask==2.3.3
-flask-cors>=3.0.10
-networkx==3.1
-plotly==5.17.0
+# Hawkeye v2 runtime dependencies.
+# pyproject.toml is the canonical dependency source; this file exists for
+# platforms that prefer pip install -r requirements.txt (e.g. Render).
+# Regenerate with: pip install -e . && pip freeze > requirements.txt
+
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+sqlmodel>=0.0.14
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+python-multipart>=0.0.6
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+httpx>=0.26.0
+alembic>=1.13.0
+aiofiles>=23.2.0
+jinja2>=3.1.0
+python-dotenv>=1.0.0
+
+# Production database driver (uncomment when using PostgreSQL)
+# asyncpg>=0.29.0

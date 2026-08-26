@@ -1,0 +1,42 @@
+# Render Blueprint for the Hawkeye v2 backend (FastAPI + WebSocket).
+#
+# The frontend is deployed separately on Vercel (see frontend/vercel.json and
+# docs/deployment.md). The backend MUST run as a single persistent instance:
+# WebSocket sessions, broadcast fan-out, and reconnection history are held in
+# process memory (hawkeye/api/websocket.py), so --workers 1 is required and
+# the service must not be horizontally scaled without a Redis-backed
+# ConnectionManager.
+#
+# Deploy: Render dashboard -> New -> Blueprint -> point at this repository,
+# or `render blueprint launch` with the Render CLI.
+
+services:
+  - type: web
+    name: hawkeye-api
+    runtime: python
+    plan: starter
+    buildCommand: pip install -e .
+    startCommand: uvicorn hawkeye.main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      # PostgreSQL for production (asyncpg driver). Leave sync:false and set
+      # in the dashboard, or point at a Render Postgres instance:
+      #   postgresql+asyncpg://user:pass@host/db
+      - key: DATABASE_URL
+        sync: false
+      # Secrets: generated on first sync; rotate from the dashboard as needed.
+      - key: API_KEY_SECRET
+        generateValue: true
+      - key: JWT_SECRET
+        generateValue: true
+      # JSON array of allowed browser origins. MUST include the Vercel
+      # frontend origin, e.g. ["https://hawkeye.vercel.app"]
+      - key: CORS_ORIGINS
+        sync: false
