@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import * as React from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,6 +75,7 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
   const listboxRef = React.useRef<HTMLDivElement | null>(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Theme switching uses the shared three-theme dropdown (<ThemeToggle />).
 
@@ -250,6 +251,15 @@ export function TopNav({ onMenuClick, sidebarCollapsed }: TopNavProps) {
     setSearchError(false);
     setIsMobileSearchOpen(false);
   }, []);
+
+  // Clear the search when navigating to a different page: a query typed on
+  // page A should not still sit in the header on page B. Only pathname
+  // changes trigger this, so query-string navigation (deep links, pagination,
+  // tab switches) keeps the UI stable.
+  const pathname = location.pathname;
+  React.useEffect(() => {
+    resetSearch();
+  }, [pathname, resetSearch]);
 
   // Handle search input change with debounced search
   const handleSearchChange = React.useCallback(
