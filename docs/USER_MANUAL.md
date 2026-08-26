@@ -151,27 +151,23 @@ see the landing page; click **Get Started**, or go straight to
 http://localhost:5173/login.
 
 **Step 2 — Sign in.** The dashboard authenticates with a **source API key**.
-On a fresh database no sources exist yet, so `POST /api/v1/sources` is open
-(bootstrap mode) and you can create your first source without a key:
+On a fresh database no sources exist yet, so bootstrap is open: register the
+first source AND its first API key without credentials (both are open only
+until one exists / one key exists):
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/sources \
   -H "Content-Type: application/json" \
   -d '{"name": "My Web App", "description": "Production app"}'
-```
 
-Then create an API key for it (after the first source exists this requires
-an authenticated key, so do this from the dashboard's **Sources** page, or
-reuse the demo key from step 2.6):
-
-```bash
 curl -X POST http://localhost:8000/api/v1/sources/1/api-keys \
-  -H "X-API-Key: <your-key>" \
   -H "Content-Type: application/json" \
   -d '{"name": "ingest-key"}'
 ```
 
-The plain key is shown **once**. Paste it into the login page and sign in.
+The plain key is shown **once** in the `api_key` field of the response.
+Paste it into the login page and sign in. (After the first key exists,
+creating further sources/keys requires an authenticated request.)
 
 **Step 3 — Send the first event.** From a terminal, using your source's key:
 
@@ -514,8 +510,9 @@ are created automatically), then re-seed if desired.
   at creation. Revoke and rotate keys from the Sources page.
 - All data access is scoped per source; a key only sees its own events,
   alerts, and incidents (including over WebSocket).
-- `POST /sources` is open only while zero sources exist (first-run
-  bootstrap); afterwards it requires authentication.
+- `POST /sources` and the first `POST /sources/{id}/api-keys` are open only
+  while zero sources / zero API keys exist (first-run bootstrap); afterwards
+  both require authentication.
 - Run behind HTTPS in production, use PostgreSQL, set strong
   `API_KEY_SECRET`/`JWT_SECRET` values, and restrict `CORS_ORIGINS` to your
   dashboard origin.

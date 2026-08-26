@@ -2,47 +2,38 @@
 
 ## Session Metadata
 - **Date**: 2026-08-26
-- **Session ID**: 2026-08-26-01 (Search hardening, dashboard fixes, responsive QA, docs)
+- **Session ID**: 2026-08-26-02 (Login blocker + fresh-install bootstrap fix)
 - **Branch**: master (all work committed and pushed)
 
 ---
 
 ## Current Active Engineering Task
 
-### Task ID: QA-POLISH-03 — Search, dashboard functionality, responsive/layout, docs
+### Task ID: FIX-AUTH-01 — Fresh-install login deadlock + backend-down error UX
 ### Status: **COMPLETE**
 
-**What was done (see CHANGELOG [2.9.0]):**
-1. Checkpoint commit of leftover small-screen responsive fixes (2980594).
-2. Global search hardened in `TopNav.tsx`: server-side source search,
-   stale-response guard, error state, match highlighting, keyboard
-   scrollIntoView, Enter-selects-suggestion, mobile search panel.
-3. Backend: implemented missing `DELETE /sources/{id}` (UI offered deletion,
-   API returned 405); added auth to `PATCH .../api-keys/{key_id}`; rewrote
-   `/sources/event-counts` from N+1 (3 queries/source) to 3 grouped queries.
-4. Dashboard: Active Alerts semantics fixed (new+processing+correlated),
-   "Resolved/suppressed" card replaced with "Dismissed Alerts", incident row
-   chevron opens detail, alert feed resolves source names, events header
-   wraps at 320px, mojibake dashes fixed, CORS default moved 5000→5173.
-5. Data hygiene: `scripts/cleanup_test_sources.py` added and run; 1,098 empty
-   QA sources purged (DATA-HYGIENE-01 closed).
-6. Docs: `docs/USER_MANUAL.md` written; README updated (manual link, scripts,
-   search/responsive notes, LICENSE); MIT LICENSE added; CHANGELOG 2.9.0.
+**What was done (see CHANGELOG [2.9.1]):**
+1. Root-caused two login blockers:
+   a) Fresh-install deadlock: first API key could not be created without an
+      existing key. Fixed with `require_source_for_key_creation` (open while
+      zero API keys exist).
+   b) "Unknown error" on the login page when the backend is down (Vite proxy
+      500 with text body defeated JSON error parsing). Client now maps 5xx to
+      an actionable message; login preserves the entered key on 5xx.
+2. Get Started step 3 + USER_MANUAL + README + AGENTS updated to the fixed
+   bootstrap flow.
+3. tests/test_bootstrap.py: 3 regression tests on isolated in-memory SQLite
+   (NOTE: routes use `deps.get_session`, guards use `database.get_session` —
+   override BOTH; use StaticPool for :memory:).
 
-**Verification:**
-- `pytest tests/ -q` → 33/33 pass.
-- `tsc --noEmit -p tsconfig.app.json` clean; `npm run lint` 0 errors
-  (4 pre-existing fast-refresh warnings); `npm run build` PASS.
-- Playwright: search + autocomplete + keyboard nav + deep links (desktop and
-  390px mobile), alert detail tabs + dismiss action (toast + status update),
-  incident detail, source create/delete via UI, settings save persistence,
-  three themes, sidebar collapse/header alignment (240↔64px tracking),
-  sign-out/sign-in, zero page-level horizontal overflow at
-  320/390/768/1280/1440/1920.
+**Verification:** pytest 36/36 (33 + 3 new); tsc clean; lint 0 errors.
+Browser: clean localStorage → invalid key shows clear message → demo key
+signs in → dashboard fully populated (26.6K events, 5.6K alerts, 3 incidents,
+5 sources, all charts); backend stopped → actionable error → backend started →
+retry with preserved key lands on /dashboard.
 
 ### Next Action
-Return to Milestone 4: T-040 browser agent scaffold (fix 8 TS errors in
-`browser-agent/`, build, load unpacked, remove legacy `src/` layout).
+Return to Milestone 4: T-040 browser agent scaffold.
 
 ---
 

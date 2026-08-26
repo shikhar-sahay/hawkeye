@@ -70,11 +70,26 @@ class ApiClient {
         // Key missing/invalid/expired - let the app route back to login
         notifyUnauthorized();
       }
-      const error = await response.json().catch(() => ({ detail: "Unknown error" }));
-      throw new ApiError(
-        error.detail || `HTTP ${response.status}`,
-        response.status
-      );
+      // The Vite dev proxy answers a down backend with a 500/502 whose body
+      // is plain text, so JSON parsing fails; surface a actionable message
+      // instead of a generic "Unknown error".
+      const raw = await response.text().catch(() => "");
+      let detail = "";
+      try {
+        const parsed = JSON.parse(raw) as { detail?: string };
+        detail = parsed.detail ?? "";
+      } catch {
+        detail = "";
+      }
+      if (!detail) {
+        if ([500, 502, 503, 504].includes(response.status)) {
+          detail =
+            "Could not reach the Hawkeye backend. Make sure the server is running, then try again.";
+        } else {
+          detail = `Request failed (HTTP ${response.status})`;
+        }
+      }
+      throw new ApiError(detail, response.status);
     }
 
     if (response.status === 204) {

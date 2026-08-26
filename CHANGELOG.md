@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.9.1] - 2026-08-26 - Fresh-Install Bootstrap and Login Error Fixes
+
+### Fixed
+- **Fresh installs could never mint their first credential** (login blocker):
+  `POST /sources/{id}/api-keys` required an existing API key, but a fresh
+  deployment only has a bootstrap-registered source with no key. The endpoint
+  is now open while the deployment has zero API keys
+  (`require_source_for_key_creation` dependency), closing the deadlock; the
+  documented register-source → create-key → sign-in flow works end to end.
+- **Login showed "Unknown error" when the backend was down**: the Vite dev
+  proxy answers with a 500 whose body is plain text, defeating JSON error
+  extraction. The API client now falls back to status-based messages, and
+  5xx responses surface "Could not reach the Hawkeye backend..." (login also
+  keeps the entered key on 5xx, so retrying after starting the server
+  succeeds without retyping it).
+- Get Started step 3 no longer tells users to pass an API key they cannot
+  have yet; USER_MANUAL/README/AGENTS bootstrap docs updated to match.
+
+### Added
+- `tests/test_bootstrap.py` (3 tests): fresh install can mint the first
+  credential, bootstrap closes once a key exists, invalid keys rejected.
+  Uses an isolated in-memory SQLite via dependency overrides (both
+  `database.get_session` and the `deps.get_session` wrapper).
+
+---
+
 ## [2.9.0] - 2026-08-26 - Search Hardening, Dashboard Fixes, Responsive QA, User Manual
 
 ### Added

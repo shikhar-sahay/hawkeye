@@ -380,6 +380,9 @@ Read `SESSION.md` for current task details. Read `TODO.md` for full backlog.
 - 401/403 responses trigger a global unauthorized event that routes back to login.
 - Backend: ALL `/sources/*` endpoints require auth EXCEPT `POST /sources`, which is
   open only while the deployment has zero registered sources (bootstrap).
+- Ingestion endpoints: POST /api/v1/events (single) and POST /api/v1/events/batch.
+- First API key: POST /sources/{id}/api-keys is also open while the deployment
+  has zero API keys (fresh-install bootstrap; mints the first credential).
 - Ingestion endpoints: `POST /api/v1/events` (single) and `POST /api/v1/events/batch`.
 
 **Additional Backend Endpoints (for Dashboard):**

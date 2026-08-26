@@ -7,7 +7,12 @@ from sqlalchemy import delete as sa_delete
 from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from hawkeye.api.deps import allow_source_registration, get_current_source, get_session
+from hawkeye.api.deps import (
+    allow_source_registration,
+    get_current_source,
+    get_session,
+    require_source_for_key_creation,
+)
 from hawkeye.core.auth import generate_api_key
 from hawkeye.models.events import (
     Alert,
@@ -271,20 +276,16 @@ async def update_source(
 async def create_api_key(
     source_id: int,
     key_data: ApiKeyCreate,
-    _source: ApplicationSource = Depends(get_current_source),
+    source: ApplicationSource = Depends(require_source_for_key_creation),
     session: AsyncSession = Depends(get_session),
 ) -> ApiKeyResponse:
-    """Generate a new API key for a source."""
-    # Verify source exists
-    stmt = select(ApplicationSource).where(ApplicationSource.id == source_id)
-    result = await session.exec(stmt)
-    source = result.first()
+    """Generate a new API key for a source.
 
-    if not source:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Source not found",
-        )
+    Open (no key required) only while the deployment has zero API keys
+    (bootstrap); afterwards a valid API key is required.
+    """
+    # The auth dependency already verified the source exists
+    _ = source
 
     # Generate API key
     plain_key, key_hash = generate_api_key()

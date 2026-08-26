@@ -44,11 +44,12 @@ uvicorn hawkeye.main:app --port 8000`,
     key: "03",
     title: "Generate an API key",
     description:
-      "Create the source's first key. It is shown exactly once. This single credential both ingests events and signs in to the dashboard.",
+      "Create the source's first key. On a fresh install this needs no credentials (open only until one key exists). It is shown exactly once and both ingests events and signs in to the dashboard.",
     code: `curl -X POST http://localhost:8000/api/v1/sources/1/api-keys \\
-  -H "X-API-Key: <key-from-source-1>" \\
   -H "Content-Type: application/json" \\
-  -d '{"name": "dashboard"}'`,
+  -d '{"name": "dashboard"}'
+# after the first key exists, add:
+#   -H "X-API-Key: hawk_..."`,
     meta: 'returns { "key": "hawk_..." }; save it now',
   },
   {

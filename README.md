@@ -136,7 +136,7 @@ lives only in that script.
 
 ## API Summary
 
-All endpoints require `X-API-Key` header except `/health` and `/`.
+All endpoints require the `X-API-Key` header except `/health`, `/`, and the first-run bootstrap (`POST /sources` and the first `POST /sources/{id}/api-keys` are open only while zero sources / zero API keys exist).
 
 | Endpoint | Methods | Purpose |
 |----------|---------|---------|

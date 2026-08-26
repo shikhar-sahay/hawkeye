@@ -64,11 +64,12 @@ export function LoginPage() {
       clearStoredApiKey();
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         setError("Invalid or inactive API key. Check the key and try again.");
-      } else if (err instanceof TypeError) {
+      } else if (err instanceof TypeError || (err instanceof ApiError && err.status >= 500)) {
+        // Backend unreachable (directly or via a dev-proxy 5xx). This is not
+        // an auth problem - keep the entered key and explain what to do.
         setError(
-          "Could not reach the Hawkeye backend. Make sure the server is running, then try again."
+          "Could not reach the Hawkeye backend. Make sure the server is running on port 8000, then try again."
         );
-        // Network failure is not an auth problem - restore the entered key
         setStoredApiKey(key);
       } else {
         setError(err instanceof Error ? err.message : "Sign-in failed. Please try again.");

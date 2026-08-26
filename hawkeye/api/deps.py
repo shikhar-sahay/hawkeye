@@ -132,3 +132,62 @@ async def allow_source_registration(
             detail="API key required to register additional sources",
             headers={"WWW-Authenticate": "APIKey"},
         )
+
+
+async def allow_first_key_creation(
+    api_key: str = Depends(api_key_header),
+    session: AsyncSession = Depends(get_db_session),
+) -> None:
+    """Guard for POST /sources/{source_id}/api-keys.
+
+    Creating the FIRST API key is allowed without credentials (bootstrap:
+    a fresh install has a source but no key yet, so something must mint the
+    first credential); afterwards a valid API key is required.
+    """
+    if api_key:
+        await verify_api_key(api_key=api_key, session=session)
+        return
+
+    count_result = await session.execute(select(func.count(ApiKey.id)))
+    total_keys = count_result.scalars().one()
+    if total_keys > 0:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key required to create additional keys",
+            headers={"WWW-Authenticate": "APIKey"},
+        )
+
+
+async def require_source_for_key_creation(
+    source_id: int,
+    api_key: str = Depends(api_key_header),
+    session: AsyncSession = Depends(get_db_session),
+) -> ApplicationSource:
+    """Auth for POST /sources/{source_id}/api-keys.
+
+    With a valid API key this behaves like `get_current_source`. Without one,
+    it allows creating the FIRST API key (bootstrap: a fresh install has a
+    source but no key yet, so something must mint the first credential) and
+    otherwise raises 401.
+    """
+    if api_key:
+        return await get_current_source(api_key=api_key, session=session)
+
+    count_result = await session.execute(select(func.count(ApiKey.id)))
+    if count_result.scalars().one() > 0:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key required to create additional keys",
+            headers={"WWW-Authenticate": "APIKey"},
+        )
+
+    result = await session.execute(
+        select(ApplicationSource).where(ApplicationSource.id == source_id)
+    )
+    source = result.scalars().first()
+    if not source:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Source not found",
+        )
+    return source
