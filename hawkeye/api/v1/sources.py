@@ -3,12 +3,21 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import delete as sa_delete
 from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.api.deps import allow_source_registration, get_current_source, get_session
 from hawkeye.core.auth import generate_api_key
-from hawkeye.models.events import Alert, ApiKey, ApplicationSource, Incident, NormalizedEvent
+from hawkeye.models.events import (
+    Alert,
+    ApiKey,
+    ApplicationSource,
+    Incident,
+    IncidentAlert,
+    NormalizedEvent,
+    RawEvent,
+)
 from hawkeye.schemas import (
     ApiKeyCreate,
     ApiKeyListResponse,
@@ -163,6 +172,62 @@ async def get_source(
     return SourceResponse.model_validate(source)
 
 
+@router.delete(
+    "/{source_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a source and all of its data",
+)
+async def delete_source(
+    source_id: int,
+    _source: ApplicationSource = Depends(get_current_source),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """Permanently delete a source together with its API keys, events,
+    alerts, and incidents. This cannot be undone."""
+    stmt = select(ApplicationSource).where(ApplicationSource.id == source_id)
+    result = await session.exec(stmt)
+    source = result.first()
+
+    if not source:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Source not found",
+        )
+
+    # Collect this source's alert ids so join-table rows can be removed
+    alert_ids_stmt = select(Alert.id).where(Alert.source_id == source_id)
+    alert_ids = list((await session.exec(alert_ids_stmt)).all())
+
+    # 1. Incident <-> Alert join rows for the source's alerts
+    if alert_ids:
+        await session.execute(
+            sa_delete(IncidentAlert).where(IncidentAlert.alert_id.in_(alert_ids))
+        )
+
+    # 2. Incidents owned by the source
+    await session.execute(sa_delete(Incident).where(Incident.source_id == source_id))
+
+    # 3. Alerts raised from the source's events
+    await session.execute(sa_delete(Alert).where(Alert.source_id == source_id))
+
+    # 4. Normalized events (alerts reference them via event_id, already gone)
+    await session.execute(
+        sa_delete(NormalizedEvent).where(NormalizedEvent.source_id == source_id)
+    )
+
+    # 5. Raw ingested events
+    await session.execute(sa_delete(RawEvent).where(RawEvent.source_id == source_id))
+
+    # 6. API keys
+    await session.execute(sa_delete(ApiKey).where(ApiKey.source_id == source_id))
+
+    # 7. The source itself
+    await session.delete(source)
+    await session.commit()
+
+    return
+
+
 @router.patch(
     "/{source_id}",
     response_model=SourceResponse,
@@ -295,6 +360,7 @@ async def update_api_key(
     source_id: int,
     key_id: int,
     update: ApiKeyUpdate,
+    _source: ApplicationSource = Depends(get_current_source),
     session: AsyncSession = Depends(get_session),
 ) -> ApiKeyResponse:
     """Update an API key's properties."""
