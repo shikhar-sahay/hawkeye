@@ -1,186 +1,187 @@
-# Hawkeye Deployment Guide
+# Hawkeye Deployment Guide: Vercel + Supabase ($0)
 
-This document describes the current deployment architecture, the audit that
-shaped it, and the exact steps to move production from the legacy Render
-deployment to the new split deployment (frontend on Vercel, backend on
-Render). Nothing in this document claims a completed deployment: steps that
-require dashboard/DNS access are explicitly listed as manual.
+This document describes the production deployment architecture: the React
+frontend and FastAPI API served from **Vercel** (static SPA + Python
+serverless functions), with **Supabase** providing managed PostgreSQL and
+Realtime fan-out. No Render dependency remains in the active architecture.
+
+Nothing here claims a completed deployment: steps needing dashboard access
+are explicitly marked manual. The legacy Render/Flask deployment is
+untouched; see section 8.
 
 ---
 
-## 1. Architecture overview (v2, current)
+## 1. Architecture overview
 
 ```
-┌────────────────────┐         ┌──────────────────────────────┐
-│  Frontend (SPA)    │  HTTPS  │  Backend (FastAPI, uvicorn)  │
-│  React + Vite      │────────▶│  REST /api/v1/*  + /health   │
-│  hosted on Vercel  │  WSS    │  WebSocket /ws               │
-│  (static dist/)    │◀───────▶│  hosted on Render (or any    │
-└────────────────────┘         │  persistent runtime)         │
-                               │  SQLModel → SQLite/Postgres  │
-                               └──────────────────────────────┘
+Browser (public Vercel URL)
+  |-- REST /api/v1/*  -->  Vercel Python function (FastAPI via api/index.py)
+  |                            |-- auth: HawkEye source API keys (unchanged)
+  |                            |-- ingest -> normalize -> detect -> correlate
+  |                            |-- reads/writes Supabase Postgres (service role)
+  |                            +-- mints Realtime JWTs (source-scoped, 1h TTL)
+  |
+  +-- Realtime  -->  Supabase Realtime (postgres_changes, RLS source-scoped)
+                         ^
+Supabase Postgres  ------+-- tables + RLS + publication (supabase/migrations)
 ```
 
-- **Frontend**: static SPA (`npm run build` → `frontend/dist`). No server
-  code. Deployed on **Vercel** (`frontend/vercel.json`: Vite framework,
-  SPA rewrites, hashed-asset caching).
-- **Backend**: FastAPI + uvicorn, **single worker**. Deployed on **Render**
-  (`render.yaml` blueprint at the repo root; `Dockerfile` provided as a
-  portable alternative).
-- **Database**: SQLite by default (`./hawkeye.db`, needs a persistent disk);
-  PostgreSQL via `DATABASE_URL=postgresql+asyncpg://...` for production
-  (Render Postgres or managed provider).
-- **Communication**: the frontend calls `${VITE_API_BASE_URL}/api/v1/*` and
-  connects to `${VITE_WS_URL}/ws`. Both default to same-origin (empty env
-  var) for reverse-proxy setups; in the split deployment they point at the
-  backend's public origin.
+- **Frontend**: static SPA (`npm run build` in `frontend/`). No server code.
+- **API**: the existing FastAPI app, exported unchanged from `api/index.py`
+  and served by Vercel's Python runtime. Same routes, same validation, same
+  detection/correlation code as local uvicorn.
+- **Database**: Supabase managed PostgreSQL, schema from
+  `supabase/migrations/*.sql` (generated from the SQLModel models plus
+  hand-written RLS/publication).
+- **Realtime**: Supabase Realtime `postgres_changes` on `normalized_events`,
+  `alerts`, `incidents`, filtered per source by RLS. The raw WebSocket
+  server (`hawkeye/api/websocket.py`) remains for local development only.
+- **Local development is unchanged**: `uvicorn` + SQLite + raw WebSocket,
+  selected automatically when `VITE_SUPABASE_URL` is unset.
 
-## 2. Why the backend cannot run on Vercel
+## 2. Why this shape (and what was ruled out)
 
-The audit (see `legacy-v1` and `hawkeye/api/websocket.py`) established:
+1. **WebSockets cannot run on Vercel serverless**, and the old
+   ConnectionManager state (sessions, replay history, counters) is
+   process-local by design. Supabase Realtime replaces fan-out instead of
+   porting it.
+2. **Detection/correlation stay in Python, inline in the ingestion request.**
+   The detectors are portable SQLModel queries plus in-memory scoring; moving
+   them to TypeScript, PL/pgSQL, or the browser was rejected (rewrite risk,
+   secret/logic exposure). Measured locally: single ingest ~15ms, 50-event
+   batch ~1.8s, 100-event batch ~8.3s with superlinear growth, so the batch
+   cap is 50 per request (see `BatchEventsIngest`; backfills chunk
+   client-side).
+3. **The HawkEye source API-key model is preserved.** Supabase Auth is not
+   used: a SIEM with machine keys and no human users gains nothing from a
+   user model, and adopting one would rewrite auth everywhere. Realtime
+   identity comes from short-lived custom JWTs minted server-side after
+   API-key validation (`POST /api/v1/realtime-token`).
+4. **Vercel Hobby fits**: static hosting has no sleep; function invocations
+   (dashboard REST + ingestion) sit orders of magnitude under the ~1M/mo
+   allowance at portfolio traffic; the 10s timeout envelopes the measured
+   pipeline with the batch cap in place.
+5. **Supabase Free fits with one accepted risk**: 500MB database (demo
+   footprint is ~62MB), 5GB egress, 200 concurrent Realtime connections, 2M
+   Realtime messages/mo, 500K Edge Function invocations/mo (we use zero -
+   no Edge Functions in this architecture). **Free projects pause after 7
+   days of inactivity and need manual restore.** Mitigate with a weekly
+   keep-alive ping (e.g. scheduled GitHub Action hitting `/health`); be
+   honest that this works against the spirit of the policy and that a
+   Pro upgrade ($25/mo) is the clean fix if it ever matters.
 
-1. **WebSockets**: `/ws` is a long-lived connection; Vercel's serverless
-   functions do not support it.
-2. **In-memory state**: `ConnectionManager` keeps connections, sessions,
-   reconnection history (1h TTL, 1,000 messages), and broadcast fan-out in
-   process memory. This requires a persistent single process (sticky
-   routing at minimum). Horizontal scaling needs a Redis-backed manager
-   (future work).
-3. **Database**: SQLite writes need a persistent filesystem; serverless
-   filesystems are ephemeral. Use PostgreSQL in production.
-4. **Background work**: the correlation engine and heartbeat loops run on
-   the app lifespan - incompatible with request-scoped serverless execution.
+## 3. Environment variables
 
-Hence: **Vercel hosts the frontend only; the backend stays on Render** (or
-Fly.io/Railway/any VM/container platform via the provided Dockerfile).
+### Vercel project (Root Directory = repository root)
 
-## 3. What lived where before this migration (audit results)
+Build: `cd frontend && npm ci && npm run build`, output `frontend/dist`.
+`vercel.json` at the root maps `/api/*` to the Python function and falls
+back to the SPA.
 
-| Concern | Legacy v1 (legacy-v1/) | v2 (current) |
+| Variable | Scope | Value |
 |---|---|---|
-| Framework | Flask, single `app.py`, in-memory state | FastAPI + uvicorn, SQLModel |
-| Deployment | Render web service `hawkeye-i1bt` (no committed config; URL hardcoded in `static/script.js:3`) | See this guide |
-| Frontend | Server-rendered Jinja + Plotly CDN | React + Vite SPA, separately deployable |
-| Database | None (in-memory lists) | SQLite (dev) / PostgreSQL (prod) |
-| WebSockets | None (polling) | Native `/ws` with sessions + reconnect |
+| `VITE_SUPABASE_URL` | Production + Preview | `https://<project>.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | Production + Preview | anon/public key (safe: RLS denies everything except source-scoped reads) |
+| `DATABASE_URL` | Production only (server) | `postgresql+asyncpg://postgres:<pw>@db.<project>.supabase.co:6543/postgres` (pooler port; add `?ssl=require` form `sslmode=require` per Supabase docs if required) |
+| `SUPABASE_JWT_SECRET` | Production only (server) | project JWT secret (signs realtime tokens) |
+| `ENVIRONMENT` | Production only (server) | `production` (disables `/docs`) |
+| `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` | Production only (server) | `2` / `3` (small: serverless instances fan out, Supavisor pools) |
+| `DB_PREPARED_STATEMENT_CACHE_SIZE` | Production only (server) | `0` (required behind Supavisor transaction pooling) |
+| `HAWKEYE_SKIP_CREATE_ALL` | Production only (server) | `1` (schema comes from migrations) |
+| `HAWKEYE_DISABLE_HEARTBEAT` | Production only (server) | `1` (no persistent connections serverless) |
 
-The legacy deployment URL is referenced only inside `legacy-v1/` and is not
-used by v2. **The legacy Render service was left running at the time of this
-migration's preparation** - take it down only after the v2 deployment is
-verified (section 6).
+CRITICAL: never put `SUPABASE_SERVICE_ROLE_KEY`... note: this backend does
+not use a service-role key at all. Database access from functions uses the
+pooler URL above, whose password is a **server-only** variable and must
+NEVER appear under `VITE_*`. Likewise `SUPABASE_JWT_SECRET`, API keys, and
+the database password stay server-side. Only `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_ANON_KEY` are public by design.
 
-## 4. Environment variables
+### Supabase project
+- Region: closest to the expected viewers (Vercel functions run globally;
+  pick the region matching most traffic to minimize RTT).
+- Apply `supabase/migrations/0001_schema.sql` then `0002_realtime_rls.sql`
+  via the SQL editor (in order).
+- Confirm: tables exist, RLS enabled, `supabase_realtime` publication
+  includes the three streamed tables, `REPLICA IDENTITY FULL` on alerts +
+  incidents.
 
-### Backend (Render service)
-See `render.yaml` and `.env.example`. Required for production:
+## 4. Security model (summary)
 
-| Variable | Value |
-|---|---|
-| `ENVIRONMENT` | `production` (disables /docs) |
-| `DEBUG` | `false` |
-| `DATABASE_URL` | `postgresql+asyncpg://user:pass@host/db` |
-| `API_KEY_SECRET` | 32+ char secret (generated by blueprint) |
-| `JWT_SECRET` | 32+ char secret (generated by blueprint) |
-| `CORS_ORIGINS` | JSON array incl. the Vercel origin, e.g. `["https://hawkeye.vercel.app"]` |
-
-`--workers 1` is mandatory (in-memory WebSocket state).
-
-### Frontend (Vercel project, Root Directory = `frontend`)
-
-| Variable | Value |
-|---|---|
-| `VITE_API_BASE_URL` | `https://<render-backend-host>` (no trailing slash) |
-| `VITE_WS_URL` | `wss://<render-backend-host>` |
-
-Both default to empty (same origin) - see `frontend/.env.production.example`.
+- REST: HawkEye API keys (SHA-256 stored, expiry enforced, per-source
+  ownership, bootstrap locked after first source/key). Unchanged.
+- Realtime: custom JWT `{role: authenticated, source_id, iat, exp}` minted
+  only after API-key validation; `source_id` is server-derived and cannot be
+  influenced by query/body params (tested). RLS policies compare
+  `source_id::text` to the JWT claim (text comparison fails closed on
+  malformed claims instead of erroring). `anon` holds zero grants;
+  non-streamed tables are RLS deny-all; all writes go through Vercel
+  functions, never the browser.
+- The anon key in the frontend bundle is public by design; RLS test suite
+  (`tests/test_supabase_rls.py`, 7 tests, negative-heavy) proves isolation.
 
 ## 5. Deployment procedure (manual steps requiring dashboard access)
 
-### 5.1 Backend on Render
-1. Render dashboard → **New → Blueprint** → select this repository. Render
-   reads `render.yaml`; set `DATABASE_URL` (Render Postgres → use its
-   *Internal Database URL*, replacing `postgres://` with
-   `postgresql+asyncpg://`) and `CORS_ORIGINS` when prompted.
-   Use plan **Starter or higher**: the free tier sleeps on inactivity, which
-   drops all WebSocket connections, wipes in-memory session/replay state, and
-   delays ingestion until the next cold start. WebSockets require a service
-   that never sleeps.
-2. Deploy, then verify:
-   - `GET https://<backend>/health` → `{"status": "healthy"}`
-   - `GET https://<backend>/docs` → should be **404** (production mode)
-   - Tables are created automatically on first boot (`create_all()`); there
-     are no Alembic migrations yet, so a fresh database is required. Do not
-     point a release at a database containing an older schema without a
-     migration plan.
-3. Bootstrap the first source + key **immediately** (the endpoints are open
-   only while zero sources/keys exist, so do this before announcing the URL):
-   ```bash
-   curl -X POST https://<backend>/api/v1/sources -H "Content-Type: application/json" \
-     -d '{"name": "production", "description": "First source"}'
-   curl -X POST https://<backend>/api/v1/sources/1/api-keys \
-     -H "Content-Type: application/json" -d '{"name": "dashboard"}'
-   ```
-   Save the returned `plain_key` (shown once). Confirm the window is closed:
-   repeating either call without the key must return **401**.
-4. Start clean: do NOT run `scripts/seed_demo_data.py` against production
-   (it installs a publicly known demo key and junk data; the script refuses
-   with `ENVIRONMENT=production` unless forced).
-5. Note the ownership model: an API key manages only its own source
-   (read/update/delete source, key rotation). Onboard further sources via
-   `POST /api/v1/sources` (any valid key), then mint each new source's first
-   key with any valid key while it is keyless; afterwards that source's own
-   keys own it.
+### 5.1 Supabase project
+1. Create a new project (free plan). Save the database password, anon key,
+   and JWT secret somewhere safe (password manager, never Git).
+2. SQL editor: run `0001_schema.sql`, then `0002_realtime_rls.sql`.
+3. Verify: 7 tables, RLS enabled on all, 3 source-isolation policies,
+   publication members, replica identities.
+4. Note the pooler connection string (port 6543) for `DATABASE_URL`.
 
-### 5.2 Frontend on Vercel
-1. Vercel dashboard → **Add New → Project** → import the GitHub repo.
-2. **Root Directory: `frontend`** (framework Vite is auto-detected from
-   `frontend/vercel.json`; build `npm run build`, output `dist`).
-3. Environment Variables: `VITE_API_BASE_URL` and `VITE_WS_URL` per section 4.
-4. Deploy, then verify:
-   - Landing, `/login`, `/get-started` render; sign-in with the backend key
-     reaches `/dashboard`.
-   - Browser dev tools: XHR goes to `https://<backend>/api/v1/...` and the
-     WebSocket to `wss://<backend>/ws` (status 101, "Connected" pill).
-   - No requests to `localhost`.
-5. (Optional) assign a custom domain in Vercel and update `CORS_ORIGINS` on
-   Render to include it.
+### 5.2 Backend = Vercel Python function (same project as frontend)
+No separate backend deployment exists. The same Vercel project serves the
+SPA and `api/index.py`. Set the server-only variables from section 3,
+then deploy and verify:
+- `GET https://<app>/health` returns healthy (rewritten to the function;
+  doubles as the keep-alive target).
 
-### 5.3 Verification checklist before touching the old deployment
-- [ ] Backend `/health` healthy; docs disabled
-- [ ] Login works against the production backend
+### 5.3 Bootstrap the first source + key immediately
+Same bootstrap semantics as always (open only while zero sources/keys
+exist), against the production URL:
+```bash
+curl -X POST https://<app>/api/v1/sources -H "Content-Type: application/json" \
+  -d '{"name": "production", "description": "First source"}'
+curl -X POST https://<app>/api/v1/sources/1/api-keys \
+  -H "Content-Type: application/json" -d '{"name": "dashboard"}'
+```
+Save `plain_key` (shown once, never in Git). Confirm lockdown: repeating
+either call without the key returns 401. Start clean: never seed demo data
+or reuse the development demo key in production.
+
+### 5.4 Frontend on Vercel (same project)
+Root Directory = repository root (uses root `vercel.json`). Set
+`VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`, deploy, verify:
+- Landing, `/login`, `/get-started` render; sign-in with the production key
+  reaches `/dashboard`.
+- DevTools: XHR to same-origin `/api/v1/...`; Realtime socket to
+  `wss://<project>.supabase.co`; status pill "Connected".
+- Ingest an event: appears live without refresh; repeated failures raise a
+  live alert and incident.
+- No `localhost` traffic, no secrets in responses, no console errors.
+
+### 5.5 Verification checklist before touching anything old
+- [ ] Login works with the production key; invalid/expired keys rejected
 - [ ] Dashboard stats, charts, events, alerts, incidents, sources load
-- [ ] WebSocket "Connected"; live alerts appear when an event is ingested
-- [ ] Detection end-to-end: ingest repeated `login_failed` events → alert
-- [ ] Incident search and `affected_ip` filter return results (exercises the
-  PostgreSQL JSON-column path)
-- [ ] Expired/revoked keys are rejected on REST and WebSocket
-- [ ] Cross-source management returns 404 (e.g. key of source A cannot read
-  source B)
-- [ ] Production logs contain no secrets or tracebacks
-- [ ] All three themes, mobile layout, and 404 route behave
+- [ ] Live event/alert/incident appear without refresh
+- [ ] Search, filters, time-series, refresh, themes, 404 behave
+- [ ] Cross-source management returns 404
+- [ ] Realtime token endpoint: 401 without key, 200 with key, claims carry
+  the caller's source_id only
+- [ ] Production build contains no service-role key, JWT secret, or DB
+  password (grep `dist/`)
+- [ ] Server logs contain no secrets or tracebacks
 
-## 5.4 WebSocket transport notes (documented decisions)
+## 6. Cutover and rollback (only AFTER 5.5 passes)
 
-- Browsers cannot set custom headers on `new WebSocket()`, so the frontend
-  authenticates with `?api_key=` (the backend also accepts `Authorization:
-  Bearer` and `X-API-Key` headers for non-browser clients). The query-string
-  key travels inside WSS (encrypted in transit); treat Render access logs as
-  potentially sensitive and rotate any key suspected of leaking.
-- No `Origin` validation is performed: `Origin` is trivially spoofable by
-  non-browser clients, so the API key is the actual access control. CORS
-  still restricts which browser origins may call the REST API.
-- One backend instance, one worker: session/replay/broadcast state is
-  in-process. Do not scale horizontally or enable autoscaling until
-  `SCALE-WS-01` (Redis-backed ConnectionManager) lands.
-
-## 6. Render cutover (only AFTER 5.3 passes)
-
-- The **legacy v1 service** (`hawkeye-i1bt`) can be suspended/archived from
-  the Render dashboard. Its code is preserved in Git (tag `legacy-v1-flask`
-  and the in-tree `legacy-v1/` archive - see `legacy-v1/README.md`).
-- The **new v2 backend service** created in 5.1 replaces it as the long-term
-  API host. Do not scale it beyond one instance until the ConnectionManager
-  is externalized (Redis pub/sub) - tracked in `TODO.md`.
+- The legacy v1 service (`hawkeye-i1bt`) and the Render v2 backend config
+  stay untouched until the new stack soaks. Rollback = keep using the old
+  deployment; no data migration means nothing to unwind (production starts
+  with a fresh database by design).
+- Only after a soak period: suspend the old Render service, then remove
+  `render.yaml`/`Dockerfile` references from the active docs. Never delete
+  `legacy-v1/` or the `legacy-v1-flask` tag (historical archive).
 
 ## 7. Recovery of the legacy implementation
 
@@ -189,6 +190,3 @@ git fetch --tags
 git worktree add ../hawkeye-legacy legacy-v1-flask   # browse the full v1 tree
 git checkout legacy-v1-flask -- legacy-v1/           # restore the directory
 ```
-
-The tag is pushed to GitHub; `legacy-v1/` also remains on `master` as an
-in-tree archive until the migration is verified.

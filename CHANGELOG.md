@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [Unreleased] - Vercel + Supabase migration (branch: migrate/vercel-supabase)
+
+### Added
+- Supabase schema migration (`supabase/migrations/0001_schema.sql`,
+  generated from SQLModel metadata) and hand-written RLS/publication
+  migration (`0002_realtime_rls.sql`): source-scoped SELECT on the three
+  streamed tables, deny-all elsewhere, `supabase_realtime` publication,
+  `REPLICA IDENTITY FULL` on alerts/incidents.
+- `POST /api/v1/realtime-token`: mints short-lived, source-scoped Realtime
+  JWTs from a validated HawkEye API key (server-derived `source_id`,
+  uninfluencable by callers).
+- `api/index.py`: Vercel serverless entrypoint exporting the FastAPI app
+  natively (no adapter); lifespan skips DDL/heartbeat under
+  `HAWKEYE_SKIP_CREATE_ALL` / `HAWKEYE_DISABLE_HEARTBEAT`.
+- Frontend `SupabaseRealtimeProvider` behind env flag, same context
+  contract; legacy raw-WebSocket path preserved for local dev.
+- Root `vercel.json` (monorepo: frontend build + `/api/*` + `/health` to
+  function, SPA fallback); `.python-version` pins 3.12.
+
+### Changed
+- Batch ingestion cap 1000 to 50 (measured superlinear cost: 1.78s/50 and
+  8.26s/100 locally; Supabase RTT would breach the 10s serverless timeout).
+  Backfills chunk client-side.
+- Small serverless-safe DB pool settings (`DB_POOL_SIZE`,
+  `DB_MAX_OVERFLOW`, `DB_PREPARED_STATEMENT_CACHE_SIZE`).
+
+### Fixed
+- (this session) see Tests below; no production deployment yet.
+
+### Tests
+- 7 RLS isolation tests (negative-heavy, require `HAWKEYE_TEST_PG_URL`).
+- 8 realtime-token tests incl. token-to-RLS claim contract.
+- 6 Vercel entrypoint tests (full API surface, detection pipeline, batch
+  envelope, lifespan flags).
+- Suite total 61 passing (54 always + 7 RLS with PG).
+
+---
+
 ## [Unreleased] - Live WebSocket event delivery fix (2026-09-05)
 
 ### Fixed

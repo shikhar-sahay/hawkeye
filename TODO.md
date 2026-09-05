@@ -540,6 +540,7 @@ Each task has:
 | **AUDIT-MIGRATE-01** | Migration-readiness audit (Vercel + Render + PG) | 2026-09-05 |
 | **SEC-RELEASE-01** | Source ownership enforcement, expiry enforcement, ingestion error sanitization, deployment docs hardening | 2026-09-05 |
 | **WS-LIVE-01** | Fixed silently-dead live event broadcasts (subscription mismatch + missing created_at), 4 regression tests, proven live on PG16 and dashboard UI | 2026-09-05 |
+| **MIGRATE-SUPABASE-01** | Vercel + Supabase migration (branch migrate/vercel-supabase): schema migration, RLS, realtime token, native FastAPI entrypoint, Supabase realtime provider, batch cap 50 | 2026-09-05 |
 
 **Total Completed: 45 tasks**
 

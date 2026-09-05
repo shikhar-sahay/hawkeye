@@ -2,8 +2,8 @@
 
 ## Session Metadata
 - **Date**: 2026-09-05
-- **Session ID**: 2026-09-05-01 (Security + production readiness + migration prep)
-- **Branch**: master (all work committed and pushed)
+- **Session ID**: 2026-09-05-02 (Vercel + Supabase migration)
+- **Branch**: migrate/vercel-supabase (all work committed and pushed there; master untouched at b2be047)
 
 ---
 
@@ -40,8 +40,10 @@ and frontend :5173 running. Full suite must run with no stray
 python/uvicorn processes (kill leftovers first - SQLite contention hangs).
 
 ### Next Action
-Manual production migration per `docs/deployment.md` section 5 (needs Render
-+ Vercel dashboard access). Then Milestone 4: T-040 browser agent scaffold.
+Production provisioning (needs dashboard access): Supabase project, apply
+supabase/migrations, Vercel project with env per docs/deployment.md section
+3, then run the section 5 checklist. Then Milestone 4: T-040 browser agent
+scaffold.
 
 ---
 

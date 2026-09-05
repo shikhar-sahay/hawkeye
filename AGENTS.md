@@ -102,7 +102,7 @@ Hawkeye/
 │   │   │   ├── charts/         # 6 chart components (lazy-loaded)
 │   │   │   ├── dashboard/      # Dashboard components
 │   │   │   └── incidents/      # IncidentTimeline
-│   │   ├── context/WebSocketContext.tsx  # SINGLE shared WebSocket provider (only WS implementation)
+│   │       ├── context/WebSocketContext.tsx  # Realtime dispatcher: Legacy (raw WS, local) vs Supabase (prod)
 │   │   ├── hooks/              # use-toast only (useWebSocket hook was REMOVED)
 │   │   ├── pages/              # Dashboard, Events, Alerts, Incidents, Sources, Settings
 │   │   ├── types/index.ts      # TypeScript types matching backend schemas
@@ -122,13 +122,15 @@ Hawkeye/
 │   └── vite.config.ts      # Builds to dist/ for Chrome "Load unpacked"
 │   # NOTE: flat layout (background/, content/, shared/) — old src/ layout is legacy
 ├── tests/                # Unit tests (pytest + pytest-asyncio)
+├── api/index.py           # Vercel serverless entrypoint (exports FastAPI app natively)
 │   ├── test_detection.py
 │   ├── test_ingestion.py
 │   └── test_websocket.py
 ├── docs/USER_MANUAL.md    # End-user manual (setup, dashboard, search, troubleshooting)
+├── supabase/migrations/  # 0001 schema (generated) + 0002 RLS/publication (hand-written)
 ├── legacy-v1/             # ARCHIVED — Old Flask implementation, reference only
 ├── alembic/              # Database migrations (Milestone 6 — NOT STARTED)
-├── render.yaml           # Render blueprint for the v2 backend
+├── render.yaml           # Render blueprint (legacy path; Supabase migration in progress)
 ├── Dockerfile            # Backend container image (single worker)
 ├── pyproject.toml        # Build config, dependencies, ruff/mypy/pytest settings
 ├── AGENTS.md             # THIS FILE — Developer handbook
@@ -200,7 +202,7 @@ Full details in `ROADMAP.md`. Do not duplicate here.
   - Functional user menu: Profile → Settings, Security Settings → API tab, Sign Out clears API key
   - Routing for all 6 pages
   - ConnectionStatusCard (reusable: inline for TopNav, full card for Events page)
-- **WebSocket Architecture:** SINGLE shared connection — `WebSocketProvider` (in `AppLayout`) → `WebSocketContext` → all consumers (TopNav, Events, Alerts, Incidents). The old `useWebSocket.ts` hook was removed; `frontend/src/context/WebSocketContext.tsx` is the only WS implementation.
+- **Realtime Architecture:** SINGLE shared connection — `WebSocketProvider` (in `AppLayout`) → `WebSocketContext` → all consumers (TopNav, Events, Alerts, Incidents). The old `useWebSocket.ts` hook was removed; `frontend/src/context/WebSocketContext.tsx` dispatches between `LegacyRealtimeProvider` (raw WS, local dev) and `SupabaseRealtimeProvider` (Supabase Realtime, production) behind an identical context interface.
 - **What's Blocked:** Nothing critical. Optional next: T-034 backend lint cleanup
 - **Source of Truth for Active Task:** `SESSION.md` — always contains exactly one current engineering task with status, files, verification commands, and handoff notes
 
