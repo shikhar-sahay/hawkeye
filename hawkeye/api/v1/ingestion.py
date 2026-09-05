@@ -1,9 +1,12 @@
 """Event ingestion API endpoints."""
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from hawkeye.api.deps import get_current_source, get_session
+from hawkeye.config import settings
 from hawkeye.models.events import ApplicationSource
 from hawkeye.schemas.ingestion import (
     BatchEventsIngest,
@@ -14,6 +17,24 @@ from hawkeye.schemas.ingestion import (
 from hawkeye.services.ingestion_service import IngestionService
 
 router = APIRouter(tags=["ingestion"])
+
+logger = logging.getLogger(__name__)
+
+
+def _ingest_error(message: str, exc: Exception) -> HTTPException:
+    """500 for ingestion failures. The full exception is logged server-side;
+    clients only see internals outside production (where the detail aids SDK
+    authors debugging against a dev server)."""
+    logger.exception("%s", message)
+    if settings.environment == "production":
+        return HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=message,
+        )
+    return HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail=f"{message}: {str(exc)}",
+    )
 
 
 @router.post(
@@ -37,10 +58,7 @@ async def ingest_event(
             normalized_event_id=normalized.id,
         )
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to ingest event: {str(e)}",
-        )
+        raise _ingest_error("Failed to ingest event", e)
 
 
 @router.post(
@@ -65,7 +83,4 @@ async def ingest_batch(
             event_ids=event_ids,
         )
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to ingest batch: {str(e)}",
-        )
+        raise _ingest_error("Failed to ingest batch", e)

@@ -657,6 +657,11 @@ async def get_ws_source(
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid API key")
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid API key")
 
+    # Expiry uses the same UTC-naive convention as the rest of the codebase.
+    if api_key_obj.expires_at is not None and api_key_obj.expires_at <= datetime.utcnow():
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="API key expired")
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason="API key expired")
+
     result = await session.execute(
         select(ApplicationSource).where(ApplicationSource.id == api_key_obj.source_id)
     )
