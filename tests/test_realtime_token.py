@@ -166,3 +166,20 @@ async def test_forged_token_rejected():
     )
     with pytest.raises(JWTError):
         jwt.decode(bad, TEST_SECRET, algorithms=["HS256"])
+
+
+@pytest.mark.asyncio
+async def test_token_claims_match_rls_contract(client, api_key):
+    """Composition contract with tests/test_supabase_rls.py: the minted JWT
+    must carry an integer source_id claim under role "authenticated", which
+    is exactly what the RLS policies compare (source_id::text = claim)."""
+    from jose import jwt
+
+    r = await client.post(
+        "/api/v1/realtime-token", headers={"X-API-Key": api_key}
+    )
+    assert r.status_code == 200
+    claims = jwt.decode(r.json()["token"], TEST_SECRET, algorithms=["HS256"])
+    assert set(claims) == {"role", "source_id", "iat", "exp"}
+    assert claims["role"] == "authenticated"
+    assert isinstance(claims["source_id"], int) and claims["source_id"] == 1

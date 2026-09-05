@@ -22,6 +22,8 @@ router = APIRouter(tags=["realtime"])
 
 logger = logging.getLogger(__name__)
 
+_REALTIME_UNCONFIGURED = "Realtime is not configured on this backend"
+
 
 def mint_realtime_token(source_id: int) -> tuple[str, int]:
     """Mint a short-lived Supabase Realtime JWT scoped to one source.
@@ -31,7 +33,8 @@ def mint_realtime_token(source_id: int) -> tuple[str, int]:
     """
     secret = settings.supabase_jwt_secret
     if not secret:
-        raise RuntimeError("SUPABASE_JWT_SECRET is not configured")
+        logger.warning("SUPABASE_JWT_SECRET is not configured")
+        raise RuntimeError
     from jose import jwt
 
     now = int(time.time())
@@ -65,7 +68,7 @@ async def create_realtime_token(
         logger.warning("Realtime token requested but SUPABASE_JWT_SECRET is unset")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Realtime is not configured on this backend",
+            detail=_REALTIME_UNCONFIGURED,
         )
     return RealtimeTokenResponse(
         token=token, expires_in=ttl, source_id=source.id

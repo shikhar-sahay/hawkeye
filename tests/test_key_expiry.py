@@ -1,13 +1,10 @@
 """Tests for API key expiry enforcement (REST and WebSocket)."""
 
 import asyncio
-import os
-import tempfile
 from datetime import datetime, timedelta
 
 import pytest
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -107,57 +104,68 @@ async def test_valid_key_accepted_on_rest(client, keys):
 
 
 def test_expired_key_rejected_on_websocket():
-    """Expired keys must not establish WebSocket connections."""
-    from hawkeye.core.auth import generate_api_key, hash_api_key
+    """Expired keys must not establish WebSocket connections.
+
+    Exercises get_ws_source directly (no TestClient portal): the Starlette
+    TestClient portal teardown hangs intermittently on Windows when mixed
+    with the global engine, so WS auth is asserted at the dependency level.
+    """
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    from fastapi import WebSocketException
+
+    from hawkeye.api.websocket import get_ws_source
+    from hawkeye.core.auth import generate_api_key
     from hawkeye.models.events import ApiKey, ApplicationSource
 
-    fd, path = tempfile.mkstemp(suffix=".db")
-    os.close(fd)
-    url = f"sqlite+aiosqlite:///{path}"
-    engine = create_async_engine(url)
-    try:
-        asyncio.run(_init_db(engine))
-
-        async def override():
-            factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-            async with factory() as session:
-                yield session
-
-        app.dependency_overrides[deps.get_session] = override
-        app.dependency_overrides[db_get_session] = override
-        try:
+    async def scenario():
+        engine = create_async_engine(
+            "sqlite+aiosqlite:///:memory:",
+            poolclass=StaticPool,
+        )
+        async with engine.begin() as conn:
+            await conn.run_sync(SQLModel.metadata.create_all)
+        factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        async with factory() as session:
+            session.add(ApplicationSource(id=1, name="ws-src", description="ws"))
+            await session.commit()
             plain, key_hash = generate_api_key()
+            session.add(
+                ApiKey(
+                    source_id=1,
+                    key_hash=key_hash,
+                    key_prefix="hawk_",
+                    name="expired-ws",
+                    is_active=True,
+                    expires_at=datetime.utcnow() - timedelta(minutes=5),
+                )
+            )
+            await session.commit()
 
-            async def seed():
-                factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-                async with factory() as session:
-                    session.add(ApplicationSource(name="ws-src", description="ws"))
-                    await session.commit()
-                    session.add(
-                        ApiKey(
-                            source_id=1,
-                            key_hash=key_hash,
-                            key_prefix="hawk_",
-                            name="expired-ws",
-                            is_active=True,
-                            expires_at=datetime.utcnow() - timedelta(minutes=5),
-                        )
-                    )
-                    await session.commit()
+            websocket = AsyncMock()
+            websocket.headers = {"x-api-key": plain}
+            with pytest.raises(WebSocketException):
+                await get_ws_source(websocket, None, session)
+            websocket.close.assert_called()
 
-            asyncio.run(seed())
-            client = TestClient(app, raise_server_exceptions=False)
-            with pytest.raises(Exception):
-                with client.websocket_connect(f"/ws?api_key={plain}"):
-                    pass
-        finally:
-            app.dependency_overrides.pop(deps.get_session, None)
-            app.dependency_overrides.pop(db_get_session, None)
-    finally:
-        asyncio.run(engine.dispose())
-        os.unlink(path)
+            # Sanity: a fresh key with future expiry authenticates
+            plain2, hash2 = generate_api_key()
+            session.add(
+                ApiKey(
+                    source_id=1,
+                    key_hash=hash2,
+                    key_prefix="hawk_",
+                    name="valid-ws",
+                    is_active=True,
+                    expires_at=datetime.utcnow() + timedelta(days=1),
+                )
+            )
+            await session.commit()
+            websocket2 = AsyncMock()
+            websocket2.headers = {"x-api-key": plain2}
+            source = await get_ws_source(websocket2, None, session)
+            assert source.id == 1
+        await engine.dispose()
 
-
-async def _init_db(engine):
-    async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
+    asyncio.run(scenario())
