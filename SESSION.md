@@ -2,69 +2,47 @@
 
 ## Session Metadata
 - **Date**: 2026-09-05
-- **Session ID**: 2026-09-05-01 (Migration-readiness audit: Vercel + Render + PostgreSQL)
+- **Session ID**: 2026-09-05-01 (Security + production readiness + migration prep)
 - **Branch**: master (all work committed and pushed)
 
 ---
 
 ## Current Active Engineering Task
 
-### Task ID: AUDIT-MIGRATE-01 — Migration-readiness audit (no migration performed)
-### Status: **COMPLETE — verdict: READY WITH BLOCKERS (all fixed in-session)**
+### Task ID: SEC-RELEASE-01 — Security hardening and production release verification
+### Status: **COMPLETE - see final report in chat for GO verdict**
 
 **What was done:**
-1. Full audit of frontend / backend / database / deployment config /
-   WebSockets / security / legacy-v1 separation / docs (see final report in
-   chat; key evidence below).
-2. Fixed all blockers found (commit `806dfba`):
-   - Incident JSON-column `ILIKE` filters → `CAST(... AS VARCHAR)` (PG-safe).
-   - Added `asyncpg` to `pyproject.toml` + `requirements.txt`.
-   - Prod-safe login error message; `VITE_WS_URL` comment fix.
-   - Dockerfile `HEALTHCHECK` honors `$PORT`.
-   - `--force` production guards on seed/cleanup scripts.
-3. Removed two stray empty dir husks (`frontend/browser-agent/`,
-   `frontend/Work/...`, 0 files each, untracked).
-4. Synced local dev `.env` `CORS_ORIGINS` with `.env.example` (was stale
-   `:5000`, masked real CORS behavior during testing).
+1. Phase 0: clean baseline confirmed (HEAD == origin/master, tag intact).
+2. Phase 1: full code-level security audit - route-by-route auth, IDOR,
+   schemas, WS, CORS, secrets, frontend, deps, error handling.
+3. Phase 3: fixed P0 source-management IDOR (`require_source_ownership` +
+   first-key onboarding carve-out; 4 regression tests), P1 expiry
+   enforcement on REST + WS (3 tests), P1 ingestion 500 sanitization.
+4. Docs: deployment.md hardened (Starter plan, schema strategy, bootstrap
+   lockdown check, ownership model, WS transport decisions, extended
+   checklist); USER_MANUAL seed warning strengthened.
+5. Phase 7: 43/43 tests, tsc/lint/build clean, preview + SPA fallback,
+   login/dashboard/search live, ownership 404 degrades gracefully in UI.
 
-**Verification (this session):**
-- `pytest tests/` → 36/36 (run with backend stopped; SQLite lock contention
-  with a live server can hang the suite).
-- `tsc --noEmit` clean; ESLint 0 errors; `vite build` passes; `vite preview`
-  serves SPA fallback (`/` and `/alerts` → 200).
-- Production bundle built with test `VITE_API_BASE_URL`/`VITE_WS_URL` values
-  confirms hosts are inlined (cross-origin config path works).
-- Live: backend health OK; CORS preflight 200 + ACAO echo for allowed
-  origin, 401 without echo for evil origin; incident search + affected_ip
-  filters 200 with correct results (after CAST fix); WS connects with valid
-  key, handshake rejected (403) with bad key; ingest → dashboard live row
-  verified; probe events cleaned up afterwards.
-- PG DDL for all 7 tables + 41 index/constraint statements compiles cleanly
-  for the `postgresql` dialect (SERIAL PKs, TIMESTAMP WITHOUT TIME ZONE).
-- `postgresql+asyncpg://` driver chain resolves (fails only at TCP connect -
-  no PG server available locally, as expected).
-
-**NOT verified (needs real environments):** actual PostgreSQL server
-(end-to-end queries, `create_all`, JSONB behavior at runtime); Vercel deploy;
-Render deploy; Docker image build (daemon not running); Render disk/Postgres
-behavior; production TLS/WSS.
+**Verification:** see task list and final report. Backend :8000 (fresh code)
+and frontend :5173 running. Full suite must run with no stray
+python/uvicorn processes (kill leftovers first - SQLite contention hangs).
 
 ### Next Action
-Migration tonight per the cutover plan in the final report (prepare PG →
-deploy backend → verify → deploy frontend → verify → retire legacy Render).
+Manual production migration per `docs/deployment.md` section 5 (needs Render
++ Vercel dashboard access). Then Milestone 4: T-040 browser agent scaffold.
 
 ---
 
 ## Notes for next agent
-- Dev servers: frontend :5173 (vite dev, still running), backend :8000
-  (fresh uvicorn, current code). Run only ONE uvicorn; stop it before pytest.
 - Demo key `hawk_F5I...` lives ONLY in `scripts/seed_demo_data.py` - it is
-  publicly known; NEVER run the seed script against production (now guarded).
+  publicly known; NEVER seed production (now guarded by ENVIRONMENT check).
 - `legacy-v1-flask` tag intact; `legacy-v1/` untouched; old Render service
   untouched.
 - Frontend split-deployment env: `VITE_API_BASE_URL`, `VITE_WS_URL` (empty =
-  same-origin).
-- SCALE-WS-01 (TODO.md): backend is single-instance by design until
-  ConnectionManager state moves to Redis; `render.yaml`/Dockerfile pin
-  `--workers 1`.
+  same-origin). No secrets under `VITE_*`.
+- Ownership model: a key manages only its own source (+ first key of a
+  keyless source). Dashboard shows error toasts for other sources.
+- SCALE-WS-01 (TODO.md): single instance/worker by design until Redis lands.
 

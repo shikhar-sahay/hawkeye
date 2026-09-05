@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] - Security hardening and production release (2026-09-05)
+
+### Fixed
+- **P0: cross-source IDOR on the management plane.** Any valid key could
+  read, modify, deactivate, or delete ANY source, and list, mint, modify, or
+  revoke ANY source's API keys (full impersonation + wipe + auth DoS). New
+  `require_source_ownership` dependency (404 on mismatch, no existence
+  oracle) now guards source detail/update/delete and all key endpoints; key
+  minting keeps a narrow onboarding carve-out (first key of a keyless source
+  only). Data-plane endpoints were already correctly scoped. 4 regression
+  tests in `tests/test_source_ownership.py`.
+- **P1: API key expiry was accepted but never enforced.** Expired keys now
+  get 401 (`API key expired`) on REST and 1008 rejection on WebSocket.
+  3 tests in `tests/test_key_expiry.py`.
+- **P1: ingestion 500s echoed raw exception text** (DB internals). Production
+  responses are now generic; full tracebacks stay in server logs; dev keeps
+  detail for SDK authors.
+
+### Changed
+- `docs/deployment.md`: Starter-plan requirement (no sleeping), fresh-DB +
+  `create_all` strategy, immediate-bootstrap lockdown check, no-seed-prod
+  rule, ownership model, WebSocket transport decisions, extended checklist.
+- `docs/USER_MANUAL.md`: never seed production.
+- Removed accidentally committed `frontend/vite.config.d.ts` build artifact.
+
+---
+
 ## [Unreleased] - Migration-readiness audit fixes (2026-09-05)
 
 ### Fixed

@@ -101,18 +101,35 @@ Both default to empty (same origin) - see `frontend/.env.production.example`.
    reads `render.yaml`; set `DATABASE_URL` (Render Postgres → use its
    *Internal Database URL*, replacing `postgres://` with
    `postgresql+asyncpg://`) and `CORS_ORIGINS` when prompted.
+   Use plan **Starter or higher**: the free tier sleeps on inactivity, which
+   drops all WebSocket connections, wipes in-memory session/replay state, and
+   delays ingestion until the next cold start. WebSockets require a service
+   that never sleeps.
 2. Deploy, then verify:
    - `GET https://<backend>/health` → `{"status": "healthy"}`
    - `GET https://<backend>/docs` → should be **404** (production mode)
-3. Bootstrap the first source + key (open only while zero sources/keys exist):
+   - Tables are created automatically on first boot (`create_all()`); there
+     are no Alembic migrations yet, so a fresh database is required. Do not
+     point a release at a database containing an older schema without a
+     migration plan.
+3. Bootstrap the first source + key **immediately** (the endpoints are open
+   only while zero sources/keys exist, so do this before announcing the URL):
    ```bash
    curl -X POST https://<backend>/api/v1/sources -H "Content-Type: application/json" \
      -d '{"name": "production", "description": "First source"}'
    curl -X POST https://<backend>/api/v1/sources/1/api-keys \
      -H "Content-Type: application/json" -d '{"name": "dashboard"}'
    ```
-4. (Optional) seed demo data against the production API with the seeded key
-   pattern from `scripts/seed_demo_data.py`, or leave the instance clean.
+   Save the returned `plain_key` (shown once). Confirm the window is closed:
+   repeating either call without the key must return **401**.
+4. Start clean: do NOT run `scripts/seed_demo_data.py` against production
+   (it installs a publicly known demo key and junk data; the script refuses
+   with `ENVIRONMENT=production` unless forced).
+5. Note the ownership model: an API key manages only its own source
+   (read/update/delete source, key rotation). Onboard further sources via
+   `POST /api/v1/sources` (any valid key), then mint each new source's first
+   key with any valid key while it is keyless; afterwards that source's own
+   keys own it.
 
 ### 5.2 Frontend on Vercel
 1. Vercel dashboard → **Add New → Project** → import the GitHub repo.
@@ -134,7 +151,27 @@ Both default to empty (same origin) - see `frontend/.env.production.example`.
 - [ ] Dashboard stats, charts, events, alerts, incidents, sources load
 - [ ] WebSocket "Connected"; live alerts appear when an event is ingested
 - [ ] Detection end-to-end: ingest repeated `login_failed` events → alert
+- [ ] Incident search and `affected_ip` filter return results (exercises the
+  PostgreSQL JSON-column path)
+- [ ] Expired/revoked keys are rejected on REST and WebSocket
+- [ ] Cross-source management returns 404 (e.g. key of source A cannot read
+  source B)
+- [ ] Production logs contain no secrets or tracebacks
 - [ ] All three themes, mobile layout, and 404 route behave
+
+## 5.4 WebSocket transport notes (documented decisions)
+
+- Browsers cannot set custom headers on `new WebSocket()`, so the frontend
+  authenticates with `?api_key=` (the backend also accepts `Authorization:
+  Bearer` and `X-API-Key` headers for non-browser clients). The query-string
+  key travels inside WSS (encrypted in transit); treat Render access logs as
+  potentially sensitive and rotate any key suspected of leaking.
+- No `Origin` validation is performed: `Origin` is trivially spoofable by
+  non-browser clients, so the API key is the actual access control. CORS
+  still restricts which browser origins may call the REST API.
+- One backend instance, one worker: session/replay/broadcast state is
+  in-process. Do not scale horizontally or enable autoscaling until
+  `SCALE-WS-01` (Redis-backed ConnectionManager) lands.
 
 ## 6. Render cutover (only AFTER 5.3 passes)
 

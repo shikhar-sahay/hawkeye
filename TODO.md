@@ -537,6 +537,8 @@ Each task has:
 | **QA-POLISH-03** | Search hardening + mobile panel, DELETE sources endpoint, event-counts perf, stat semantics, source names, docs/USER_MANUAL.md, LICENSE, DB cleanup | 2026-08-26 |
 | **FIX-AUTH-01** | Fresh-install bootstrap (first API key), actionable login errors when backend down | 2026-08-26 |
 | **DEPLOY-01** | Dialog width cap fix, event detail widened, alerts/incidents side lists, dashboard refresh, search reset on nav, Vercel/Render deploy prep, legacy-v1 tag | 2026-08-26 |
+| **AUDIT-MIGRATE-01** | Migration-readiness audit (Vercel + Render + PG) | 2026-09-05 |
+| **SEC-RELEASE-01** | Source ownership enforcement, expiry enforcement, ingestion error sanitization, deployment docs hardening | 2026-09-05 |
 
 **Total Completed: 45 tasks**
 

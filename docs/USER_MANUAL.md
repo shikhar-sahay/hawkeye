@@ -129,7 +129,9 @@ This creates five demo sources (Windows Endpoint, Linux Server, Web
 Application, API Gateway, Firewall) with 24 hours of realistic events that
 trigger all seven detectors. It also fixes the demo source's API key to
 `hawk_F5IHr9TsIUujgs_9E_BWsLxmQIA5pYz8aFYcggzHqH0` so the dashboard can log
-in with it. Do **not** use this key anywhere real.
+in with it. Do **not** use this key anywhere real, and never run the seed
+script against a production database (it refuses to run with
+`ENVIRONMENT=production` unless forced).
 
 ### 2.7 Run the tests
 
