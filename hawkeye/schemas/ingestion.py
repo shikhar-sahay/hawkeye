@@ -48,7 +48,12 @@ class RawEventIngest(BaseModel):
 class BatchEventsIngest(BaseModel):
     """Batch event ingestion request."""
 
-    events: list[RawEventIngest] = Field(..., min_length=1, max_length=1000)
+    # Capped for serverless execution: per-event detection/correlation cost
+    # grows superlinearly with accumulated state (measured 1.78s/50 and
+    # 8.26s/100 events locally on SQLite; Supabase adds network RTT per
+    # query). Larger backfills must chunk client-side. See
+    # tests/test_vercel_serverless.py::test_batch_ingest_timeout_envelope.
+    events: list[RawEventIngest] = Field(..., min_length=1, max_length=50)
     source: str | None = Field(default=None, max_length=100)
 
 

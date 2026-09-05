@@ -26,12 +26,23 @@ class Database:
     @property
     def engine(self) -> AsyncEngine:
         if self._engine is None:
-            self._engine = create_async_engine(
-                self._url,
-                echo=self._echo,
-                future=True,
-                pool_pre_ping=True,
-            )
+            kwargs: dict = {
+                "echo": self._echo,
+                "future": True,
+                "pool_pre_ping": True,
+            }
+            # Pool tuning applies to server databases only; SQLite keeps
+            # driver defaults so local dev behavior is unchanged.
+            if not self._url.startswith("sqlite"):
+                kwargs["pool_size"] = settings.db_pool_size
+                kwargs["max_overflow"] = settings.db_max_overflow
+                if settings.db_prepared_statement_cache_size is not None:
+                    # Required (=0) behind pgbouncer/Supavisor transaction
+                    # pooling, which cannot track prepared statements.
+                    kwargs["connect_args"] = {
+                        "prepared_statement_cache_size": settings.db_prepared_statement_cache_size
+                    }
+            self._engine = create_async_engine(self._url, **kwargs)
         return self._engine
 
     @property

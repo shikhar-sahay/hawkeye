@@ -1,5 +1,6 @@
 """Hawkeye main FastAPI application."""
 
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -11,16 +12,24 @@ from hawkeye.api.websocket import router as ws_router
 from hawkeye.config import settings
 from hawkeye.database import db
 
+# Serverless (Vercel) toggles. Local uvicorn leaves both unset and behaves
+# exactly as before.
+_SKIP_CREATE_ALL = os.environ.get("HAWKEYE_SKIP_CREATE_ALL") == "1"
+_DISABLE_HEARTBEAT = os.environ.get("HAWKEYE_DISABLE_HEARTBEAT") == "1"
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     # Startup
-    await db.create_all()
-    await connection_manager.start()
+    if not _SKIP_CREATE_ALL:
+        await db.create_all()
+    if not _DISABLE_HEARTBEAT:
+        await connection_manager.start()
     yield
     # Shutdown
-    await connection_manager.stop()
+    if not _DISABLE_HEARTBEAT:
+        await connection_manager.stop()
     await db.close()
 
 

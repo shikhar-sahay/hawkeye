@@ -31,6 +31,13 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "sqlite+aiosqlite:///./hawkeye.db"
     database_echo: bool = False
+    # Connection pool (non-SQLite URLs only; SQLite keeps driver defaults).
+    # Serverless (Vercel + Supabase pooler) should use small values, e.g.
+    # DB_POOL_SIZE=2 DB_MAX_OVERFLOW=3, plus
+    # DB_PREPARED_STATEMENT_CACHE_SIZE=0 for pgbouncer transaction mode.
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
+    db_prepared_statement_cache_size: int | None = None
 
     # Security
     api_key_secret: str = Field(
