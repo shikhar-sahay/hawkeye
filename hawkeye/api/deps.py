@@ -1,6 +1,7 @@
 """API dependencies."""
 
 from collections.abc import AsyncGenerator
+from datetime import datetime
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import APIKeyHeader
@@ -12,6 +13,14 @@ from hawkeye.database import get_session as get_db_session
 from hawkeye.models.events import ApiKey, ApplicationSource
 
 api_key_header = APIKeyHeader(name=settings.api_key_header, auto_error=False)
+
+
+def _key_is_expired(api_key_obj: ApiKey) -> bool:
+    """True when the key has an expiry timestamp in the past (UTC-naive)."""
+    return (
+        api_key_obj.expires_at is not None
+        and api_key_obj.expires_at <= datetime.utcnow()
+    )
 
 
 async def get_current_source(
@@ -41,6 +50,13 @@ async def get_current_source(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid API key",
+            headers={"WWW-Authenticate": "APIKey"},
+        )
+
+    if _key_is_expired(api_key_obj):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key expired",
             headers={"WWW-Authenticate": "APIKey"},
         )
 
@@ -92,6 +108,13 @@ async def verify_api_key(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid API key",
+            headers={"WWW-Authenticate": "APIKey"},
+        )
+
+    if _key_is_expired(api_key_obj):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key expired",
             headers={"WWW-Authenticate": "APIKey"},
         )
 
@@ -165,13 +188,38 @@ async def require_source_for_key_creation(
 ) -> ApplicationSource:
     """Auth for POST /sources/{source_id}/api-keys.
 
-    With a valid API key this behaves like `get_current_source`. Without one,
-    it allows creating the FIRST API key (bootstrap: a fresh install has a
-    source but no key yet, so something must mint the first credential) and
-    otherwise raises 401.
+    Without credentials this allows creating the FIRST API key (bootstrap:
+    a fresh install has a source but no key yet, so something must mint the
+    first credential) and otherwise raises 401. With credentials, the caller
+    must own the target source, except when minting the very first key of a
+    keyless source (onboarding: any authenticated key may initialize a source
+    that has no keys yet; the window closes once the first key exists).
     """
     if api_key:
-        return await get_current_source(api_key=api_key, session=session)
+        current = await get_current_source(api_key=api_key, session=session)
+        if current.id == source_id:
+            return current
+        # Onboarding carve-out: any authenticated key may mint the FIRST key
+        # of a source that has no keys yet (e.g. a source just created via
+        # POST /sources). The window closes once the first key exists.
+        key_count = await session.execute(
+            select(func.count(ApiKey.id)).where(ApiKey.source_id == source_id)
+        )
+        if key_count.scalars().one() == 0:
+            result = await session.execute(
+                select(ApplicationSource).where(ApplicationSource.id == source_id)
+            )
+            target = result.scalars().first()
+            if not target:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Source not found",
+                )
+            return target
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Source not found",
+        )
 
     count_result = await session.execute(select(func.count(ApiKey.id)))
     if count_result.scalars().one() > 0:
@@ -191,3 +239,23 @@ async def require_source_for_key_creation(
             detail="Source not found",
         )
     return source
+
+
+async def require_source_ownership(
+    source_id: int,
+    api_key: str = Depends(api_key_header),
+    session: AsyncSession = Depends(get_db_session),
+) -> ApplicationSource:
+    """Auth for source-scoped management endpoints.
+
+    Behaves like `get_current_source`, but additionally requires the caller
+    to own the target source. A mismatch raises 404 (not 403) so the endpoint
+    does not confirm whether other sources exist.
+    """
+    current = await get_current_source(api_key=api_key, session=session)
+    if current.id != source_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Source not found",
+        )
+    return current

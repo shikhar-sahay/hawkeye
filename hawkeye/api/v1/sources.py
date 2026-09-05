@@ -1,4 +1,4 @@
-﻿"""Source and API key management API endpoints."""
+"""Source and API key management API endpoints."""
 
 from datetime import datetime
 
@@ -12,6 +12,7 @@ from hawkeye.api.deps import (
     get_current_source,
     get_session,
     require_source_for_key_creation,
+    require_source_ownership,
 )
 from hawkeye.core.auth import generate_api_key
 from hawkeye.models.events import (
@@ -160,7 +161,7 @@ async def get_source_event_counts(
 )
 async def get_source(
     source_id: int,
-    _source: ApplicationSource = Depends(get_current_source),
+    _source: ApplicationSource = Depends(require_source_ownership),
     session: AsyncSession = Depends(get_session),
 ) -> SourceResponse:
     """Get a single source by ID."""
@@ -184,7 +185,7 @@ async def get_source(
 )
 async def delete_source(
     source_id: int,
-    _source: ApplicationSource = Depends(get_current_source),
+    _source: ApplicationSource = Depends(require_source_ownership),
     session: AsyncSession = Depends(get_session),
 ) -> None:
     """Permanently delete a source together with its API keys, events,
@@ -241,7 +242,7 @@ async def delete_source(
 async def update_source(
     source_id: int,
     update: SourceUpdate,
-    _source: ApplicationSource = Depends(get_current_source),
+    _source: ApplicationSource = Depends(require_source_ownership),
     session: AsyncSession = Depends(get_session),
 ) -> SourceResponse:
     """Update a source's details."""
@@ -320,7 +321,7 @@ async def list_api_keys(
     source_id: int,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
-    _source: ApplicationSource = Depends(get_current_source),
+    _source: ApplicationSource = Depends(require_source_ownership),
     session: AsyncSession = Depends(get_session),
 ) -> ApiKeyListResponse:
     """List all API keys for a source (hashes only)."""
@@ -361,7 +362,7 @@ async def update_api_key(
     source_id: int,
     key_id: int,
     update: ApiKeyUpdate,
-    _source: ApplicationSource = Depends(get_current_source),
+    _source: ApplicationSource = Depends(require_source_ownership),
     session: AsyncSession = Depends(get_session),
 ) -> ApiKeyResponse:
     """Update an API key's properties."""
@@ -394,7 +395,7 @@ async def update_api_key(
 async def revoke_api_key(
     source_id: int,
     key_id: int,
-    _source: ApplicationSource = Depends(get_current_source),
+    _source: ApplicationSource = Depends(require_source_ownership),
     session: AsyncSession = Depends(get_session),
 ) -> None:
     """Revoke (deactivate) an API key."""
