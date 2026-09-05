@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] - Migration-readiness audit fixes (2026-09-05)
+
+### Fixed
+- **PostgreSQL blocker**: incident `search` / `affected_ip` / `affected_user`
+  filters used `ILIKE` directly on JSON columns, which PostgreSQL rejects
+  (`jsonb` has no `~~*` operator). Filters now `CAST` to `VARCHAR` first -
+  verified compiling on both dialects and live on SQLite.
+- **PostgreSQL blocker**: `asyncpg` was not installed nor declared, so any
+  `DATABASE_URL=postgresql+asyncpg://...` would crash at startup. Added to
+  `pyproject.toml` and `requirements.txt`.
+- Login backend-unreachable message no longer references `port 8000`.
+- Dockerfile `HEALTHCHECK` honors `$PORT` instead of hardcoded 8000.
+- `scripts/seed_demo_data.py` and `scripts/cleanup_test_sources.py` refuse
+  to run with `ENVIRONMENT=production` unless `--force` is passed (the seed
+  script embeds a publicly known demo API key).
+- Corrected the `VITE_WS_URL` code comment (bare origin; `/ws` is appended
+  by the code), matching `.env.production.example` and `docs/deployment.md`.
+
+---
+
 ## [2.9.2] - 2026-08-26 - Dialog Width Fix, Side-List Layout, Refresh/Search UX, Deployment Prep
 
 ### Fixed
