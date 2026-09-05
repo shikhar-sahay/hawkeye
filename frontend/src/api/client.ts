@@ -28,6 +28,7 @@ import type {
   TimeSeriesDataPoint,
   MITRECoverage,
   SourceEventCounts,
+  RealtimeTokenResponse,
 } from "@/types";
 import { getStoredApiKey, notifyUnauthorized } from "@/auth";
 
@@ -157,6 +158,19 @@ class ApiClient {
 
   async getSourceEventCounts(): Promise<SourceEventCounts[]> {
     return this.request<SourceEventCounts[]>("/sources/event-counts");
+  }
+
+  // ==================== Realtime ====================
+
+  /**
+   * Mint a short-lived Supabase Realtime JWT for the caller's source.
+   * Authenticated with the stored HawkEye API key; the source_id claim is
+   * derived server-side and cannot be influenced by the caller.
+   */
+  async getRealtimeToken(): Promise<RealtimeTokenResponse> {
+    return this.request<RealtimeTokenResponse>("/realtime-token", {
+      method: "POST",
+    });
   }
 
   // ==================== Events ====================

@@ -322,3 +322,13 @@ export interface AppSettings {
   notifications_enabled: boolean;
   auto_refresh_interval: number;
 }
+
+// ==================== Realtime Types ====================
+
+/** Short-lived Supabase Realtime JWT minted by POST /api/v1/realtime-token */
+export interface RealtimeTokenResponse {
+  token: string;
+  token_type: string;
+  expires_in: number;
+  source_id: number;
+}
