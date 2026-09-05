@@ -87,5 +87,15 @@ async def cleanup(dry_run: bool = False) -> None:
 
 
 if __name__ == "__main__":
+    # Safety: this script deletes data. Refuse to run against production
+    # unless explicitly forced.
+    from hawkeye.config import settings
+
+    if settings.environment == "production" and "--force" not in sys.argv:
+        print(
+            "Refusing to delete data with ENVIRONMENT=production. "
+            "Re-run with --force if you really mean it."
+        )
+        sys.exit(2)
     dry = "--dry-run" in sys.argv
     asyncio.run(cleanup(dry_run=dry))

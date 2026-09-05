@@ -1071,4 +1071,12 @@ async def main():
 
 
 if __name__ == "__main__":
+    # Safety: never seed demo data (including a publicly known demo API key)
+    # into a production database unless explicitly forced.
+    if settings.environment == "production" and "--force" not in sys.argv:
+        print(
+            "Refusing to seed demo data with ENVIRONMENT=production. "
+            "Re-run with --force if you really mean it."
+        )
+        sys.exit(2)
     asyncio.run(main())

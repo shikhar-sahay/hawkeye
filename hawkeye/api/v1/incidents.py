@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import String, cast
 from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -98,15 +99,18 @@ async def list_incidents(
         stmt = stmt.where(
             Incident.title.ilike(search_term) |
             Incident.description.ilike(search_term) |
-            Incident.affected_ips.ilike(search_term) |
-            Incident.affected_users.ilike(search_term)
+            # affected_*/mitre_* are JSON columns: ILIKE is text-only, so cast
+            # to VARCHAR first. CAST(json AS VARCHAR) works on both SQLite
+            # (stored as TEXT) and PostgreSQL (jsonb -> text).
+            cast(Incident.affected_ips, String).ilike(search_term) |
+            cast(Incident.affected_users, String).ilike(search_term)
         )
     if affected_ip:
         # affected_ips is a JSON array column; a substring match against the
         # serialized array is sufficient for exact-IP filtering
-        stmt = stmt.where(Incident.affected_ips.ilike(f"%{affected_ip}%"))
+        stmt = stmt.where(cast(Incident.affected_ips, String).ilike(f"%{affected_ip}%"))
     if affected_user:
-        stmt = stmt.where(Incident.affected_users.ilike(f"%{affected_user}%"))
+        stmt = stmt.where(cast(Incident.affected_users, String).ilike(f"%{affected_user}%"))
     if start_time:
         stmt = stmt.where(Incident.created_at >= start_time)
     if end_time:

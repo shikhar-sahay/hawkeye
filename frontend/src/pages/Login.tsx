@@ -68,7 +68,7 @@ export function LoginPage() {
         // Backend unreachable (directly or via a dev-proxy 5xx). This is not
         // an auth problem - keep the entered key and explain what to do.
         setError(
-          "Could not reach the Hawkeye backend. Make sure the server is running on port 8000, then try again."
+          "Could not reach the Hawkeye backend. Make sure the backend is reachable, then try again."
         );
         setStoredApiKey(key);
       } else {
