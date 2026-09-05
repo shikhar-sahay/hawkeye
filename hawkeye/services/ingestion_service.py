@@ -43,16 +43,27 @@ class IngestionService:
                 "metadata": normalized.event_metadata,
                 "mitre_tactic": normalized.mitre_tactic,
                 "mitre_technique": normalized.mitre_technique,
-                "created_at": normalized.created_at.isoformat() + "Z" if normalized.created_at else None,
+                # Model has no separate created_at field; REST maps timestamp
+                # the same way (see _event_to_response in api/v1/events.py)
+                "created_at": normalized.timestamp.isoformat() + "Z" if normalized.timestamp else None,
             }
-            sent = await connection_manager.broadcast_custom("event", event_data, source_id)
+            # NOTE: the wire message type is "event" (singular, matching the
+            # frontend handler) while the subscription bucket is "events"
+            # (plural, matching subscribe/unsubscribe). They must not be
+            # conflated or no subscriber ever receives event broadcasts.
+            sent = await connection_manager.broadcast_custom(
+                "event", event_data, source_id, subscription_type="events"
+            )
             if sent > 0:
                 from hawkeye.config import settings
                 logger = __import__("logging").getLogger(__name__)
                 logger.debug("Broadcast event %s to %d WebSocket connections", normalized.id, sent)
         except Exception:
-            # Don't fail ingestion if broadcast fails
-            pass
+            # Don't fail ingestion if broadcast fails, but log loudly: a
+            # silent pass here once hid a bug that killed all live events.
+            __import__("logging").getLogger(__name__).warning(
+                "Failed to broadcast event %s", getattr(normalized, "id", "?"), exc_info=True
+            )
 
     async def ingest_event(
         self, event: RawEventIngest, source: "ApplicationSource"

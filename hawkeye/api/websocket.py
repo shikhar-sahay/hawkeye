@@ -383,15 +383,22 @@ class ConnectionManager:
         return await self._broadcast(message, "incidents", source_id)
 
     async def broadcast_custom(
-        self, message_type: str, data: dict[str, Any], source_id: int | None = None
+        self,
+        message_type: str,
+        data: dict[str, Any],
+        source_id: int | None = None,
+        subscription_type: str | None = None,
     ) -> int:
         """
         Broadcast a custom message type to all subscribed connections.
 
         Args:
-            message_type: Custom message type identifier
+            message_type: Custom message type identifier (sent as message["type"])
             data: Payload to broadcast
             source_id: Optional source ID to filter connections
+            subscription_type: Subscription bucket to match against. Defaults
+                to message_type. Needed when the wire type differs from the
+                subscription name (e.g. type "event" vs subscription "events").
 
         Returns:
             Number of connections that received the message
@@ -403,7 +410,7 @@ class ConnectionManager:
             "event_id": event_id,
             "data": data,
         }
-        return await self._broadcast(message, message_type, source_id)
+        return await self._broadcast(message, subscription_type or message_type, source_id)
 
     async def _broadcast(
         self, message: dict[str, Any], subscription_type: str, source_id: int | None = None

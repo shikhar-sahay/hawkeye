@@ -427,3 +427,73 @@ class TestWebSocketStats:
         # Cleanup
         await connection_manager.disconnect(list(connection_manager._connections.keys())[0])
         await connection_manager.disconnect(list(connection_manager._connections.keys())[0])
+
+class TestBroadcastSubscriptionRouting:
+    """Event broadcasts must reach subscribers of the "events" bucket while
+    keeping the wire message type "event" (singular). Regression tests for
+    the singular/plural mismatch that silently dropped all live events."""
+
+    def _source(self, source_id: int) -> ApplicationSource:
+        return ApplicationSource(id=source_id, name=f"src-{source_id}")
+
+    def _mock_ws(self) -> AsyncMock:
+        mock_ws = AsyncMock()
+        mock_ws.accept = AsyncMock()
+        mock_ws.close = AsyncMock()
+        mock_ws.send_json = AsyncMock()
+        return mock_ws
+
+    @pytest.mark.asyncio
+    async def test_event_broadcast_reaches_events_subscribers(self, ws_manager):
+        """broadcast_custom("event", ..., subscription_type="events") delivers
+        to {"events"} subscribers with type "event" on the wire."""
+        mock_ws = self._mock_ws()
+        await ws_manager.connect(mock_ws, self._source(1), {"events"})
+
+        sent = await ws_manager.broadcast_custom(
+            "event", {"id": 1}, 1, subscription_type="events"
+        )
+
+        assert sent == 1
+        payload = mock_ws.send_json.call_args[0][0]
+        assert payload["type"] == "event"
+        assert payload["data"] == {"id": 1}
+
+    @pytest.mark.asyncio
+    async def test_event_broadcast_skips_other_subscriptions(self, ws_manager):
+        """An {"alerts"}-only subscriber must not receive event broadcasts."""
+        mock_ws = self._mock_ws()
+        await ws_manager.connect(mock_ws, self._source(1), {"alerts"})
+
+        sent = await ws_manager.broadcast_custom(
+            "event", {"id": 1}, 1, subscription_type="events"
+        )
+
+        assert sent == 0
+        mock_ws.send_json.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_event_broadcast_scoped_to_source(self, ws_manager):
+        """Event broadcasts only reach connections of the same source."""
+        mock_ws = self._mock_ws()
+        await ws_manager.connect(mock_ws, self._source(2), {"events"})
+
+        sent = await ws_manager.broadcast_custom(
+            "event", {"id": 1}, 1, subscription_type="events"
+        )
+
+        assert sent == 0
+        mock_ws.send_json.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_default_subscription_type_matches_message_type(self, ws_manager):
+        """Without subscription_type, the message type itself is the bucket
+        (existing behavior for alerts/incidents)."""
+        mock_ws = self._mock_ws()
+        await ws_manager.connect(mock_ws, self._source(1), {"alerts"})
+
+        sent = await ws_manager.broadcast_alert({"id": 7}, 1)
+
+        assert sent == 1
+        payload = mock_ws.send_json.call_args[0][0]
+        assert payload["type"] == "alert"
