@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+---
+
+## [Unreleased] - Live WebSocket event delivery fix (2026-09-05)
+
+### Fixed
+- **P0: live event broadcasts never reached any subscriber.** Two stacked
+  bugs, both silent: (1) `broadcast_custom("event", ...)` used the wire
+  message type as the subscription filter, but subscribers use `"events"`
+  (plural), so every event broadcast matched zero connections; (2)
+  `_broadcast_event` read `normalized.created_at`, which does not exist on
+  the model (`AttributeError`), and the bare `except: pass` swallowed it.
+  Fixed by decoupling message type from subscription bucket (new
+  `subscription_type` parameter), mapping `created_at` from `timestamp`
+  (same convention as the REST mapper), and logging broadcast failures
+  loudly instead of swallowing them. 4 regression tests in
+  `TestBroadcastSubscriptionRouting`.
+- Verified live on real PostgreSQL 16: ingest returns 202, the event row
+  arrives over WS with type `event`, and 6 rapid failures produce live
+  `alert` + `incident` broadcasts; dashboard Events page updates without
+  refresh.
+
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 

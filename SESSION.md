@@ -10,7 +10,17 @@
 ## Current Active Engineering Task
 
 ### Task ID: SEC-RELEASE-01 — Security hardening and production release verification
-### Status: **COMPLETE - see final report in chat for GO verdict**
+### Status: **COMPLETE - plus P0 WS live-delivery fix found during PG verification**
+
+**Additional work this session (see CHANGELOG [Unreleased]):**
+- While verifying WebSockets against real PostgreSQL 16, discovered live
+  event broadcasts NEVER worked: singular/plural subscription mismatch plus
+  `AttributeError: created_at` swallowed by bare `except: pass`.
+- Fixed (`subscription_type` param, `created_at` from `timestamp`, loud
+  logging), 4 regression tests, 47/47 suite green.
+- Proven live on PG16 and through the dashboard UI (Events page updates with
+  zero refresh and zero console errors); alert+incident live fan-out proven
+  with a 6-failure brute-force burst.
 
 **What was done:**
 1. Phase 0: clean baseline confirmed (HEAD == origin/master, tag intact).

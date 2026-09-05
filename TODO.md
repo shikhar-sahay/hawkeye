@@ -539,6 +539,7 @@ Each task has:
 | **DEPLOY-01** | Dialog width cap fix, event detail widened, alerts/incidents side lists, dashboard refresh, search reset on nav, Vercel/Render deploy prep, legacy-v1 tag | 2026-08-26 |
 | **AUDIT-MIGRATE-01** | Migration-readiness audit (Vercel + Render + PG) | 2026-09-05 |
 | **SEC-RELEASE-01** | Source ownership enforcement, expiry enforcement, ingestion error sanitization, deployment docs hardening | 2026-09-05 |
+| **WS-LIVE-01** | Fixed silently-dead live event broadcasts (subscription mismatch + missing created_at), 4 regression tests, proven live on PG16 and dashboard UI | 2026-09-05 |
 
 **Total Completed: 45 tasks**
 
