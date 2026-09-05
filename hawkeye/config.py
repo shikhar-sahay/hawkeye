@@ -44,6 +44,14 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60
 
+    # Supabase Realtime (production split deployment only)
+    # SUPABASE_JWT_SECRET must equal the Supabase project's JWT secret: it
+    # signs the short-lived realtime tokens minted by POST /realtime-token.
+    # Never commit a value, never expose it under VITE_*. When unset, the
+    # endpoint returns 503 (local SQLite dev does not need it).
+    supabase_jwt_secret: str | None = None
+    realtime_token_ttl_seconds: int = 3600
+
     # Detection Thresholds
     brute_force_max_attempts: int = 5
     brute_force_window_minutes: int = 15

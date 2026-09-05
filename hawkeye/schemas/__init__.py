@@ -39,6 +39,7 @@ from hawkeye.schemas.sources import (
     SourceResponse,
     SourceUpdate,
 )
+from hawkeye.schemas.realtime import RealtimeTokenResponse
 
 __all__ = [
     "RawEventIngest",
@@ -69,4 +70,5 @@ __all__ = [
     "SourceListResponse",
     "SourceResponse",
     "SourceUpdate",
+    "RealtimeTokenResponse",
 ]
