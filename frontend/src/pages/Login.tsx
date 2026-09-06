@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
 import { apiClient, ApiError } from "@/api/client";
 import { setStoredApiKey, hasUserApiKey, clearStoredApiKey } from "@/auth";
+import { useBackendReadiness } from "@/context/BackendReadinessContext";
 import { useRouteMeta } from "@/hooks/useRouteMeta";
 
 /**
@@ -39,6 +40,7 @@ export function LoginPage() {
   const [showKey, setShowKey] = React.useState(false);
   const [isSigningIn, setIsSigningIn] = React.useState(false);
   const [error, setError] = React.useState<string | null>(location.state?.message ?? null);
+  const { status: backendStatus, isWaking: backendWaking } = useBackendReadiness();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,6 +134,29 @@ export function LoginPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {backendWaking && backendStatus !== "failed" && (
+                <div
+                  className="mb-4 flex items-center gap-2.5 rounded-md border border-primary/20 bg-primary/5 px-3 py-2.5 text-sm"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary animate-pulse-dot" aria-hidden="true" />
+                  <span className="text-muted-foreground">
+                    The backend is waking up. You can still enter your key - we will sign you in once it is ready.
+                  </span>
+                </div>
+              )}
+              {backendStatus === "failed" && (
+                <div
+                  className="mb-4 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-2.5 text-sm text-destructive"
+                  role="alert"
+                >
+                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                  <span>
+                    The backend has not responded after a couple of minutes. Please try again or check the service status.
+                  </span>
+                </div>
+              )}
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="login-api-key">API key</Label>

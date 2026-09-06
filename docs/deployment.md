@@ -108,10 +108,19 @@ Both default to empty (same origin) - see `frontend/.env.production.example`.
 2. Deploy, then verify:
    - `GET https://<backend>/health` → `{"status": "healthy"}`
    - `GET https://<backend>/docs` → should be **404** (production mode)
-   - Tables are created automatically on first boot (`create_all()`); there
-     are no Alembic migrations yet, so a fresh database is required. Do not
-     point a release at a database containing an older schema without a
-     migration plan.
+  - Tables are created automatically on first boot (`create_all()`); there
+      are no Alembic migrations yet, so a fresh database is required. Do not
+      point a release at a database containing an older schema without a
+      migration plan.
+   **Cold-start behavior:** the frontend now shows a dedicated "HawkEye is
+   waking up" state (instead of generic fetch errors) while the backend is
+   cold-starting. The check uses the same `/health` endpoint with
+   exponential-backoff polling (1200ms to 20s, capped). WebSocket connection
+   is deferred until health succeeds, so the console is not spammed with
+   handshake failures. Once the backend responds, the dashboard loads
+   automatically without a manual refresh. See `frontend/src/context/
+   BackendReadinessContext.tsx` and `frontend/src/components/
+   BackendWakingScreen.tsx` for the implementation.
 3. Bootstrap the first source + key **immediately** (the endpoints are open
    only while zero sources/keys exist, so do this before announcing the URL):
    ```bash
@@ -146,6 +155,10 @@ Both default to empty (same origin) - see `frontend/.env.production.example`.
    Render to include it.
 
 ### 5.3 Verification checklist before touching the old deployment
+- [ ] Landing page loads instantly on Vercel (static, no backend dependency)
+- [ ] Navigating to `/login` while Render is waking shows the waking state
+  (not a generic network error) and transitions to the login form once
+  the backend is ready
 - [ ] Backend `/health` healthy; docs disabled
 - [ ] Login works against the production backend
 - [ ] Dashboard stats, charts, events, alerts, incidents, sources load
@@ -156,6 +169,8 @@ Both default to empty (same origin) - see `frontend/.env.production.example`.
 - [ ] Expired/revoked keys are rejected on REST and WebSocket
 - [ ] Cross-source management returns 404 (e.g. key of source A cannot read
   source B)
+- [ ] After backend wake, WebSocket connects automatically without manual
+  refresh and no console error spam during the waking period
 - [ ] Production logs contain no secrets or tracebacks
 - [ ] All three themes, mobile layout, and 404 route behave
 

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { API_KEY_STORAGE, getStoredApiKey } from "@/auth";
+import { useBackendReadinessOptional } from "@/context/BackendReadinessContext";
 
 /**
  * WebSocket message types matching the backend protocol
@@ -267,9 +268,8 @@ export function WebSocketProvider({
 
   const getConfig = React.useCallback(() => config, [config]);
 
-  // Get API key from localStorage (fallback: build-time VITE_API_KEY for dev).
-  // Use state to make it reactive to localStorage changes.
-  // Config apiKey takes precedence if provided
+  // Get API key from localStorage. Use state to make it reactive to
+  // localStorage changes. Config apiKey takes precedence if provided.
   const [apiKey, setApiKey] = React.useState<string | null>(() => getStoredApiKey());
 
   // Listen for localStorage changes to update apiKey (cross-tab)
@@ -640,14 +640,24 @@ export function WebSocketProvider({
   }, [send]);
 
   // Single effect: ensure a connection exists whenever we have an API key.
-  // Idempotent: connect() itself is a no-op when a socket is already
-  // OPEN/CONNECTING, so StrictMode double-mount, HMR remounts, and route
-  // changes all safely re-ensure the connection instead of leaving a closed
-  // socket behind (the previous key-comparison check skipped connect() on
-  // remount and left the indicator stuck).
+  // Defers connection while the backend is waking (Render cold start) so
+  // the browser console is not spammed with failed handshake errors.
+  const backendReadiness = useBackendReadinessOptional();
+  const backendReady = backendReadiness?.isReady ?? true;
+
   React.useEffect(() => {
     isMountedRef.current = true;
     setIsInitialized(!!apiKey);
+
+    // While the backend is still waking, tear down any stale socket and
+    // wait. The effect re-runs when backendReady flips to true (via the
+    // BackendReadiness gate unblocking the route) or when apiKey changes.
+    if (!backendReady) {
+      if (wsRef.current) cleanupDisconnect();
+      return () => {
+        isMountedRef.current = false;
+      };
+    }
 
     if (apiKey) {
       if (apiKey !== connectedApiKeyRef.current) {
@@ -670,7 +680,7 @@ export function WebSocketProvider({
       cleanupDisconnect();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey]);
+  }, [apiKey, backendReady]);
 
   const value: WebSocketContextValue = {
     status,

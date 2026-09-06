@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
 import { cn } from "@/lib/utils";
 import { Toaster } from "sonner";
+import { BackendReadyGate } from "@/components/BackendWakingScreen";
 import { WebSocketProvider } from "@/context/WebSocketContext";
 import { UNAUTHORIZED_EVENT, clearStoredApiKey } from "@/auth";
 
@@ -79,7 +80,9 @@ export function AppLayout() {
             )}
           >
             <div className="max-w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-              <Outlet />
+              <BackendReadyGate>
+                <Outlet />
+              </BackendReadyGate>
             </div>
           </main>
         </div>
